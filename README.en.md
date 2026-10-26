@@ -2,16 +2,18 @@
   <img src="resources/peach-logo.png" alt="Peach" width="96">
 </p>
 
-<h1 align="center">Peach</h1>
+<h1 align="center">PeachDesktop</h1>
 
-<p align="center">A private video library: local drives, cloud drives and the creators you follow, all in one place.</p>
+<p align="center">A Windows desktop customization of Peach, with a WebView2 window and PotPlayer or built-in playback.</p>
+
+> **Modified version notice · 2026-10-26**: Based on [peach-mitao/peach](https://github.com/peach-mitao/peach), Copyright (C) 2026 longmeidao. This fork is independently maintained by [guoman630308-oss](https://github.com/guoman630308-oss). Application code remains [AGPL-3.0-or-later](LICENSE); third-party components retain their own licenses. See the [fork reference](docs/FORK.md) and [NOTICE](NOTICE.md) for attribution, changes and distribution requirements.
 
 <p align="center">
-  <a href="https://peach.video">Website</a> ·
-  <a href="https://github.com/peach-mitao/peach/releases">Download installers</a> ·
-  <a href="https://demo.peach.video">Live demo</a> ·
-  <a href="https://github.com/peach-mitao/peach/releases/tag/intro-video">Intro video</a> ·
-  <a href="https://github.com/peach-mitao/peach/issues">Report a problem</a> ·
+  <a href="https://peach.video">Upstream website</a> ·
+  <a href="https://github.com/guoman630308-oss/peach-desktop/releases">Fork releases</a> ·
+  <a href="https://demo.peach.video">Upstream demo</a> ·
+  <a href="https://github.com/peach-mitao/peach/releases/tag/intro-video">Upstream intro video</a> ·
+  <a href="https://github.com/guoman630308-oss/peach-desktop/issues">Fork issues</a> ·
   <a href="https://github.com/orgs/peach-mitao/projects/7/views/1">Requests board</a> ·
   <a href="https://github.com/orgs/peach-mitao/projects/7/views/3">Roadmap</a> ·
   <a href="#documentation">Documentation</a> ·
@@ -19,8 +21,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/peach-mitao/peach/releases"><img src="https://img.shields.io/github/v/release/peach-mitao/peach?include_prereleases&amp;filter=v*&amp;sort=semver&amp;display_name=tag" alt="release"></a>
-  <a href="https://github.com/peach-mitao/peach/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/peach-mitao/peach/test.yml?branch=master&amp;label=tests&amp;logo=githubactions&amp;logoColor=white" alt="CI status"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue?logo=gnu&amp;logoColor=white" alt="license"></a>
   <a href="docs/TESTING_DESKTOP.md"><img src="https://img.shields.io/badge/Windows-x64-0078D4" alt="Windows x64"></a>
   <a href="docs/OPERATIONS.md#macos-独立测试包"><img src="https://img.shields.io/badge/macOS-DMG-555555?logo=apple&amp;logoColor=white" alt="Build and install the standalone macOS app"></a>
@@ -31,7 +31,20 @@ https://github.com/user-attachments/assets/a5610874-e611-41bb-be22-7d99f0d64b62
 
 > **18+** For adults managing their own adult-content collections. The repository contains no media or site data. Access to outside sites requires the appropriate accounts and permissions.
 
+## Customizations and resource use
+
+- **Windows window**: WebView2 displays the Peach interface, with the tray owning the local service. External websites and manual verification use the system browser.
+- **PotPlayer playback**: detect PotPlayer or select another executable. External playback is the default in the Windows window, with built-in playback available in the player area. External progress is not synchronized.
+- **Playback-aware previews**: local cards do not start hover video previews in external-player mode, reducing background conversion and cache writes while browsing.
+- **Single-file import**: select one video inside a configured media directory and register, probe and collect metadata for that file.
+- **JavLibrary source**: search and parse matching titles, preserve exact code checks and reuse manual browser verification within the existing source chain and cooldown policy.
+- **Navigation**: return to a directory index with filters, loaded pages and scroll position preserved. The back icon has no normal border and shares sidebar icon colors; the gray marker stays on the selected navigation item.
+
+Scanning, performer/code relationships, tags, favorites, follows, cloud downloads and the built-in player originate from Peach. See the [module reference and known limitations](docs/FORK.md) for the full scope. Windows x64 is this fork's validated platform. A general movie/TV/season/episode data model remains future work.
+
 ## Features
+
+The following core capabilities are inherited from upstream. Enable network sources, follows and downloads through their settings.
 
 - **Local and cloud together**: browse hard drives and mounted cloud drives, including 115, PikPak and OneDrive, in one library.
 - **Pick from the video wall**: drag through a full-screen cover wall and play in place, with versions and parts of the same title grouped together.
@@ -52,6 +65,8 @@ The combined "Send version statistics and error diagnostics (recommended)" optio
 Sharing library and taste details is a separate option in the installer and settings, off by default. Review the complete fields and local preview before explicitly consenting to weekly snapshots of works, tags, ratings, viewing summaries and every preference dimension. Account, device and installation identifiers are excluded. Detailed snapshots can still be linked or re-identified, and the receiving service can see the connection IP. See the [diagnostics reference](docs/DIAGNOSTICS.md#馆藏与口味群体研究).
 
 ## Screenshots
+
+These videos and screenshots belong to the upstream demonstration and illustrate the inherited library interface. See [the Windows window guide](docs/NATIVE_WINDOW.md) for this fork's desktop behavior.
 
 Try search, filters and profiles in the [read-only demo](https://demo.peach.video). Click a screenshot for the original image.
 
@@ -84,15 +99,28 @@ Try search, filters and profiles in the [read-only demo](https://demo.peach.vide
 
 ### Windows
 
-1. Download the full installer, `Peach-<version>-windows-x64-setup.exe`, from [Releases](https://github.com/peach-mitao/peach/releases) and run it. No administrator rights needed. Alternatively, extract the full portable package and run `Peach.exe`.
-2. Choose media directories and access permissions on the setup page that opens in your browser.
-3. Start scanning, then browse and play in your browser.
+1. Use the actual `PeachDesktop-<version>-windows-x64-setup.exe` assets on [this fork's Releases](https://github.com/guoman630308-oss/peach-desktop/releases), or extract a window portable package and run `Peach.exe`. Build from source when the desired asset is not published.
+2. Microsoft Edge WebView2 Runtime is required. Choose media directories and access permissions inside the desktop setup window.
+3. Scan and browse your collection. Clicking a video opens the configured external player; built-in playback remains available in the player area.
 
-The full installer includes media tools for offline installation. The smaller lite installer downloads tools as needed during setup.
+The full window package includes media tools. Source credentials, manual verification and the optional amane bridge are configured separately; see [the Windows window guide](docs/NATIVE_WINDOW.md).
 
-Test builds are unsigned. If Windows says “Windows protected your PC”, confirm the file came from this project's Releases, then choose “More info → Run anyway”. See the [Windows guide](docs/TESTING_DESKTOP.md) for installation, updates and troubleshooting.
+Window test builds are unsigned. Check the release source and checksums before installation. See the [Windows guide](docs/TESTING_DESKTOP.md) for installation, updates and troubleshooting.
+
+Build on Windows x64 with Git, uv, Python 3.14, Node.js 24 and Inno Setup 6:
+
+```powershell
+uv sync --locked --all-extras
+npm --prefix frontend ci
+npm --prefix frontend run build
+& .\scripts\build_windows.ps1 -EmbeddedWindow -Installer
+```
+
+Player mode and executable path are available under Peach configuration → Media library and import → Player. See [external players](docs/EXTERNAL_PLAYERS.md).
 
 ### Build on macOS
+
+The macOS and Docker entry points below are inherited from upstream. This fork's platform validation covers Windows x64.
 
 Build a self-contained `.app` and DMG locally on macOS. Running it requires neither Python, a source checkout, nor another computer. See [the macOS build guide](docs/OPERATIONS.md#macos-独立测试包).
 
@@ -113,15 +141,17 @@ See [Docker deployment](docs/DOCKER.md) for setup and supported configurations.
 - **Will it change my files?** Scanning and filling in details leave originals untouched. Manual organization renames or moves files; emptying the trash deletes files, and resource-sync cleanup removes empty folders. Each requires confirmation.
 - **Which cloud drives work?** Drives mounted as local folders through tools such as CloudDrive2; see [cloud drive mounts](docs/CLOUDDRIVE.md). Cloud download supports 115 and PikPak, with sign-in tokens stored locally.
 - **How do I watch on my phone?** Allow devices on the same network during setup, connect your phone to that network, open the address shown and set an access password.
-- **Where is my data?** In the local `peach-data` folder. The Windows build defaults to `%LOCALAPPDATA%\Peach\peach-data`.
+- **Where is my data?** The Windows window defaults to `%LOCALAPPDATA%\PeachDesktop\peach-data`. Setup can select another data directory for the library, settings, posters and generated caches; original video files stay in their media directories. Close the application before moving or backing up data.
+- **Does external playback produce caches?** Local files are passed directly to the external player without Peach playback conversion. Scan previews, downloaded artwork and manually selected built-in playback can still produce their own caches.
+- **How are sources configured?** Use the built-in source settings for JavLibrary; an ordinary website page is not a custom JSON API. See [sourcing](docs/SOURCING.md).
 
 ## Reporting problems
 
-Check [user feedback](https://github.com/peach-mitao/peach/issues), or [open an issue](https://github.com/peach-mitao/peach/issues/new/choose) with the version, steps, expected result and actual result. Hide credentials, LAN addresses and full paths in screenshots; do not upload databases or media. Report security issues privately through the [security policy](SECURITY.md).
+Report fork-specific problems in [this repository's Issues](https://github.com/guoman630308-oss/peach-desktop/issues), with the version, steps, expected result and actual result. Hide credentials, LAN addresses and full paths in screenshots; do not upload databases or media. See the [security policy](SECURITY.md) for sensitive reports. Upstream feedback remains available in [the original repository](https://github.com/peach-mitao/peach/issues).
 
 ## Documentation
 
-[Operations](docs/OPERATIONS.md) · [Sourcing](docs/SOURCING.md) · [External players](docs/EXTERNAL_PLAYERS.md) · [Changelog](CHANGELOG.md)
+[Fork reference](docs/FORK.md) · [Windows window](docs/NATIVE_WINDOW.md) · [Operations](docs/OPERATIONS.md) · [Sourcing](docs/SOURCING.md) · [External players](docs/EXTERNAL_PLAYERS.md) · [Changelog](CHANGELOG.md)
 
 Contributing: [Development guide](AGENTS.md) · [Testing and dependencies](docs/TESTING.md)
 
@@ -130,6 +160,8 @@ Contributing: [Development guide](AGENTS.md) · [Testing and dependencies](docs/
 Thanks to [amane](https://github.com/sqzw-x/amane), [Gfriends](https://github.com/gfriends/gfriends), [CloudDrive2](https://www.clouddrive2.com/) and others. See the [reuse inventory](docs/REUSE.md) for full credits and details.
 
 ## Star History
+
+The following statistics belong to the upstream Peach project.
 
 <a href="https://www.star-history.com/?repos=peach-mitao%2Fpeach&amp;type=date&amp;logscale=&amp;releases=&amp;legend=top-left">
   <picture>
@@ -142,3 +174,5 @@ Thanks to [amane](https://github.com/sqzw-x/amane), [Gfriends](https://github.co
 ## License
 
 [AGPL-3.0-or-later](LICENSE) · Copyright (C) 2026 longmeidao. Third-party components retain their own licenses.
+
+Fork modifications are maintained by guoman630308-oss, with a modification notice dated 2026-10-26. See [distribution requirements](docs/FORK.md#许可与再分发) for corresponding-source and remote-access obligations.
