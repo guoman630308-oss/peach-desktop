@@ -1,0 +1,67 @@
+/* 资料卡的等待态（`entitySkeletonHtml`）：一块 --ground 底、浮层圆角、不描边的卡，卡底那条
+   色阶带是同台艺人的位置。画好的资料卡归 React（`frontend/src/react/entity-hero/`），几何与这里
+   一一对齐，骨架换成真卡时高度不跳。`overflow:hidden` 让底带的直角被卡的圆角裁掉。 */
+.entityhero{display:flex;flex-direction:column;margin:0 0 22px;border-radius:var(--floating-radius);
+  background:var(--ground);overflow:hidden;min-width:0;max-width:100%}
+/* 头像按身份列有哪几行定尺寸（真卡见 `entity-hero.css`）：骨架只画名字、别名和外链三行，
+   没有看片那一行，落在 120px 那一档。 */
+.entityprofile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;padding:20px;
+  align-items:center;min-width:0;--portrait-size:120px}
+/* 女优有资料时多出第三栏：右边那张资料表（ADR-0069），和身份信息之间隔一道竖线。
+   宽 280–360px：生日、身材一行放得下，出道片名截断后还剩一半字。
+   三栏的判据是内容区的宽度，不是视口：侧栏展开时同一个窗口留给卡的宽度少两百多像素，
+   按视口断点的话 1000px 的窗口里身份那一栏只剩 44px，名字竖着排。内容区不到 900px
+   （头像 160、两道间隔、资料表 360 之外身份栏还有 300）时它排到身份信息下面，隔的线换成
+   横的；760px 以下整张卡单列居中，表里仍左对齐，两列字才对得齐。容器查询做不了这件事：
+   它顺带的布局隔离会让卡里那几枚 fixed 定位的菜单和遮罩改以卡为基准，所以宽度由
+   `#index` 上的 `data-hero-wide` 带进来（`syncHeroWide`）。 */
+#index[data-hero-wide] .entityprofile:has(>.entityfacts){grid-template-columns:auto minmax(0,1fr) minmax(280px,360px)}
+.entityfacts{margin:0;align-self:stretch;justify-self:stretch;align-content:center;display:grid;
+  grid-template-columns:auto minmax(0,1fr);gap:10px 16px;min-width:0;padding:2px 0 2px 24px;
+  border-left:1px solid var(--line-soft);font-size:var(--fs-sm);line-height:22px;text-align:left}
+#index:not([data-hero-wide]) .entityfacts{grid-column:1/-1;border-left:0;border-top:1px solid var(--line-soft);padding:14px 0 0}
+.entityfacts dt{display:flex;align-items:center;align-self:start;gap:6px;color:var(--muted);white-space:nowrap}
+.entityfacts dd{margin:0;min-width:0;color:var(--ink)}
+.entityportrait{height:var(--portrait-size);width:auto;
+  aspect-ratio:1;border-radius:50%;overflow:hidden;background:var(--overlay-5);
+  display:grid;place-items:center;font-size:var(--fs-4xl);color:var(--muted);max-width:100%;
+  position:relative}
+.entityportrait.square{border-radius:var(--floating-radius)}
+.entityhero h2{font-size:var(--fs-2xl);font-weight:500;
+  line-height:1.25;letter-spacing:0;margin:0 0 9px;overflow-wrap:anywhere}
+/* 标题那一行的下边距归到行上，标题自己不再留。 */
+.entitytitle{display:flex;align-items:center;gap:8px;min-width:0;margin:0 0 9px}
+.entitytitle h2{margin-bottom:0}
+.entityhero .alias{color:var(--muted);
+  font-size:var(--fs-md);line-height:1.45;margin-bottom:0;overflow-wrap:anywhere}
+/* 外链那一行的位置：一枚 36px 高的占位按钮。 */
+.entitylinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;max-width:100%}
+.entityskeletontext{width:100%}
+.entityskeletontext .entitytitle .skeleton{width:60%;height:auto}
+.entityskeletontext .alias .skeleton{display:block;width:40%;height:20px}
+.entityskeletontext .entitylinks .skeleton{width:180px;height:36px}
+[data-skeleton^="entity/"] .entityportrait{height:var(--portrait-size)}
+[data-skeleton^="entity/"] .entityportrait:not(.square){border-radius:50%}
+[data-skeleton^="entity/"] .entityfacts dt .skeleton{display:block;width:56px;height:16px;margin-block:3px}
+[data-skeleton^="entity/"] .entityfacts dd .skeleton{display:block;width:70%;height:16px;margin-block:3px}
+[data-skeleton^="entity/"] .entitycollectionhead .skeleton{width:90px;height:20px}
+@media(max-width:600px){.entityskeletontext .alias .skeleton{margin-inline:auto}}
+/* 卡底那条带：横滚的同台艺人轨道，这一排是谁由 aria-label 说，不另写一枚小标签。 */
+.entityfoot{display:flex;align-items:center;gap:16px;min-width:0;padding:12px 20px;
+  border-top:1px solid var(--line-soft);background:var(--overlay-5)}
+/* 资料卡下面的交集条与玻璃浮层是 `entity-filter` 岛。宿主和 React 根那一层都不生成盒子：
+   浮层吸顶的范围是它父元素的盒子，只裹着它自己的父元素一格都走不动；两层让开，父元素就是
+   `#index`。 */
+[data-entity-filter],[data-entity-filter]>.peach-react{display:contents}
+/* 每一枚就是首页那枚 `.av` 女优头像，尺寸、间距与悬停都归 `board.css` 那套共享规则；
+   这里只管横滚轨道本身。 */
+.relatedpeople{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;overscroll-behavior-inline:contain}
+.relatedpeople::-webkit-scrollbar{display:none}
+/* 正文是 `entity-body` 岛，骨架里同一格是 `.entitysection`，两者占同一个位置。宿主不加内边距、
+   不起新的格式化上下文：照片墙段头的上边距要穿过它，和筛选浮层的下边距折叠成一段。 */
+[data-entity-body]{min-width:0;max-width:100%}
+.entitysection{min-width:0;max-width:100%}.entitysection h3{font-size:var(--fs-sm);letter-spacing:.08em;color:var(--muted);margin:0 0 12px}
+.entitycollectionhead{position:sticky;top:var(--topH);z-index:60;display:flex;align-items:center;gap:10px;
+  min-height:var(--sortH);margin:0 -16px 12px;padding:8px 16px;min-width:0;
+  background:transparent;border-bottom:1px solid transparent}
+.entitycollectionhead h3{margin:0;flex:0 0 auto}

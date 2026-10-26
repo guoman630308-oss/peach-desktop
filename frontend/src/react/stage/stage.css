@@ -1,0 +1,362 @@
+/* 舞台岛（`frontend/src/react/stage/`）：详情浮窗、骨架与揭示、两座详情共用的格子与详情栏、
+ * 切换队列、小窗。
+ *
+ * 选择器全用 `data-*`，与遗留层同名的类一条不写（`test/legacy-class-names.test.ts`）。例外有三类：
+ * `.peach-react` 是两边约好的名字；`video-js` / `vjs-*` 是 Video.js 的组件契约；壳画出来挂进队列的
+ * 头像（`mav`、`mavstack`）与共用拖动排序挂的 `dragging`、`drop-before`、`drop-after` 不是岛挂的，
+ * 按 `[class~=…]` 认，权重与类选择器相同。
+ *
+ * 选择器不挂 `[data-stage]` 祖先：冷启动深链 `/posts/` 时壳先把同一份详情骨架画进 `#stats`，
+ * 那份骨架在舞台外面，格子与详情栏的几何照样要作用到它身上。
+ *
+ * 引入顺序排在播放器样式之后（`src/react/styles.css`）。本文件内部按来源的先后排：浮窗与队列、
+ * 详情栏、窄屏、小窗、揭示，最后是 Board 外观那一层；同权重时后写的胜出，这个顺序是外观的一部分。 */
+
+/* ── 阴影的两档主题 ──
+   主题标记是 `<html>` 上的 `.dark`，和 `color-scheme` 同进退。阴影颜色按主题分支给自定义属性，
+   不用那个按配色方案取值的颜色函数，原因见 `test/react-color-scheme.test.ts`。 */
+:root{--stage-shadow:#0000000a;--miniplayer-shadow-near:rgba(0,0,0,.16);--miniplayer-shadow-far:rgba(0,0,0,.2)}
+[data-local-player-host]{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--surface);color:var(--ink);overflow:auto}
+[data-local-player-controls]{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:100%;overflow-wrap:anywhere;text-align:center}
+[data-local-player-controls] [role="alert"]{color:var(--drop)}
+[data-local-player-host][data-internal]{inset:12px auto auto 12px;padding:8px;border-radius:var(--radius);background:var(--surface)}
+[data-item-picture] [data-local-player-host]{display:none}
+.dark{--stage-shadow:#00000066;--miniplayer-shadow-near:rgba(0,0,0,.5);--miniplayer-shadow-far:rgba(0,0,0,.55)}
+/* ── 浮窗、骨架与队列 ── */
+/* ── 作品详情浮窗 ── */
+/* 氛围色定义在这里，右侧详情栏、切换队列和「接着看」共用同一档。三块同属
+   一格详情，底色差 4% 就会在整幅宽度上留下一条界线，看着像两块面板拼起来；
+   分块靠留白和小标题，不靠色差。 */
+[data-stage]{--detail-surface:color-mix(in srgb,var(--video-glow,#15202a) 12%,var(--surface) 88%);
+  position:fixed;inset:16px;margin:auto;padding:0;width:min(1440px,calc(100vw - 32px));
+  max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);height:fit-content;
+  color:var(--ink);border-radius:var(--floating-radius);overscroll-behavior:contain;
+  background:radial-gradient(circle at 28% 24%,color-mix(in srgb,var(--video-glow,#15202a) 40%,transparent),transparent 58%),
+    color-mix(in srgb,var(--surface) 88%,transparent);scroll-margin-top:calc(var(--topH) + 8px);
+  border:1px solid var(--line);overflow:auto}
+/* 遮罩和设置弹层同一档：两个都是盖住整页的弹层，底下都是同一片馆藏，压成两种深浅
+   只会让人以为自己打开的是两种东西。值与依据在 `01-base.css` 的 `--scrim`。 */
+[data-stage]::backdrop{background:var(--scrim)}
+/* 骨架期间焦点停在浮窗本身（里面还没有可操作的东西），外沿不画焦点环；内容到了焦点交给关闭键。 */
+[data-stage]:focus-visible{outline:none}
+/* 作品舞台与媒体区按视口预留空间，取数、媒体切换与推荐加载共用同一画框。 */
+[data-stage][data-stage-kind="item"],[data-stage][data-stage-kind="jav"]{height:calc(100dvh - 32px)}
+[data-stage][data-stage-kind]:is([data-stage-kind="item"],[data-stage-kind="jav"])>[data-stage-scroll]{display:block;max-height:100%;height:100%;overflow:hidden auto}
+[data-stage]:is([data-stage-kind="item"],[data-stage-kind="jav"]){--detail-media-height:76dvh;--detail-gallery-height:calc(var(--detail-media-height) - 116px)}
+@media(min-width:1081px){
+  [data-stage][data-stage-kind="jav"]{--detail-media-height:calc(100dvh - 34px)}
+  [data-stage][data-stage-kind="item"]{--detail-media-height:clamp(300px,calc(100dvh - 294px),76dvh)}
+}
+[data-stage]:is([data-stage-kind="item"],[data-stage-kind="jav"]):not([data-theater]) [data-stage-grid]{height:var(--detail-media-height);flex:none}
+[data-stage]:is([data-stage-kind="item"],[data-stage-kind="jav"]) [data-stage-media]{height:var(--detail-media-height);min-height:0}
+[data-stage] [data-skeleton="detail"] [data-stage-media]{width:100%;max-width:100%;aspect-ratio:auto;max-height:none}
+[data-stage] [data-stage-scroll] :is([data-jav-art],[data-item-gallery]){display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 116px;align-items:center;justify-items:center}
+[data-stage] [data-stage-scroll] :is([data-jav-art],[data-item-gallery])>:is([data-jav-picture],[data-catalog-picture],[data-jav-picture-wait],[data-jav-video],[class~="video-js"],[role="note"]){grid-area:1/1;min-height:0;max-height:var(--detail-gallery-height);height:var(--detail-gallery-height);width:100%;object-fit:contain}
+[data-item-samples-state]{position:absolute;right:16px;bottom:44px;z-index:2}
+[data-stage] :is([data-jav-art],[data-item-gallery])>[data-carousel-below]{grid-area:2/1;box-sizing:border-box;min-width:0;align-self:end}
+[data-stage] [data-jav-video]{display:grid;place-items:center}
+[data-stage] [data-stage-scroll] :is([data-jav-video]>[class~="video-js"],[data-item-gallery]>[class~="video-js"]){width:min(100%,calc(var(--detail-gallery-height) * 16 / 9));height:auto;max-height:var(--detail-gallery-height);aspect-ratio:16/9}
+@media(max-width:1080px){
+  [data-stage]:is([data-stage-kind="item"],[data-stage-kind="jav"]){--detail-media-height:min(56dvh,calc(56.25vw + 116px))}
+  [data-stage]:is([data-stage-kind="item"],[data-stage-kind="jav"]):not([data-theater]) [data-stage-grid]{height:auto}
+}
+@media(max-width:760px){
+  [data-stage][data-stage-kind="item"],[data-stage][data-stage-kind="jav"]{height:calc(100dvh - env(safe-area-inset-top) - 16px)}
+}
+body[data-detail-open]{overflow:hidden;--glow-drift-play:paused}
+body[data-detail-open] [class~=glowlayer]::before{animation-play-state:paused,paused,running}
+[data-stage]:not([data-ambient]){background:color-mix(in srgb,var(--surface) 88%,transparent)}
+[data-stage-grid]{display:grid;grid-template-columns:minmax(0,1fr) minmax(350px,390px)}
+/* 媒体在左、信息在右；分集队列与推荐属于独立的底部区域。 */
+[data-stage-grid][data-with-queue]{grid-template-columns:minmax(0,1fr) minmax(350px,390px);
+  grid-template-areas:"media side";align-items:start}
+[data-stage-grid][data-with-queue]>[data-stage-media]{grid-area:media}
+[data-stage-grid][data-with-queue]>[data-stage-side]{grid-area:side;background:var(--detail-surface)}
+[data-detail-continuation]>[data-mix-queue]{max-height:360px;border-left:0;border-top:1px solid var(--line-soft);
+  background:var(--detail-surface)}
+[data-detail-continuation] [data-mix-queue-actions] [data-queue-close]{display:none}
+/* 两区共用底色；分集与推荐各自横滚，区隔只用细线和留白。 */
+[data-detail-continuation]{--detail-card-width:216px;display:grid;grid-template-columns:minmax(0,1fr);min-width:0;flex:none;background:var(--detail-surface)}
+[data-detail-continuation]:empty{display:none}
+[data-detail-continuation]>[data-item-related]{min-width:0}
+@media (min-width:1081px){
+  /* 标题、摘要与操作键共同决定首行高度，两区封面排在共享的第二行。 */
+  [data-detail-continuation]:has(>[data-mix-queue]):has(>[data-item-related]){grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto}
+  [data-detail-continuation][data-edition-cards="1"]:has(>[data-item-related]){grid-template-columns:minmax(0,calc(var(--detail-card-width) + 28px)) minmax(0,1fr)}
+  [data-detail-continuation][data-edition-cards="2"]:has(>[data-item-related]){grid-template-columns:minmax(0,calc(var(--detail-card-width) * 2 + 38px)) minmax(0,1fr)}
+  [data-detail-continuation]:has(>[data-mix-queue]):has(>[data-item-related])>:is([data-mix-queue],[data-item-related]){display:grid;grid-template-rows:subgrid;grid-row:span 2;row-gap:0}
+  [data-detail-continuation]:has(>[data-item-related])>[data-mix-queue]{grid-column:1}
+  .peach-react [data-detail-continuation]>[data-mix-queue]+[data-item-related]{border-left:1px solid var(--line-soft);padding-top:14px}
+  .peach-react [data-detail-continuation]>[data-mix-queue]+[data-item-related] h3{margin:0;padding-bottom:11px;align-self:start}
+  [data-detail-continuation]:has(>[data-mix-queue])>[data-item-related]{grid-column:2}
+  [data-detail-continuation]:has(>[data-item-related])>[data-mix-queue] [data-mix-list]{padding-top:8px}
+}
+[data-detail-continuation] [data-media-card][data-variant="next"]{width:var(--detail-card-width)}
+[data-detail-continuation]:has(>[data-mix-queue]) [data-media-card][data-variant="next"] [data-media-pic]{aspect-ratio:16/9}
+[data-mix-queue]{min-width:0;max-height:76vh;display:flex;flex-direction:column;border-left:1px solid var(--line-soft);
+  background:color-mix(in srgb,var(--video-glow,#15202a) 10%,var(--surface) 90%)}
+[data-mix-queue-head]{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;
+  min-height:70px;padding:12px 12px 10px 15px;border-bottom:1px solid var(--line-soft)}
+[data-mix-queue-head] h2{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-lg)}
+[data-mix-queue-head] span{display:block;margin-top:3px;color:var(--muted);font-size:var(--fs-xs)}
+[data-mix-queue-head] button{width:36px;height:36px;padding:0;border:0;border-radius:var(--control-radius);background:transparent;
+  color:var(--ink);cursor:pointer;display:grid;place-items:center}[data-mix-queue-head] button:hover{background:var(--hover)}
+[data-mix-queue-head] svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
+[data-mix-queue-actions]{display:flex;align-items:center;gap:2px}
+[data-mix-list]{min-height:0;overflow-y:auto;padding:6px}
+[data-mix-row]{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-radius:var(--control-radius)}[data-mix-row]:has([data-mix-item][aria-current="true"]){background:var(--hover)}[data-mix-row] [data-mix-item][aria-current="true"]{background:transparent}
+[data-mix-item]{width:100%;display:grid;grid-template-columns:94px minmax(0,1fr);gap:10px;align-items:center;
+  padding:7px;border:0;border-radius:var(--control-radius);background:transparent;color:var(--ink);text-align:left;cursor:pointer}
+[data-mix-item]:hover{background:var(--overlay-5)}[data-mix-item][aria-current="true"]{background:var(--hover)}
+/* 圆角只裁一次，理由同卡片的封面格（media-card.css）：按圆角逐层裁，角上会透出底下的黑。 */
+[data-mix-item-pic]{position:relative;aspect-ratio:16/9;clip-path:inset(0 round var(--badge-radius));
+  mask-image:linear-gradient(#000 0 0);overflow:hidden;background:#000}
+[data-mix-item-pic] img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}[data-mix-item-pic] [data-mix-item-duration]{right:4px;bottom:3px}
+/* 队列行的署名层照抄卡片的 `.meta`：横向队列和「接着看」并排出现在同一屏，
+   一边有头像一边没有，看着就是两套控件。头像在这里不可点（整行是一个 button，
+   里面不能再嵌 button），所以也不给 hover 提示。 */
+[data-mix-item-meta]{display:flex;gap:10px;min-width:0;align-items:center}
+[data-mix-item-meta] [class~="mav"]{cursor:inherit}
+[data-mix-item-meta] [class~="mav"]:hover{box-shadow:none}
+[data-mix-item-meta] [class~="mavstack"] [class~="mav"]{box-shadow:0 0 0 2px var(--ground)}
+[data-mix-item-text]{min-width:0}[data-mix-item-text] b,[data-mix-item-text] span{display:block;overflow:hidden;white-space:nowrap}[data-mix-item-text] [data-truncate-end]{text-overflow:ellipsis}
+[data-mix-item-text] b{font-size:var(--fs-xs);line-height:1.4}[data-mix-item-text] span{font-size:var(--fs-xs);color:var(--muted);margin-top:3px}
+/* 拖动中的行减淡，落点画一条线——和侧栏顺序那一列同一套表现，类名由共用的
+   wireDragReorder 挂上。 */
+[data-mix-row][data-queue-row]{position:relative;cursor:grab}
+[data-mix-row][data-queue-row]:active{cursor:grabbing}
+[data-mix-row][class~="dragging"]{opacity:.42}
+[data-mix-row][class~="drop-before"]::before,[data-mix-row][class~="drop-after"]::after{content:'';position:absolute;z-index:4;left:6px;right:6px;height:2px;border-radius:var(--pill-radius);background:var(--ink)}
+[data-mix-row][class~="drop-before"]::before{top:-3px}[data-mix-row][class~="drop-after"]::after{bottom:-3px}
+/* 详情下方的集合不是侧栏列表，而是与「接着看」同语义的横向切换带。
+   Mix、分卷、播放列表、视频合集与多媒体只改变标题和标识，共用同一套卡片尺寸。 */
+[data-detail-continuation]>[data-mix-queue]{padding:14px 14px 16px;overflow:hidden}
+[data-detail-continuation]>[data-mix-queue] [data-mix-queue-head]{min-height:0;padding:0 0 11px;border:0}
+[data-detail-continuation]>[data-mix-queue] [data-mix-queue-head] h2{font-size:var(--fs-sm);letter-spacing:.06em}
+[data-detail-continuation]>[data-mix-queue] [data-mix-queue-head] span{max-width:72ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-detail-continuation]>[data-mix-queue] [data-mix-list]{display:grid;grid-auto-flow:column;grid-auto-columns:var(--detail-card-width);
+  gap:10px;overflow-x:auto;overflow-y:hidden;padding:0 0 3px;overscroll-behavior-inline:contain;scroll-snap-type:x proximity}
+[data-detail-continuation]>[data-mix-queue] [data-mix-row]{display:block;position:relative;min-width:0;background:transparent;scroll-snap-align:start}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item]{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:0}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item]:hover,[data-detail-continuation]>[data-mix-queue] [data-mix-item][aria-current="true"]{background:transparent}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item-pic]{width:100%}
+/* 当前那张的框画在格子里面：格子按圆角整块裁（clip-path），画在外面的阴影一律被裁掉。外圈墨色、
+   里圈垫一道底色，几个版本的封面都是同一张深色画面时也认得出是哪一张。 */
+[data-detail-continuation]>[data-mix-queue] [data-mix-item][aria-current="true"] [data-mix-item-pic]:after{content:"";position:absolute;
+  inset:0;z-index:1;border-radius:var(--badge-radius);box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 4px var(--ground);pointer-events:none}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item-meta]{width:100%;padding:0 2px;align-items:flex-start}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item-meta] [class~="mav"],[data-detail-continuation]>[data-mix-queue] [data-mix-item-meta] [class~="mavstack"]{margin-top:2px}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item-text]{flex:1;min-width:0}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item-text] b{font-size:var(--fs-sm)}
+[data-detail-continuation]>[data-mix-queue] [data-mix-item][data-media-kind="image"] [data-mix-item-pic] img{object-fit:cover}
+/* 两座详情岛（`item-detail`、`follow-detail`）的宿主 `[data-stage-scroll]` 里多一层 React 根：不占盒子，格子照旧是
+   舞台这一层的直接排版对象；字体、行高与字色照舞台往下传，不换成 React 根的那一套，里面的
+   骨架与队列是两座岛共用的遗留几何。 */
+[data-stage-scroll]>.peach-react{display:contents;font:inherit;color:inherit;-webkit-font-smoothing:inherit;
+  font-variant-ligatures:inherit;font-kerning:inherit}
+/* 宽屏时详情栏决定首行高度，脱盘／错误占位也要铺满同一行，不能留下半块空背景。 */
+@media (min-width:1081px){
+  /* 浮窗里那一层竖着排：媒体格拿剩下的高度，「接着看」按内容定高钉在底下。浮窗照旧按
+     内容定高、由 max-height 封顶，超过封顶时被压缩的是媒体那一行，不是推荐带——否则
+     76vh 的画面加一条推荐带比视口高，推荐带整条落在浮窗外面。格里的媒体和详情栏都要
+     `min-height:0`，行才压得下去；画面的上限跟着格走，宽了就按 contain 留黑边。 */
+  [data-stage]:not([data-theater])>[data-stage-scroll]{display:flex;flex-direction:column;max-height:calc(100dvh - 34px)}
+  [data-stage]:not([data-theater])>[data-stage-scroll]>[data-stage-grid],[data-stage]:not([data-theater])>[data-stage-scroll]>.peach-react>[data-stage-grid]{flex:1 1 auto;min-height:0}
+  [data-stage]:not([data-theater]) [data-stage-grid]>[data-stage-media]{min-height:0}
+  [data-stage]:not([data-theater]) [data-stage-media]>.video-js{max-height:min(76vh,100%)}
+  /* 影院模式画面独占一行、详情栏整段排在下面，总高必然超过浮窗：这一层自己滚，和窄屏
+     那条同一个写法。 */
+  [data-stage][data-theater]>[data-stage-scroll]{max-height:calc(100dvh - 34px);overflow:hidden auto;overscroll-behavior:contain}
+  [data-stage-grid][data-with-queue]>[data-stage-media]{align-self:stretch}
+  [data-stage][data-theater] [data-stage-grid]{grid-template-columns:minmax(0,1fr)}
+  [data-stage][data-theater] [data-stage-grid]:not([data-with-queue])>[data-stage-side]{grid-column:1;border-left:0;border-top:1px solid var(--line-soft)}
+  [data-stage][data-theater] [data-stage-grid][data-with-queue]{grid-template-areas:"media" "side"}
+  [data-stage][data-theater] [data-stage-side-content]:is(*){height:auto;max-height:none}
+  [data-stage][data-theater] [data-stage-media]>.video-js,[data-stage][data-theater] [data-stage-media]>video{max-height:calc(100vh - var(--topH) - 56px)}
+}
+/* 横向队列把标题和摘要视为一个信息块，保存入口紧跟整个信息块并垂直居中。 */
+[data-detail-continuation]>[data-mix-queue] [data-mix-queue-head]{grid-template-columns:minmax(0,max-content) max-content minmax(0,1fr);gap:5px 8px}
+[data-detail-continuation]>[data-mix-queue] [data-mix-queue-head]>div:first-child{min-width:0}
+[data-detail-continuation]>[data-mix-queue] [data-mix-queue-actions]{grid-column:2;grid-row:1;align-self:center}
+
+/* ── 队列缩略图的时长角标 ── */
+[data-mix-item-duration]{position:absolute;right:6px;bottom:6px;z-index:2;background:color-mix(in srgb,#000 70%,transparent);
+  color:#F2EADF;padding:2px 6px;border-radius:var(--badge-radius);transition:opacity .15s ease}
+/* ── 详情栏 ── */
+[data-stage-side]{min-width:0;min-height:0;align-self:stretch;border-left:1px solid var(--line-soft);overflow:hidden;
+  background:var(--detail-surface);backdrop-filter:blur(18px)}
+/* 背景属于整列，滚动属于内容。两者不能放在同一层，否则 76vh 会把在线占位、
+   图片详情和合集详情右侧的背景一起截短。所有详情分支共用这层结构。 */
+[data-stage-side-content]{box-sizing:border-box;width:100%;height:100%;max-height:76vh;padding:18px;display:flex;gap:0;
+  flex-direction:column;overflow-y:auto;overflow-x:hidden}
+[data-stage-title]{font-size:var(--fs-lg);line-height:1.4;overflow-wrap:anywhere;margin-bottom:8px}
+[data-stage-meta]{display:flex;gap:9px;flex-wrap:wrap;color:var(--muted);margin-bottom:18px}
+[data-stage-tags]{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:0 0 18px}
+[data-stage-actions]{display:flex;align-items:center;gap:0;margin:0 0 12px;padding:0;border:1px solid var(--border-10);border-radius:var(--control-radius);background:var(--overlay-5);width:max-content;overflow:hidden;flex:none}
+[data-stage-actions] button{width:44px;height:42px;padding:0;border:0;border-right:1px solid var(--border-10);background:transparent;border-radius:0;
+  cursor:pointer;display:grid;place-items:center;color:var(--muted);transition:transform .14s ease,color .14s ease,background .14s ease}
+[data-stage-actions] button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[data-stage-actions] button:last-child{border-right:0}[data-stage-actions] button:hover{transform:none;background:var(--hover)}
+/* 作品详情与关注详情都有的三枚：色相各自指向一种判断（红=不合口味、绿=看过、青=稍后看）。
+   作品详情多出来的几枚写在 `frontend/src/react/item-detail/item-detail.css`。 */
+[data-stage-actions] [data-stage-action="dislike"]:hover,[data-stage-actions] [data-stage-action="dislike"][aria-pressed="true"]{color:var(--drop);background:color-mix(in srgb,var(--drop) 12%,transparent)}
+[data-stage-actions] [data-stage-action="seen"]:hover,[data-stage-actions] [data-stage-action="seen"][aria-pressed="true"]{color:var(--keep);background:color-mix(in srgb,var(--keep) 12%,transparent)}
+[data-stage-actions] [data-stage-action="later"]:hover,[data-stage-actions] [data-stage-action="later"][aria-pressed="true"]{color:var(--loupe);background:color-mix(in srgb,var(--loupe) 12%,transparent)}
+/* Mix 切换带里的窄卡只放两个头像：第三个挤掉的正好是署名那一行的宽度，元数据会折成
+   三到四行。接着看那一排的窄卡是同一个判据，写在 `media-card.css` 的 `next` 变体上。 */
+[data-detail-continuation]>[data-mix-queue] [class~="mavstack"] [class~="mav"]:nth-child(n+3){display:none}
+/* ── 网盘分组的小标题 ── */
+[data-mix-group-label]{display:flex;align-items:center;gap:8px;margin:12px 10px 6px;color:var(--ink);
+  font-size:var(--fs-xs);font-weight:600}
+[data-mix-group-label]:first-child{margin-top:4px}
+[data-mix-group-label] span{color:var(--muted);font-variant-numeric:tabular-nums;font-weight:400}
+/* ── 单列与窄屏 ── */
+@media (max-width:1080px){[data-stage-grid],[data-stage-grid][data-with-queue]{grid-template-columns:minmax(0,1fr)}
+  [data-stage-grid][data-with-queue]{grid-template-areas:"media" "side"}
+  [data-stage-side],[data-stage-grid][data-with-queue]>[data-stage-side]{grid-column:auto;border-left:0;border-top:1px solid var(--line-soft)}
+  [data-stage-side-content]{height:auto;max-height:none}
+  [data-mix-queue],[data-detail-continuation]>[data-mix-queue]{max-height:420px;border-left:0;border-top:1px solid var(--line-soft)}}
+@media (max-width:760px){
+  [data-stage-actions]{width:100%}[data-stage-actions] button{flex:1 1 0;min-width:38px}
+}
+/* ── 小窗 ── */
+/* 小窗播放：离开详情时正在播放的视频缩到视口角落继续放。几何照 YouTube 桌面版
+   f82dea74 的 ytd-miniplayer 实测（docs/reference-snapshots/youtube-miniplayer-measured.md）：
+   fixed，默认右下角、离边 16px，宽 400，画面区按视频比例，信息栏 76px，12px 圆角，
+   双层阴影 0 2px 5px rgba(0,0,0,.16) / 0 3px 6px rgba(0,0,0,.2)。宽度在窄屏收成
+   视口减 32px。四角落点由 data-corner 决定，拖动只改 transform，松手后吸附。 */
+[data-miniplayer]{position:fixed;z-index:var(--layer-miniplayer);width:min(400px,calc(100vw - 32px));max-height:calc(100dvh - 32px);
+  touch-action:none;will-change:opacity,transform;user-select:none}
+[data-miniplayer][hidden]{display:none}
+[data-miniplayer][data-corner="br"]{right:16px;bottom:16px}
+[data-miniplayer][data-corner="bl"]{left:16px;bottom:16px}
+/* 顶上两角让出顶栏：Peach 的顶栏是吸顶的，压在上面搜索和设置就点不到了。 */
+[data-miniplayer][data-corner="tr"]{right:16px;top:calc(var(--topH) + 16px)}
+[data-miniplayer][data-corner="tl"]{left:16px;top:calc(var(--topH) + 16px)}
+[data-miniplayer][data-miniplayer-drag]{cursor:grabbing}
+[data-miniplayer][data-miniplayer-drag] [data-miniplayer-card]{cursor:grabbing}
+/* 吸附回角落：上游 .ytdMiniplayerComponentAnimatingSnap 是 transform .5s cubic-bezier(.05,0,0,1)。 */
+[data-miniplayer][data-miniplayer-snap]{transition:transform .5s cubic-bezier(.05,0,0,1)}
+/* 进场：上游 .ytdMiniplayerComponentAnimatingFade 为 .366s cubic-bezier(.05,0,0,1)，关键帧的位移量未取得，只做透明度。 */
+@media (prefers-reduced-motion:no-preference){
+  [data-miniplayer][data-miniplayer-enter]{animation:miniplayer-fade-in .366s cubic-bezier(.05,0,0,1) both}
+}
+@keyframes miniplayer-fade-in{from{opacity:0}to{opacity:1}}
+[data-miniplayer-card]{display:flex;flex-direction:column;overflow:hidden;border-radius:var(--floating-radius);background:var(--surface);
+  box-shadow:0 2px 5px var(--miniplayer-shadow-near),0 3px 6px var(--miniplayer-shadow-far);cursor:grab}
+[data-miniplayer-frame]{position:relative;width:100%;aspect-ratio:var(--miniplayer-aspect,16/9);max-height:calc(100dvh - 32px - 76px);background:#000;overflow:hidden}
+/* Video.js 的壳整块搬进来，几何全由这一格给：控件条只剩底部那条进度。 */
+[data-miniplayer-frame] .video-js{position:absolute;inset:0;width:100%!important;height:100%!important;padding-top:0!important;background:#000;font-family:inherit}
+[data-miniplayer-frame] .video-js .vjs-tech{object-fit:contain}
+[data-miniplayer-frame] .video-js :is(.vjs-big-play-button,.vjs-peach-bezel,.vjs-peach-settings-menu,.vjs-peach-tooltip,.vjs-loading-spinner,[data-player-seek-preview],.vjs-text-track-display){display:none!important}
+[data-miniplayer-frame] .video-js .vjs-control-bar{position:absolute;left:0;right:0;top:auto;bottom:0;z-index:2;display:flex;width:auto;height:5px;padding:0;
+  background:transparent;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transition:none}
+[data-miniplayer-frame] .video-js .vjs-control-bar>:not(.vjs-progress-control){display:none!important}
+/* 进度条常显，5px，圆点 12px：上游 .ytp-miniplayer-ui 里进度条不随控件条隐藏。 */
+[data-miniplayer-frame] .video-js .vjs-progress-control{position:absolute;inset:0;width:auto;height:5px;min-width:0;display:flex;align-items:center}
+[data-miniplayer-frame] .video-js .vjs-progress-control .vjs-progress-holder{width:100%;height:5px;margin:0;border-radius:0;background:rgba(255,255,255,.2)}
+[data-miniplayer-frame] .video-js .vjs-load-progress{background:rgba(255,255,255,.4)}
+[data-miniplayer-frame] .video-js .vjs-load-progress div{background:rgba(255,255,255,.2)}
+[data-miniplayer-frame] .video-js .vjs-play-progress{background:var(--tungsten)}
+[data-miniplayer-frame] .video-js .vjs-play-progress:before{content:"";position:absolute;right:-6px;top:50%;width:12px;height:12px;border-radius:50%;
+  background:var(--tungsten);transform:translateY(-50%);box-shadow:none;font-size:0}
+[data-miniplayer-frame] .video-js .vjs-time-tooltip{font-size:var(--fs-xs);font-family:inherit}
+/* 悬停幕：上游 .ytp-miniplayer-scrim rgba(0,0,0,.5)，.2s cubic-bezier(.4,0,.2,1) 延迟 .1s，
+   hover / focus-within 才显；关闭右上、展开左上各 40px，中央播放键 42px，时间左下。 */
+[data-miniplayer-scrim]{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(0,0,0,.5);
+  opacity:0;transition:opacity .2s cubic-bezier(.4,0,.2,1) .1s;color:#fff}
+[data-miniplayer-frame]:hover [data-miniplayer-scrim],[data-miniplayer-frame]:focus-within [data-miniplayer-scrim],[data-miniplayer][data-miniplayer-drag] [data-miniplayer-scrim]{opacity:1}
+[data-miniplayer-button],[data-miniplayer-play],[data-miniplayer-seek]{position:relative;isolation:isolate;display:grid;place-items:center;margin:0;padding:0;border:0;background:transparent;color:#fff;cursor:pointer}
+[data-miniplayer-button]{position:absolute;top:0;width:40px;height:40px}
+[data-miniplayer-button] svg{position:relative;z-index:1;width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+[data-miniplayer-button="expand"]{left:0}
+[data-miniplayer-button="close"]{right:0}
+[data-miniplayer-play]{width:42px;height:42px}
+[data-miniplayer-play] svg{position:relative;z-index:1;width:36px;height:36px;fill:currentColor;stroke:none;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+/* 快退和快进分列播放键两侧。上游 YouTube 的小窗没有这两颗，Peach 自己要：小窗一开就
+   离开了详情，站内那条控制条一颗键都递不进来，只剩进度条能拖，想跳十秒得先回详情。
+   36px 比中间那颗小一档，三颗并排读得出主次。 */
+[data-miniplayer-seek]{width:36px;height:36px}
+[data-miniplayer-seek] svg{position:relative;z-index:1;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+/* 悬停圈与详情页的关闭键、统计键同一套。 */
+[data-miniplayer-button]:after,[data-miniplayer-play]:after,[data-miniplayer-seek]:after{content:"";position:absolute;z-index:0;inset:4px;border-radius:50%;background:transparent;pointer-events:none;transition:background .2s cubic-bezier(.05,0,0,1)}
+[data-miniplayer-button]:hover:after,[data-miniplayer-button]:focus-visible:after,[data-miniplayer-play]:hover:after,[data-miniplayer-play]:focus-visible:after,[data-miniplayer-seek]:hover:after,[data-miniplayer-seek]:focus-visible:after{background:rgba(255,255,255,.1)}
+[data-miniplayer-button]:active:after,[data-miniplayer-play]:active:after,[data-miniplayer-seek]:active:after{background:rgba(255,255,255,.2)}
+[data-miniplayer-button]:focus-visible,[data-miniplayer-play]:focus-visible,[data-miniplayer-seek]:focus-visible{outline:0}
+[data-miniplayer-time]{position:absolute;left:12px;bottom:16px;font-size:var(--fs-xs);line-height:15px;text-shadow:0 0 2px #000;pointer-events:none}
+/* 信息栏：上游 76px，12px 16px 内边距；标题 14/20 500 单行省略，副标题 12/18 400、上距 4px。
+   整条是「展开到详情」的按钮，拖动从这里起手最顺，所以光标是 grab。 */
+[data-miniplayer-info]{box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:76px;width:100%;
+  margin:0;padding:12px 16px;border:0;background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:grab}
+[data-miniplayer-info]:focus-visible{outline:2px solid var(--tungsten);outline-offset:-2px}
+[data-miniplayer-title]{display:block;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:var(--fs-md);line-height:20px;font-weight:500}
+[data-miniplayer-sub]{display:block;max-width:100%;margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:var(--fs-xs);line-height:18px;color:var(--muted)}
+[data-miniplayer-sub]:empty{display:none}
+/* ── 骨架揭示 ── */
+[data-stage-reveal]>[data-stage-fade]{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;
+  opacity:1;filter:blur(0);transition:opacity var(--motion-reveal),filter var(--motion-reveal)}
+[data-stage-reveal][data-stage-revealing]>[data-stage-fade]{opacity:0;filter:blur(2px)}
+[data-stage-reveal]>:not([data-stage-fade]){animation:skel-reveal-in var(--motion-reveal) backwards}
+/* ── Board 外观 ── */
+[data-stage]{border:1px solid var(--line);border-radius:var(--surface-radius);overflow:clip;background:var(--ground);box-shadow:0 2px 8px var(--stage-shadow);--detail-surface:var(--ground)}
+[data-stage]:not([data-ambient]){background:var(--ground)}
+[data-stage] [data-stage-side]{background:var(--ground);backdrop-filter:none;border-color:var(--line-soft)}
+[data-stage-side-content]{padding:20px;gap:4px}
+[data-stage-title]{font-weight:500;line-height:1.5}
+@media(max-width:760px){[data-stage-side-content]{padding:16px}[data-stage]{border-radius:12px}[data-stage] [data-stage-side]{border-left:0;border-top:1px solid var(--line-soft)}}
+/* 单列时媒体、详情栏和队列上下排成一列，总高超过浮窗，滚的是里面那一格内容：`<dialog>`
+   在顶层，它自己滚就只能用系统滚动条，全站那条 3px 浮在内容上的轨道挂不上去（轨道得是
+   滚动容器的兄弟，挂到浮窗父级上会落进遮罩底下）。浮窗照旧按内容定高、`overflow:clip`
+   照旧管横向，上限由这一层自己端着：34px 是浮窗那 16px 上下留白加两条边线，减出来的高度
+   与浮窗自己那条 `max-height` 落在同一个数上，浮窗于是不会比这一层高出一条空边。
+   浮窗不改成 flex 或 grid：那一下会让内部几处百分比高度取得到定值，整块内容当场缩成
+   半屏，浮窗下半截空着。
+   视频格吸在这一层顶上，往下翻标签和动作时画面还在；图片不吸——一张竖图就能占满整屏，
+   吸住它下面就没有地方可滚。 */
+@media(max-width:1080px){
+  [data-stage]>[data-stage-scroll]{max-height:calc(100dvh - 34px);overflow:hidden auto;overscroll-behavior:contain}
+  [data-stage] [data-stage-media]:has(>.video-js){position:sticky;top:0;z-index:3}}
+/* 手机上浮窗离屏幕边只留 8px，画面格按视频自己的比例排：竖屏和方形视频装进 16:9 的格子里
+   只剩中间一小块画面。比例由播放器读到元数据后写进 `--peach-video-ratio`，读到之前仍是 16:9；
+   高度封顶 56dvh，吸顶以后下面至少还有四成屏给详情。
+   上沿让出状态栏、下沿按 dvh 停在地址栏之上，浮窗和吸在它顶上的画面不钻到这两条栏底下。 */
+@media(max-width:760px){
+  [data-stage]{inset:calc(env(safe-area-inset-top) + 8px) 8px auto;margin:0 auto;width:calc(100vw - 16px);max-width:calc(100vw - 16px);
+    max-height:calc(100dvh - env(safe-area-inset-top) - 16px)}
+  /* 手机上浮窗自己的上限换了一条，滚动层跟着换，两边仍旧差两条边线。 */
+  [data-stage]>[data-stage-scroll]{max-height:calc(100dvh - env(safe-area-inset-top) - 18px)}
+  [data-stage-media]>.video-js{aspect-ratio:var(--peach-video-ratio,16/9);max-height:56dvh}
+}
+[data-stage-close]{padding:0;display:grid;place-items:center;line-height:1;border-radius:50%;background:var(--surface);color:var(--ink)}
+[data-stage-close] svg{display:block;margin:0;justify-self:center;align-self:center}
+/* 作品详情浮窗进出场跟设置弹层同一组关键帧、同一个时长 token，遮罩也是同一条淡入淡出：
+   两个都是盖住整页的弹层，一个缩放着淡进来、另一个直接闪出来的话，读起来像两种东西。
+   `backwards` 的理由同上，这里更要紧——`[data-stage] [data-stage-side]` 自己就带 backdrop-filter。
+   退场期间收掉指针：浮窗已经在缩小，关闭键和播放器控件还能点到就会收到第二次触发。 */
+[data-stage]{animation:board-dialog-in var(--board-dialog-motion) backwards}
+[data-stage]::backdrop{animation:settings-backdrop-in .35s cubic-bezier(.4,0,.2,1) both}
+[data-stage][data-closing]{animation:board-dialog-out var(--board-dialog-motion) both;pointer-events:none}
+[data-stage][data-closing]::backdrop{animation:settings-backdrop-out .35s cubic-bezier(.4,0,.2,1) both}
+[data-stage] [data-stage-media]{overflow:hidden;border-radius:var(--surface-radius)}
+/* 动作键成组，操作按钮保留各自的可访问名称。 */
+[data-stage-side-content] [data-stage-actions]{display:flex;flex-wrap:nowrap;gap:4px;width:max-content;max-width:100%;padding:0;border:0;background:transparent;overflow:visible;margin:0 0 16px}
+[data-stage-side-content] [data-stage-actions] :is(button,[data-stage-action-link]){flex:0 1 36px;width:36px;height:36px;min-width:30px;display:grid;place-items:center;padding:0;border:0;border-radius:var(--control-radius);background:var(--surface)}
+[data-stage-side-content] [data-stage-actions] :is(button,[data-stage-action-link]) svg{display:block;width:18px;height:18px;margin:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[data-stage-side-content] [data-stage-actions] [data-stage-action-link]{color:var(--ink-2)}
+[data-stage-side-content] [data-stage-actions] [data-stage-action-link]:hover{background:var(--hover)}
+[data-stage-side-content] [data-stage-actions] button:disabled{background:var(--surface);color:var(--muted);cursor:not-allowed}
+[data-stage-side-content] [data-stage-actions] button[aria-pressed=true]{box-shadow:inset 0 0 0 1px currentColor}
+/* ── 详情页：播放器格只圆左上角——右边贴着侧栏，下面接着「接着看」 ── */
+[data-stage] [data-stage-media]{border-radius:var(--surface-radius) 0 0 0}
+[data-stage][data-theater] [data-stage-media]{border-radius:var(--surface-radius) var(--surface-radius) 0 0}
+/* 影院沿用详情框体和媒体区高度，媒体切换条不占位，详情在画框下方滚动。 */
+[data-stage][data-theater]{--detail-gallery-height:var(--detail-media-height)}
+[data-stage][data-theater] [data-stage-media]{height:var(--detail-media-height);min-height:0}
+[data-stage][data-theater] [data-stage-scroll] :is([data-jav-art],[data-item-gallery]){grid-template-rows:minmax(0,1fr)}
+[data-stage][data-theater] :is([data-media-carousel][data-carousel-below],[data-item-samples-state]){display:none}
+[data-stage][data-theater] [data-stage-scroll] :is([data-stage-media]>.video-js,[data-stage-media]>video,[data-jav-video]>.video-js){width:100%;height:100%;max-height:none;aspect-ratio:auto}
+@media(max-width:1080px){[data-stage] [data-stage-media]{border-radius:var(--surface-radius) var(--surface-radius) 0 0}}
+/* 详情页的关闭键压在画面上：亮色主题下白底白晕看不出悬停，用户以 YouTube 为参照——播放器上的键在亮色下也是黑底。 */
+[data-stage-close],[data-stage-close]:hover{background:rgba(0,0,0,.6);color:#fff}
+[data-stage-close]:hover:after,[data-stage-close]:focus-visible:after{background:rgba(255,255,255,.2)}
+[data-stage-close]:active:after{background:rgba(255,255,255,.3)}

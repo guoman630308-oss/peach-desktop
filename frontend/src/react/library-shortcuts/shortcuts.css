@@ -1,0 +1,66 @@
+.peach-react :is([data-namepick-toggle], [data-favorite]) {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-10);
+  border-radius: var(--control-radius);
+  background: var(--overlay-5);
+  color: var(--muted);
+  cursor: pointer;
+}
+.peach-react :is([data-namepick-toggle], [data-favorite]):is(:hover, [data-hovered]) { background: var(--hover); color: var(--ink); }
+.peach-react :is([data-namepick-toggle], [data-favorite]):focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react :is([data-namepick-toggle], [data-favorite]) svg { width: 16px; height: 16px; fill: none; stroke: currentColor; }
+.peach-react [data-favorite][aria-pressed="true"] { color: var(--color-yellow-500); }
+.peach-react [data-favorite][aria-pressed="true"] svg { fill: currentColor; }
+.peach-react [data-favorite][aria-busy="true"] { color: var(--muted); cursor: wait; }
+.peach-react [data-shortcuts-entry] { display: inline-flex; flex: none; }
+.peach-react [data-modal-width="collections"] { flex: none; width: 871px; max-width: calc(100vw - 32px); background: var(--page); border-color: var(--line); }
+.peach-react [data-modal-width="collections"] > [role="dialog"] { flex: 1; }
+.peach-react [data-modal-kind="collections"] { transition: none; }
+.peach-react [data-modal-kind="collections"][data-entering] { opacity: 1; animation: settings-backdrop-in .35s cubic-bezier(.4,0,.2,1) both; }
+.peach-react [data-modal-kind="collections"][data-exiting] { opacity: 1; animation: settings-backdrop-out .35s cubic-bezier(.4,0,.2,1) both; }
+.peach-react [data-modal-kind="collections"] [data-modal-surface] { transition: none; }
+.peach-react [data-modal-kind="collections"] [data-modal-surface][data-entering] { opacity: 1; transform: none; animation: settings-dialog-in .35s cubic-bezier(.4,0,.2,1) both; }
+.peach-react [data-modal-kind="collections"] [data-modal-surface][data-exiting] { opacity: 1; transform: none; animation: settings-dialog-out .35s cubic-bezier(.4,0,.2,1) both; }
+.peach-react [data-modal-kind="collections"][data-motion-instant], .peach-react [data-modal-kind="collections"][data-motion-instant] [data-modal-surface] { animation: none; }
+.peach-react [data-shortcuts-panel] { display: grid; flex: 1; grid-template-columns: 274px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+.peach-react [data-shortcuts-head] { grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 32px 32px 24px; }
+.peach-react [data-shortcuts-head] h2 { font-size: var(--fs-xl); font-weight: 500; line-height: 26px; }
+.peach-react [data-shortcuts-sidebar] { grid-column: 1; grid-row: 1 / 3; display: flex; min-height: 0; flex-direction: column; padding: 10px; border: 0; box-shadow: inset 1px 0 0 var(--glass-low), inset -1px 0 0 var(--glass-low), inset 0 -1px 0 var(--glass-low), var(--glass-shadow); }
+.peach-react [data-shortcuts-categories] { position: relative; display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 4px; overflow-y: auto; margin-inline: -10px; padding-inline: 10px; scrollbar-width: none; }
+.peach-react [data-shortcuts-caption] { position: relative; z-index: 1; margin: 0; padding: 4px 8px 8px; font-size: var(--fs-xs); color: var(--muted); }
+.peach-react [data-shortcuts-categories] > button { position: relative; z-index: 1; display: flex; flex: none; align-items: center; gap: 8px; padding: 8px; min-height: 36px; border: 0; border-radius: var(--control-radius); background: transparent; color: color-mix(in srgb, var(--glass-text) 65%, transparent); font: var(--board-body-medium); text-align: left; cursor: pointer; }
+.peach-react [data-shortcuts-categories] > button:is(:hover, [aria-selected="true"]) { background: transparent; color: var(--glass-text); }
+.peach-react :is([data-shortcuts-categories], [data-shortcuts-footer]) svg { color: var(--glass-text); }
+.peach-react [data-shortcuts-categories] > button:focus-visible { outline: 2px solid var(--tungsten); outline-offset: -2px; }
+.peach-react [data-shortcuts-count] { margin-left: auto; color: var(--muted); font: var(--board-caption); }
+.peach-react [data-shortcuts-footer] { display: flex; flex-direction: column; gap: 4px; }
+.peach-react [data-shortcuts-footer] a { width: 100%; background: transparent; font-family: var(--board-font); line-height: 20px; }
+.peach-react [data-shortcuts-footer] a:hover { background: transparent; }
+.peach-react [data-shortcuts-footer] a > svg:last-child { margin-left: auto; }
+.peach-react [data-shortcuts-footer] a:focus-visible { outline: 2px solid var(--tungsten); outline-offset: -2px; }
+.peach-react [data-shortcuts-footer] svg { width: 20px; height: 20px; fill: none; stroke: currentColor; }
+.peach-react [data-shortcuts-content] { grid-column: 2; padding: 16px 32px 32px; }
+.peach-react [data-shortcuts-content] [data-empty-state] { padding: 16px; }
+.peach-react [data-shortcuts-row] { padding-block: 12px; border-bottom: 1px solid var(--color-separator-border); }
+.peach-react [data-shortcuts-avatar] { display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--hover); color: var(--muted); }
+.peach-react [data-shortcuts-avatar] img { width: 100%; height: 100%; object-fit: cover; }
+.peach-react [data-shortcuts-avatar]:has(img) > svg { display: none; }
+@media (max-width: 760px) {
+  .peach-react [data-modal-width="collections"] { width: calc(100vw - 24px); max-width: calc(100vw - 24px); }
+  .peach-react [data-shortcuts-panel] { display: flex; flex-direction: column; }
+  .peach-react [data-shortcuts-sidebar] { display: contents; }
+  .peach-react [data-shortcuts-categories] { order: 0; flex: none; flex-direction: row; overflow-x: auto; margin-inline: 0; padding: 10px; border-bottom: 1px solid var(--border-10); }
+  .peach-react [data-shortcuts-caption] { flex: none; align-self: center; padding: 0 8px 0 0; white-space: nowrap; }
+  .peach-react [data-shortcuts-categories] > button { white-space: nowrap; }
+  .peach-react [data-shortcuts-head] { order: 1; padding: 16px 20px 12px; }
+  .peach-react [data-shortcuts-content] { order: 2; flex: 1; padding: 16px 20px 20px; }
+  .peach-react [data-shortcuts-footer] { order: 3; flex: none; flex-direction: row; padding: 10px; }
+}
+@media (width <= 640px) {
+  :is(.peach-react[data-index-head], .peach-react [data-index-head]) [data-shortcuts-entry] { order: 3; }
+}

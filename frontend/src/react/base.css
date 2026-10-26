@@ -1,0 +1,223 @@
+/* React 子树共用的样式基线：暗色变体、Inter、阴影 token、`.peach-react` 容器基线与 token 重声明、
+ * 下拉高度、输入框静止态边线与横滚条。主界面的 `styles.css`（`peach-app.css`）与独立页面包的 `pages/pages.css`
+ * （`peach-pages.css`）各引一次，两份产物里的控件读到同一套值。这里不写 `@source`，
+ * 扫描范围由各自的入口决定。 */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 上游 `--font-sans` 引用 Next.js 字体加载器注入的 `--font-inter`；Peach 的 Inter 由
+ * board.css 引入的 `/vendor/inter/` 提供。 */
+:root {
+  --font-inter: "Inter Variable", "Inter";
+}
+
+/* 阴影 token 改由 `--elevation-*` 给值。Tailwind v4 为了让 `shadow-<颜色>` 能换色，把
+ * `--shadow-*` 的字面值抄进工具类，`theme.css` 在 `.dark` 里重定的 `--shadow-*` 于是够不着
+ * `shadow-card` 这类工具类，暗色下全站卡片还是浅色那一档 5% 的黑影。这里把 token 接到
+ * 变量上，工具类就带着 `var(--elevation-*)` 出去，深浅两档的真值写在下面两块。Tailwind 只
+ * 输出自己源码用到的 `--shadow-*`，`web/` 下的旧样式表因此直接读 `--elevation-*`。 */
+@theme {
+  --shadow-2xs: var(--elevation-2xs);
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+  --shadow-xl: var(--elevation-xl);
+  --shadow-card: var(--elevation-card);
+  --shadow-dropdown: var(--elevation-dropdown);
+  --shadow-sidebar: var(--elevation-sidebar);
+  --shadow-waitlist: var(--elevation-waitlist);
+}
+
+/* 浅色逐字取 `theme.css` 的 `@theme` 原值，2xs、xs 是 Tailwind v4 的默认值。 */
+:root {
+  --elevation-2xs: 0 1px rgb(0 0 0 / 0.05);
+  --elevation-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --elevation-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06), 0 1px 3px 0 rgb(0 0 0 / 0.10);
+  --elevation-md: 0 2px 4px -1px rgb(0 0 0 / 0.06), 0 4px 6px -1px rgb(0 0 0 / 0.10);
+  --elevation-lg: 0 4px 6px -2px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.10);
+  --elevation-xl: 0 10px 10px -5px rgb(0 0 0 / 0.04), 0 20px 25px -5px rgb(0 0 0 / 0.10);
+  --elevation-card: 0 1px 1px 0 rgb(0 0 0 / 0.05);
+  --elevation-dropdown: 0 1px 1px 0 rgb(0 0 0 / 0.04), 0 4px 4px 0 rgb(0 0 0 / 0.02);
+  --elevation-sidebar:
+    0 1px 0 0 rgb(0 0 0 / 0.0196), 0 1px 12px 0 rgb(0 0 0 / 0.0588), 0 0 1px 0 rgb(0 0 0 / 0.3216);
+  --elevation-waitlist:
+    0 0 6px 0 rgb(0 0 0 / 0.06), 0 0 64px 0 rgb(0 0 0 / 0.16), 0 0 1px 0 rgb(0 0 0 / 0.32),
+    0 1px 12px 0 rgb(0 0 0 / 0.06), 0 1px 0 0 rgb(0 0 0 / 0.02);
+}
+
+/* 深色沿用 theme.css 的阴影几何与透明度；卡片靠填充区分层级，阴影只收边。 */
+.dark {
+  --elevation-2xs: 0 1px rgb(0 0 0 / 0.16);
+  --elevation-xs: 0 1px 2px 0 rgb(0 0 0 / 0.18);
+  --elevation-sm: 0 1px 2px 0 rgb(0 0 0 / 0.12), 0 1px 3px 0 rgb(0 0 0 / 0.16);
+  --elevation-md: 0 2px 4px -1px rgb(0 0 0 / 0.12), 0 4px 6px -1px rgb(0 0 0 / 0.18);
+  --elevation-lg: 0 4px 6px -2px rgb(0 0 0 / 0.10), 0 10px 15px -3px rgb(0 0 0 / 0.18);
+  --elevation-xl: 0 10px 10px -5px rgb(0 0 0 / 0.08), 0 20px 25px -5px rgb(0 0 0 / 0.20);
+  --elevation-card: 0 1px 1px 0 rgb(0 0 0 / 0.14);
+  --elevation-dropdown: 0 1px 1px 0 rgb(0 0 0 / 0.14), 0 4px 4px 0 rgb(0 0 0 / 0.10);
+  --elevation-sidebar:
+    0 1px 0 0 rgb(0 0 0 / 0.10), 0 1px 12px 0 rgb(0 0 0 / 0.16), 0 0 1px 0 rgb(0 0 0 / 0.42);
+  --elevation-waitlist:
+    0 0 6px 0 rgb(0 0 0 / 0.12), 0 0 64px 0 rgb(0 0 0 / 0.22), 0 0 1px 0 rgb(0 0 0 / 0.42),
+    0 1px 12px 0 rgb(0 0 0 / 0.14), 0 1px 0 0 rgb(0 0 0 / 0.08);
+}
+
+/* 上游 globals.css 里 html、body 的基线，落在 React 子树的容器上。 */
+.peach-react {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-ligatures: contextual;
+  font-kerning: normal;
+}
+
+/* `web/board.css` 在 `:root` 上给同名 token 另定了值，旧样式表排在后面会盖过 theme.css。
+ * React 子树在容器上按 theme.css 的 `:root` 与 `.dark` 原文重新声明，BoardUI 组件读到的是上游值。
+ * 渲染到容器外的浮层（Popover、Menu）不在这里面。 */
+.peach-react {
+  --color-text-primary:         var(--color-neutral-950);
+  --color-text-secondary:       var(--color-neutral-500);
+  --color-text-tertiary:        var(--color-neutral-400);
+  --color-text-disabled:        var(--color-neutral-300);
+  --color-text-white:           var(--color-white);
+  --color-background-full:              var(--color-white);
+  --color-background-primary-default:   var(--color-white);
+  --color-background-primary-hover:     var(--color-neutral-100);
+  --color-background-secondary-default: var(--color-neutral-100);
+  --color-background-tertiary-default:  var(--color-neutral-200);
+  --color-border-button-default:   var(--color-neutral-200);
+  --color-border-button-hover:     var(--color-neutral-300);
+  --color-border-button-active:    var(--color-neutral-400);
+  --color-border-checkbox-default: var(--color-neutral-300);
+  --color-border-checkbox-hover:   var(--color-neutral-400);
+  --color-border-focus-ring:       var(--color-accent-500);
+  --color-separator-border:        var(--color-neutral-200);
+}
+
+.dark .peach-react {
+  --color-text-primary:  var(--color-neutral-50);
+  --color-text-tertiary: var(--color-neutral-600);
+  --color-text-disabled: var(--color-neutral-800);
+  --color-background-full:              var(--color-neutral-925);
+  --color-background-primary-default:   var(--color-neutral-800);
+  --color-background-primary-hover:     color-mix(in srgb, var(--color-neutral-700) 60%, transparent);
+  --color-background-secondary-default: var(--color-neutral-900);
+  --color-background-tertiary-default:  var(--color-neutral-800);
+  --color-border-button-default:   var(--color-neutral-700);
+  --color-border-button-hover:     var(--color-neutral-500);
+  --color-border-button-active:    var(--color-neutral-600);
+  /* 上游 theme.css 这一档是 neutral-700。这颗框的底就是卡面色，整个形状全靠那 1px 说话，
+     而 neutral-700 压在 neutral-800 上只差 11 个 CIE 明度（浅色那对有 15）——细线在低亮度
+     那头当场消失，暗色下看着就是「没有框」。差异登记在 `boardui/ORIGIN.md`。 */
+  --color-border-checkbox-default: var(--color-neutral-600);
+  --color-border-checkbox-hover:   var(--color-neutral-500);
+  /* 上游 theme.css 这一档是 neutral-800，而暗色的 `--color-background-primary-default`
+     也是 neutral-800：复核卡的外框、候选块与它下面那段证据之间的线、卡片脚注带的上边线，
+     全都画在那种面上，线和面同色就是一点都看不见——不是「弱」，是 0.0 个明度差。
+     neutral-700 压在 neutral-800 上差 11.9，浅色那对（neutral-200 压白）是 9.1，
+     换到填充面（neutral-900）上是 19.4 对 5.6。再亮一档就成了抢眼的白线。
+     差异登记在 `boardui/ORIGIN.md`。 */
+  --color-separator-border:        var(--color-neutral-700);
+}
+
+/* 脚注带与悬停面都跟着卡面走，深浅两档各自掺，所以读的是上面重新声明过的卡面色，而不是 `:root` 上
+ * 那一份（`web/board.css` 在 `:root` 给同名 token 另定了值）。选择器写成 `:where()`：
+ * 上面两块由 `BoardTokenTests` 逐条比对 theme.css，这条不是上游 token，不进那两块。 */
+:where(.peach-react) {
+  --card-footer: color-mix(in srgb, var(--color-background-secondary-default) 98%, var(--color-text-primary));
+  --card-hover: color-mix(in srgb, var(--color-background-secondary-default) 95%, var(--color-text-primary));
+}
+
+/* 把上面两个值接成 `bg-card-footer`、`bg-card-hover` 两个颜色工具类。必须是 `inline`：普通
+ * `@theme` 把 `--color-card-*: var(--card-*)` 声明在 `:root` 上，那里没有 `--card-*`，
+ * 根上就解析成透明再往下继承，React 子树里的真值读不到。`inline` 让工具类在元素上直接写
+ * `var(--card-*)`，取到的是 `.peach-react` 里那一份；子树外没有卡片，落回透明。
+ * 脚注带：旧 `--board-card-foot` 是卡面掺 2% 文字色，把脚注和读数分成两段。
+ * 悬停面：旧 `.metricstrip button:hover` 压的是 `--overlay-5`，落到卡上就是卡面掺 5% 主文字色；
+ * `--surface` 与 `--ground` 在亮色里同为白，换一档现成 token 看不出深浅，所以直接混。 */
+@theme inline {
+  --color-card-footer: var(--card-footer, transparent);
+  --color-card-hover: var(--card-hover, transparent);
+}
+
+/* BoardUI 这一族控件共用两档高度：Button 写着 `h-9`／`h-8`，Input 也是 36px／32px。
+ * 只有 Select 的 trigger 不写高度，靠 `py-2`／`py-1` 加 1px 边框撑出 38px 和 28px——摆在
+ * 同一排里，md 比旁边高 2px，sm 矮 4px。复核页筛选条上那三颗（两个 sm 下拉加一枚 small
+ * 按钮）一眼就看得出来。
+ *
+ * 所以这一档写成整层的规则，不是某一排的补丁：逐排挂钩子的话，新加一排就得记得再挂一次，
+ * 而漏挂和「这排本来就该这样」在屏幕上看不出区别。高度在 Peach 这一层从外面补齐，
+ * `boardui/` 那份复制件逐字不改。
+ *
+ * 按 `aria-haspopup="listbox"` 认这颗 trigger：那是 react-aria 给下拉按钮的固定标记，
+ * 每个 Select 都有、别的控件都没有。小号那一档由 trigger 自己带的 `text-body-2-medium`
+ * 认，那正是组件里 `size === "sm"` 的分支。 */
+.peach-react button[aria-haspopup="listbox"] {
+  height: calc(var(--spacing) * 9);
+  padding-block: 0;
+}
+
+.peach-react button[aria-haspopup="listbox"][class~="text-body-2-medium"] {
+  height: calc(var(--spacing) * 8);
+}
+
+/* 输入框的静止态边线。BoardUI 的 Input 靠 tertiary 填充立住、静止态不画边，而 Peach 暗色
+ * 的 tertiary 面与 primary 面同为 neutral-800：坐在 primary 卡面上的输入框（配置页「媒体」
+ * 与首启页的文件夹行、媒体库名称）整块与卡面同色，框只在聚焦时由 ring 画出来。同一张表单里的
+ * Select 本来就带 button border，这里按同一个 token 给输入框补上，两种控件静止态同形。
+ * 悬停与聚焦仍归组件自己那圈 ring，所以这条只认没有这两个状态的那一刻；用 outline 而不是
+ * ring，是因为 ring 的 box-shadow 归组件，改写它就会连带盖掉那两个状态。
+ * 外壳是 TextField 下那个 React Aria Group（`data-rac`）；它没有 aria-label 时 role 落成
+ * presentation，所以不能按 role 认。失败态的框线归下一条，这里让开。 */
+.peach-react [data-input-size] > div[data-rac]:not([data-hovered]):not([data-focus-within]):not([data-invalid]) {
+  outline: 1px solid var(--color-border-button-default);
+  outline-offset: -1px;
+}
+
+/* 输入框的失败态：填充照静止态，只把框线换成 danger 色，聚焦时那圈 ring 也是 danger 色。
+ * BoardUI 默认整块铺粉底、下面的原因写红字；Peach 的失败态统一按 Vercel Fieldset 只让框线变色，
+ * 原因照常写在框下，用说明文字的颜色。上游副本不改（`boardui/ORIGIN.md`），在这里统一压过去。 */
+.peach-react [data-input-size] > div[data-rac][data-invalid] {
+  background-color: var(--color-background-tertiary-default);
+  color: var(--color-foreground-icon-tertiary);
+  outline: 1px solid var(--color-border-error-default);
+  outline-offset: -1px;
+}
+
+.peach-react [data-input-size] > div[data-rac][data-invalid][data-focus-within] {
+  --tw-ring-color: var(--color-border-error-default);
+}
+
+.peach-react [data-input-size] > [slot="errorMessage"] {
+  color: var(--color-text-secondary);
+}
+
+.peach-react [data-input-size] input[aria-invalid="true"]::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* 框下的说明与原因常是服务端原话：长路径和无空格的串就地折行，不撑宽卡片。 */
+.peach-react [data-input-size] > [slot="errorMessage"],
+.peach-react [data-input-size] > [slot="description"] {
+  overflow-wrap: anywhere;
+}
+
+/* 横着滚的那几条不画滚动条：拖得动、也能滚轮横滚，一条系统灰柱子横在图表或分段控件
+ * 底下，只会让那一块看着比实际矮一截。遗留层的 `.tier`、`.tagbar`、`.srow` 就是这个
+ * 做法（`web/css/01-base.css`），这里只是把同一条搬进岛内。
+ *
+ * `overflow-x-auto` 与横向导航的 `data-horizontal-scroll` 共用隐藏规则；导航的边缘提示
+ * 由共用横滚 hook 绑定，表格和代码块使用覆盖式滑块。
+ *
+ * 竖着滚的块不走这条：藏掉原生的却不给别的指示，就没人知道那一块还有下文。那些块挂
+ * 全站那条覆盖式滑块，接法在 `components/overlay-scrollbar.ts`。 */
+.peach-react :is([class~="overflow-x-auto"], [data-horizontal-scroll]) {
+  scrollbar-width: none;
+}
+
+.peach-react :is([class~="overflow-x-auto"], [data-horizontal-scroll])::-webkit-scrollbar {
+  display: none;
+}

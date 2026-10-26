@@ -1,0 +1,107 @@
+/* 实体资料页正文（`entity-body-page.tsx`）的照片墙。名册格与卡片网格的样式各在自己的组件里
+ * （`index-people.tsx`、`../components/media-card.css`），「载入更多」那枚键同作品网格一枚。
+ *
+ * 选择器全用 `data-*`：遗留样式表不分层、排在后面，写遗留类名会被接管。关注页的图片墙
+ * （`.followphotowall`）仍在遗留层，列数与这里同一套，写在 `web/css/21-online.css`。 */
+
+/* ── 墙 ──
+ * 墙是 CSS 网格而不是 JS 布局，每格自带比例：账本里图片没有宽高，缩略图到达之前高度是 0，
+ * 把分栏交给加载顺序的话，一屏格子会整批摊进最后一列。固定比例视图是方格 + cover；
+ * 瀑布流按列往下填，格高取图的天然比例，图没到时按 1:1 占位，不会零高摊格子、连续触发翻页。
+ * 列数：小图 5 列、大图 3 列，逐档收窄到手机上的 2 列与 1 列。换大小一次请求都不发，也不重画：
+ * 列数是这里的事，重画只会把已经取回的缩略图丢掉再要一遍，还把人滚到的位置带走。 */
+.peach-react [data-photo-wall] {
+  --photo-columns: 5;
+  display: grid;
+  grid-template-columns: repeat(var(--photo-columns), minmax(0, 1fr));
+  gap: 10px;
+}
+.peach-react [data-photo-wall][data-size="big"] { --photo-columns: 3; }
+@media (max-width: 1400px) {
+  .peach-react [data-photo-wall] { --photo-columns: 4; }
+  .peach-react [data-photo-wall][data-size="big"] { --photo-columns: 2; }
+}
+@media (max-width: 1000px) {
+  .peach-react [data-photo-wall] { --photo-columns: 3; }
+  .peach-react [data-photo-wall][data-size="big"] { --photo-columns: 1; }
+}
+@media (max-width: 640px) {
+  .peach-react [data-photo-wall] { --photo-columns: 2; gap: 8px; }
+  .peach-react [data-photo-wall][data-size="big"] { --photo-columns: 1; }
+}
+.peach-react [data-photo-wall][data-layout="masonry"] {
+  display: block;
+  column-count: var(--photo-columns);
+  column-gap: 10px;
+}
+
+/* ── 格 ──
+ * 图还没到的格子是一块空底，不是一行文件名。`alt` 留着给读屏，但格子已经按比例占好了位置，
+ * 浏览器就有地方把它画出来——一屏几十格全在等图时，看到的是满屏 `118abp00325pl.jpg`。
+ * 这块 `--sunk` 底本身就是这里的骨架。 */
+.peach-react [data-photo-cell] {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--surface-radius);
+  overflow: hidden;
+  background: var(--sunk);
+  line-height: 0;
+  cursor: zoom-in;
+}
+.peach-react [data-photo-cell] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--sunk);
+  color: transparent;
+}
+.peach-react [data-photo-cell]:hover img { filter: brightness(1.06); }
+/* 全站焦点环（`01-base.css`）把 React 子树排除在外，这里自己画同一副。 */
+.peach-react [data-photo-cell]:focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+.peach-react [data-photo-wall][data-layout="masonry"] > [data-photo-cell] {
+  aspect-ratio: auto;
+  margin: 0 0 14px;
+  break-inside: avoid;
+}
+.peach-react [data-photo-wall][data-layout="masonry"] > [data-photo-cell] img { height: auto; aspect-ratio: auto 1; }
+/* 样张取不到时摘掉的只是 <img>，格子留着。瀑布流里格高来自图，空格会塌成 0，所以按官方样张
+ * 最常见的横幅比例撑住那块 `--sunk` 底。 */
+.peach-react [data-photo-wall][data-layout="masonry"] > [data-photo-cell]:not(:has(img)) { aspect-ratio: 3 / 2; }
+
+/* ── 段头 ──
+ * 番号、标题、右端「来源 样张 · 发行日 · 张数」一行排开，标题过长省略，右端不让。每段上方留出
+ * 段距，看得出是新的一部；第一段的段距穿过宿主与 React 根，与上面那块筛选浮层的下边距合并，
+ * 不叠加（宿主不建格式化上下文，见 `web/css/07-entity.css`）。一行固定 20px 高，番号与标题同
+ * 继承这一档，不随字号各按 1.5 倍撑高。 */
+.peach-react [data-photo-group] {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  margin: 28px 2px 10px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 20px;
+}
+.peach-react [data-photo-group] > b {
+  flex: none;
+  color: var(--ink);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-photo-group-title] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.peach-react [data-photo-group-meta] { flex: none; margin-left: auto; }

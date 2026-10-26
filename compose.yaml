@@ -1,0 +1,21 @@
+services:
+  peach:
+    image: longmeidao/peach:${PEACH_VERSION:-edge}
+    build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 75s
+    ports:
+      - "${PEACH_BIND:-127.0.0.1}:${PEACH_PORT:-8900}:8900"
+    volumes:
+      - peach-data:/data
+      - type: bind
+        source: ${PEACH_MEDIA_ROOT:-./media}
+        target: /media
+        read_only: true
+        bind:
+          propagation: rslave
+          create_host_path: false
+
+volumes:
+  peach-data:

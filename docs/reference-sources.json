@@ -1,0 +1,1086 @@
+{
+  "schema": 1,
+  "policy": "上游 Markdown 只作为待审证据；先比较锁定快照，再人工判断是否影响 Peach，禁止自动改代码。",
+  "pins": [
+    {
+      "id": "amane-bridge",
+      "cadence": "weekly",
+      "manifest": "tools/amane-bridge/pyproject.toml",
+      "repository": "https://github.com/sqzw-x/amane.git",
+      "ref": "refs/heads/main",
+      "role": "社区站与片商官网刮削的运行依赖（ADR-0043、ADR-0048）；Dependabot 推不动 git sha 钉，升级按清单顶部注释人工读 diff。"
+    }
+  ],
+  "sources": [
+    {
+      "id": "open-claude-ui-design-manual",
+      "cadence": "monthly",
+      "name": "Open Claude UI 完整设计手册",
+      "url": "https://raw.githubusercontent.com/Caho1/open-claude-ui/501c05a587404048c6877b1358b70d4a17f20169/docs/Claude%20Design%20System%20(CDS).full.md",
+      "snapshot": "docs/reference-snapshots/upstream/open-claude-ui-design-system.md",
+      "checked_on": "2026-10-15",
+      "sha256": "98d6f3015578ecea089f5cc83acfd5fe1f5123d826d26c6f82a19da0c1d2fd70",
+      "git": {
+        "repository": "https://github.com/Caho1/open-claude-ui.git",
+        "ref": "refs/heads/main",
+        "revision": "501c05a587404048c6877b1358b70d4a17f20169"
+      },
+      "role": "MIT 的第三方设计手册，仅采用可解释 Peach 需求的原则；官方还原与参数自述不视为实测。",
+      "consumers": [
+        "docs/DESIGN_GUIDELINES.md",
+        "docs/reference-snapshots/open-claude-ui.md"
+      ]
+    },
+    {
+      "id": "open-claude-ui-rich-composer",
+      "cadence": "monthly",
+      "name": "Open Claude UI 输入法合成保护",
+      "url": "https://raw.githubusercontent.com/Caho1/open-claude-ui/501c05a587404048c6877b1358b70d4a17f20169/code-examples/RichComposerWithMentions.tsx",
+      "snapshot": "docs/reference-snapshots/upstream/open-claude-ui-rich-composer.tsx",
+      "checked_on": "2026-10-15",
+      "sha256": "68c412c65093950427aa379ddc21d4d427826dadc02d69ea56661caa5d28f52a",
+      "git": {
+        "repository": "https://github.com/Caho1/open-claude-ui.git",
+        "ref": "refs/heads/main",
+        "revision": "501c05a587404048c6877b1358b70d4a17f20169"
+      },
+      "role": "MIT 的输入法合成状态与键盘优先级参考；不采用指令、模拟建议源或 Token 估算。",
+      "consumers": [
+        "docs/DESIGN_GUIDELINES.md",
+        "docs/reference-snapshots/open-claude-ui.md"
+      ]
+    },
+    {
+      "id": "open-claude-ui-scroll-fade",
+      "cadence": "monthly",
+      "name": "Open Claude UI 滚动边缘渐隐",
+      "url": "https://raw.githubusercontent.com/Caho1/open-claude-ui/501c05a587404048c6877b1358b70d4a17f20169/code-examples/ScrollFadeContainer.tsx",
+      "snapshot": "docs/reference-snapshots/upstream/open-claude-ui-scroll-fade.tsx",
+      "checked_on": "2026-10-15",
+      "sha256": "63ba801c60c8ab2c26a9556bd1a4890a778e066e4fd07f9e2393c62b5983a906",
+      "git": {
+        "repository": "https://github.com/Caho1/open-claude-ui.git",
+        "ref": "refs/heads/main",
+        "revision": "501c05a587404048c6877b1358b70d4a17f20169"
+      },
+      "role": "MIT 的纵向多段渐隐与边缘状态参考；Peach 保留现有滚动生命周期，曲线需视觉核验。",
+      "consumers": [
+        "docs/DESIGN_GUIDELINES.md",
+        "docs/reference-snapshots/open-claude-ui.md"
+      ]
+    },
+    {
+      "id": "open-claude-ui-lightbox",
+      "cadence": "monthly",
+      "name": "Open Claude UI 媒体锚点缩放",
+      "url": "https://raw.githubusercontent.com/Caho1/open-claude-ui/501c05a587404048c6877b1358b70d4a17f20169/code-examples/MediaLightboxViewer.tsx",
+      "snapshot": "docs/reference-snapshots/upstream/open-claude-ui-lightbox.tsx",
+      "checked_on": "2026-10-15",
+      "sha256": "453c9ef03ae97981bdf69a966b43250ec0d7836fb0e0f44fbbbabbd1e78369c2",
+      "git": {
+        "repository": "https://github.com/Caho1/open-claude-ui.git",
+        "ref": "refs/heads/main",
+        "revision": "501c05a587404048c6877b1358b70d4a17f20169"
+      },
+      "role": "MIT 的缩放锚点与受限预载原则；不采用其焦点、拖动或缩放完整实现，不替换 Swiper。",
+      "consumers": [
+        "docs/DESIGN_GUIDELINES.md",
+        "docs/reference-snapshots/open-claude-ui.md"
+      ]
+    },
+    {
+      "id": "open-claude-ui-license",
+      "cadence": "monthly",
+      "name": "Open Claude UI MIT 许可证",
+      "url": "https://raw.githubusercontent.com/Caho1/open-claude-ui/501c05a587404048c6877b1358b70d4a17f20169/LICENSE",
+      "snapshot": "docs/reference-snapshots/upstream/open-claude-ui-license.txt",
+      "checked_on": "2026-10-15",
+      "sha256": "623d6fdcde280ee7294f9b8a79a22cb16eaf2b20940358aaeff787f8912cd2c9",
+      "git": {
+        "repository": "https://github.com/Caho1/open-claude-ui.git",
+        "ref": "refs/heads/main",
+        "revision": "501c05a587404048c6877b1358b70d4a17f20169"
+      },
+      "role": "保存上游原文快照的 MIT 版权与许可声明。",
+      "consumers": [
+        "docs/reference-snapshots/open-claude-ui.md"
+      ]
+    },
+    {
+      "id": "folia-wall-reflows",
+      "cadence": "monthly",
+      "name": "Folia 块内让位排布",
+      "url": "https://raw.githubusercontent.com/chthollyphile/folia-major/9a01e788ed52d25ea01b1f0d37934e5e371ae82b/src/components/wall/blockReflows.ts",
+      "snapshot": "docs/reference-snapshots/upstream/folia-block-reflows.ts",
+      "checked_on": "2026-10-13",
+      "sha256": "21f28aac0061fd7e23a68d8f965e569b6865779e6712c09cdb281676b8e95af6",
+      "git": {
+        "repository": "https://github.com/chthollyphile/folia-major.git",
+        "ref": "refs/heads/main",
+        "revision": "9a01e788ed52d25ea01b1f0d37934e5e371ae82b"
+      },
+      "role": "AGPL-3.0 的原始 6×6 展开让位表，其他磁贴同步换位，收起返回原槽。",
+      "consumers": [
+        "frontend/src/react/video-wall/folia/blockReflows.ts"
+      ]
+    },
+    {
+      "id": "folia-wall-motion",
+      "cadence": "monthly",
+      "name": "Folia 展开动效参数",
+      "url": "https://raw.githubusercontent.com/chthollyphile/folia-major/9a01e788ed52d25ea01b1f0d37934e5e371ae82b/src/components/wall/wallReflowMotion.ts",
+      "snapshot": "docs/reference-snapshots/upstream/folia-wall-reflow-motion.ts",
+      "checked_on": "2026-10-13",
+      "sha256": "f7fb80fde27b35443dd4860d45e86c93513df2f1f1a64f88b76c4adae0661d7c",
+      "git": {
+        "repository": "https://github.com/chthollyphile/folia-major.git",
+        "ref": "refs/heads/main",
+        "revision": "9a01e788ed52d25ea01b1f0d37934e5e371ae82b"
+      },
+      "role": "AGPL-3.0 的块内展开弹簧与控件淡入参数，使用项目已有 motion。",
+      "consumers": [
+        "frontend/src/react/video-wall/wall-motion.ts"
+      ]
+    },
+    {
+      "id": "folia-wall-style",
+      "cadence": "monthly",
+      "name": "Folia 播放墙视觉样式",
+      "url": "https://raw.githubusercontent.com/chthollyphile/folia-major/9a01e788ed52d25ea01b1f0d37934e5e371ae82b/src/components/wall/wall.css",
+      "snapshot": "docs/reference-snapshots/upstream/folia-wall.css",
+      "checked_on": "2026-10-13",
+      "sha256": "2f42d1320fcbb7edb1b01d75b696b24b389f98f683922c16caf0f03523400f2f",
+      "git": {
+        "repository": "https://github.com/chthollyphile/folia-major.git",
+        "ref": "refs/heads/main",
+        "revision": "9a01e788ed52d25ea01b1f0d37934e5e371ae82b"
+      },
+      "role": "AGPL-3.0 的独立暗色封面墙样式；视频比例与播放器行为由 Peach 处理。",
+      "consumers": [
+        "frontend/src/react/video-wall/video-wall.css"
+      ]
+    },
+    {
+      "id": "folia-wall-blocks",
+      "cadence": "monthly",
+      "name": "Folia 播放墙矩形块模板",
+      "url": "https://raw.githubusercontent.com/chthollyphile/folia-major/9a01e788ed52d25ea01b1f0d37934e5e371ae82b/src/components/wall/blockTemplates.ts",
+      "snapshot": "docs/reference-snapshots/upstream/folia-block-templates.ts",
+      "checked_on": "2026-10-13",
+      "sha256": "8630b2ba33f819a689a867f78d4d996fb2e7edd59caad7b3d798876a442029db",
+      "git": {
+        "repository": "https://github.com/chthollyphile/folia-major.git",
+        "ref": "refs/heads/main",
+        "revision": "9a01e788ed52d25ea01b1f0d37934e5e371ae82b"
+      },
+      "role": "AGPL-3.0 的矩形块模板算法参考；固定三列续页并使用 Peach 的单一视频播放器。",
+      "consumers": [
+        "frontend/src/react/video-wall/wall-layout.ts",
+        "frontend/src/react/video-wall/folia/blockTemplates.ts"
+      ]
+    },
+    {
+      "id": "fluid-springs",
+      "cadence": "weekly",
+      "name": "Fluid Functionalism 短程弹簧参数",
+      "url": "https://www.fluidfunctionalism.com/r/springs.json",
+      "snapshot": "docs/reference-snapshots/upstream/fluid-springs.json",
+      "checked_on": "2026-10-13",
+      "sha256": "25dba808aba95d87fe3924ae214084013b8718fc26a102db3fee9e55b201f781",
+      "role": "普通分段控件与短菜单的无回弹短程参数参考；保留 Peach 主题与无障碍行为。",
+      "consumers": [
+        "frontend/src/react/components/use-moving-surface.ts"
+      ]
+    },
+    {
+      "id": "fluid-tabs",
+      "cadence": "weekly",
+      "name": "Fluid Functionalism 分段控件行为",
+      "url": "https://www.fluidfunctionalism.com/r/tabs.json",
+      "snapshot": "docs/reference-snapshots/upstream/fluid-tabs.json",
+      "checked_on": "2026-10-13",
+      "sha256": "db7927a4bb55bbc8b2edc48a24bf6d32364c27f1e54b938292a976aac681e33d",
+      "role": "独立选中底板与即时状态更新参考；不复制组件源码、字重变化与悬停双底板。",
+      "consumers": [
+        "frontend/src/react/components/segmented.tsx"
+      ]
+    },
+    {
+      "id": "vercel-report-design",
+      "cadence": "monthly",
+      "name": "Vercel Design Report Reference",
+      "url": "https://vercel.com/design.md",
+      "snapshot": "docs/reference-snapshots/vercel-report-design.md",
+      "checked_on": "2026-10-13",
+      "sha256": "3af49d9dcb22463f0926d006ad67bbcefa32d5a2185f81c7754c26b5bba4020d",
+      "role": "报告与证据型页面的版式、层级、语言和数据表达参考；Peach 仅复用可迁移原则。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/react/taste/taste-page.tsx",
+        "frontend/src/react/follow-manage/follow-manage-page.tsx",
+        "tests/test_follow_web.py"
+      ]
+    },
+    {
+      "id": "vercel-geist-table-ranking",
+      "cadence": "monthly",
+      "name": "Vercel Geist Table 与首页排行布局证据",
+      "url": "https://vercel.com/geist/table",
+      "snapshot": "docs/reference-snapshots/upstream/vercel-geist-table.md",
+      "checked_on": "2026-09-03",
+      "sha256": "a0476522c5a3cd154866216a20c7c5f388c69db2e8a21c8b756d69103b2ea1dd",
+      "role": "统计页使用空间语义表格与标签排行密度的项目级依据；未取得的 Vercel DOM 和像素不作复刻证据。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/react/stats/stats-page.tsx",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "vercel-web-interface-guidelines",
+      "cadence": "monthly",
+      "name": "Vercel Web Interface Guidelines",
+      "url": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md",
+      "snapshot": "docs/reference-snapshots/vercel-web-interface-guidelines.md",
+      "checked_on": "2026-10-13",
+      "sha256": "d246b026f4f29b5823a9cc857f9edf3d2507002e055e32040cadeaf3b38e0234",
+      "git": {
+        "repository": "https://github.com/vercel-labs/web-interface-guidelines.git",
+        "ref": "refs/heads/main",
+        "revision": "434b7f91364665f2f733b310ec54809bf8f37937"
+      },
+      "role": "通用 Web 可访问性、交互、状态、性能和响应式评审清单。",
+      "consumers": [
+        "web/index.html",
+        "web/css/",
+        "frontend/src/application/chrome.js",
+        "frontend/src/application/layout.js",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "fiu758-studio-logo-discovery",
+      "cadence": "monthly",
+      "name": "AV研究所厂牌分类与 Logo 发现证据",
+      "url": "https://fiu758.com/?cat=37",
+      "snapshot": "docs/reference-snapshots/fiu758-studio-logo-discovery.md",
+      "checked_on": "2026-08-27",
+      "sha256": "18c384344c0889885ba236081d75db5675902f78d88859230290b57c8ed3d427",
+      "role": "只作厂牌日文分类名和 Logo 候选发现；第三方博客不直接升级为 Peach 真相或已安装素材。",
+      "consumers": [
+        "scripts/normalize_studio_logos.py"
+      ]
+    },
+    {
+      "id": "rule34-follow-tags-and-collections",
+      "cadence": "monthly",
+      "name": "Rule34 标签类型与 Rule34Video 合集证据",
+      "url": "https://rule34.xxx/css/desktop.css?46",
+      "snapshot": "docs/reference-snapshots/rule34-follow-tags-and-collections.md",
+      "checked_on": "2026-09-08",
+      "sha256": "ecb09c351d934ac18f1cb8f335d4e20102a3e4f57a7922c58e157b8cc8f70197",
+      "role": "关注页标签类型配色、Rule34Video 内容标签补全与跨作者合集排除证据。",
+      "consumers": [
+        "src/peach/follow_sources.py",
+        "src/peach/web_follow.py",
+        "web/css/",
+        "frontend/src/react/follow-feed/follow-feed-page.tsx",
+        "frontend/src/react/follow-detail/follow-detail-page.tsx",
+        "tests/test_follow_sources.py",
+        "tests/test_follow_web.py"
+      ]
+    },
+    {
+      "id": "f95-masked-gofile-media",
+      "cadence": "monthly",
+      "name": "F95 掩码链接与 Gofile 文件列表证据",
+      "url": "https://f95zone.to/assets/js/masked.js",
+      "snapshot": "docs/reference-snapshots/f95-masked-gofile-media.md",
+      "checked_on": "2026-08-28",
+      "sha256": "b4fa8a7c397f330ed2f2880fe0dbc1bc7a34e47bb91d935e5f42f2c9502f206d",
+      "role": "F95 Cookie 解掩码、文件站目标校验、Gofile 文件列表未取得说明与 Mix 计数边界。",
+      "consumers": [
+        "src/peach/follow_sources.py",
+        "frontend/src/react/follow-feed/follow-feed-page.tsx",
+        "frontend/src/react/components/mix-card.tsx",
+        "tests/test_follow_sources.py",
+        "tests/test_follow_web.py"
+      ]
+    },
+    {
+      "id": "follow-fanbox-gofile-paheal",
+      "cadence": "manual",
+      "volatile": true,
+      "name": "FANBOX 多媒体、Gofile API 与 Paheal 订阅证据",
+      "url": "https://lazyprocrast.fanbox.cc/posts/12228983",
+      "snapshot": "docs/reference-snapshots/follow-fanbox-gofile-paheal.md",
+      "checked_on": "2026-08-28",
+      "sha256": "a1e2d6d66b7acab8d4b13639fb38ed37764a24ae4f60ff36e84adfa50abc611a",
+      "role": "FANBOX 多图顺序、Gofile Bearer 文件列表、Paheal 标签订阅和出处去重证据。",
+      "consumers": [
+        "src/peach/follow_sources.py",
+        "src/peach/follow_stream.py",
+        "src/peach/web_follow.py",
+        "frontend/src/react/follow-detail/follow-detail-page.tsx",
+        "tests/test_follow_sources.py",
+        "tests/test_follow_store.py",
+        "tests/test_follow_stream.py",
+        "tests/test_follow_web.py"
+      ]
+    },
+    {
+      "id": "fanbox-browser-transport",
+      "cadence": "monthly",
+      "volatile": true,
+      "name": "FANBOX 浏览器传输证据",
+      "url": "https://github.com/Nandaka/PixivUtil2/blob/fc0f9adf44e590dde9242b3755b53528f159720a/common/PixivBrowserFactory.py",
+      "snapshot": "docs/reference-snapshots/fanbox-browser-transport.md",
+      "checked_on": "2026-08-28",
+      "sha256": "0e56d115606a53b7136f6333d9d069fd3eb0b9131a3ecb36be07f2da894d6e0e",
+      "git": {
+        "repository": "https://github.com/Nandaka/PixivUtil2.git",
+        "ref": "refs/heads/master",
+        "revision": "fc0f9adf44e590dde9242b3755b53528f159720a"
+      },
+      "role": "FANBOX 公开 post.info 的 Firefox TLS/HTTP2 传输边界；不复用登录、下载器或质询处理。",
+      "consumers": [
+        "pyproject.toml",
+        "src/peach/http.py",
+        "src/peach/follow_sources.py",
+        "tests/test_http.py",
+        "tests/test_follow_sources.py"
+      ]
+    },
+    {
+      "id": "beeg-profile-layout",
+      "cadence": "manual",
+      "volatile": true,
+      "name": "Beeg SweetieFox 资料页布局与媒体切换证据",
+      "url": "https://beeg.com/SweetieFox",
+      "snapshot": "docs/reference-snapshots/beeg-profile-layout.md",
+      "checked_on": "2026-08-30",
+      "sha256": "324fd6f91be176898d8564ca807fcc326bbe04730f4eae6a6941a5b69edb2135",
+      "role": "女优、厂牌与关注页的无标题信息轨道参考；资料页以单个 32px PicsIcon 在标签左侧切换视频与照片，合集详情按 Peach 现有详情结构适配。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/react/entity-page/entity-page-view.tsx",
+        "frontend/src/react/follow-feed/follow-feed-page.tsx",
+        "frontend/src/application/entity.js",
+        "web/index.html",
+        "tests/test_follow_web.py",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "vercel-geist-fieldset-scroller-empty-state",
+      "cadence": "monthly",
+      "name": "Vercel Geist Fieldset、Scroller 与 Empty State",
+      "url": "https://vercel.com/geist/fieldset",
+      "snapshot": "docs/reference-snapshots/upstream/vercel-geist-fieldset.md",
+      "checked_on": "2026-09-03",
+      "sha256": "50468690366deda685f72207244387493756a87e58c1fc587307de10cd7477e8",
+      "role": "人工复核 Fieldset、固定高度 Scroller、Empty State 结构与快速导航请求隔离的项目级依据。",
+      "consumers": [
+        "frontend/src/ui-kit/",
+        "web/css/",
+        "frontend/src/react/review/review-page.tsx",
+        "frontend/src/application/navigation.js",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "vercel-geist-command-search-loading",
+      "cadence": "monthly",
+      "name": "Vercel Geist Command Menu、Search Input、Spinner 与 Loading Dots",
+      "url": "https://vercel.com/geist/command-menu",
+      "snapshot": "docs/reference-snapshots/upstream/vercel-geist-command-menu.md",
+      "checked_on": "2026-09-03",
+      "sha256": "028e0fdfe4eabff3e1fafe8fcc84b1263cdb370448f1f2f550b5edd141fb47d1",
+      "role": "设置 Dialog 动效、搜索前缀、用户动作 Spinner、等待按钮可聚焦 busy 状态、后台 Loading Dots 与无更多历史内容中性反馈的项目级依据。",
+      "consumers": [
+        "frontend/src/ui-kit/",
+        "web/css/",
+        "frontend/src/react/settings-panel/settings-panel.tsx",
+        "frontend/src/react/search/search-page.tsx",
+        "frontend/src/application/receipts.js",
+        "tests/test_follow_web.py",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "vercel-notifications-note",
+      "cadence": "manual",
+      "volatile": true,
+      "name": "Vercel Notifications 中性说明 Note",
+      "url": "https://vercel.com/<account>/~/settings/notifications",
+      "snapshot": "docs/reference-snapshots/vercel-notifications-note.md",
+      "checked_on": "2026-08-30",
+      "sha256": "c0193723048db3c8e180798eb6b770e4953facf2f3a6f3f2d7050ac981fbbe94",
+      "role": "口味页底部补充说明的中性 Note 结构依据；信息图标使用 2px 圆端描边，无真实动作时不伪造链接。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/react/taste/taste-page.tsx",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "youtube-player-controls-user-screenshot",
+      "cadence": "manual",
+      "volatile": true,
+      "name": "YouTube 播放器控件、设置、影院与氛围模式证据",
+      "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+      "snapshot": "docs/reference-snapshots/youtube-player-controls-user-screenshot.md",
+      "checked_on": "2026-10-18",
+      "sha256": "25fab3d77d187cd469fce2bf7c30f24f08cbd74fc146db87398b53a4a46d2935",
+      "role": "实际 YouTube e937390a DOM、CSS、JS 与用户截图锁定播放器几何、状态和设置面板；官方帮助锁定氛围模式和影院模式语义。；窄屏折叠门槛与统一悬停提示取自播放器 9470c977 的 www-player.css 与 base.js。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/player/controls.ts",
+        "frontend/src/player/menu.ts",
+        "frontend/src/application/media.js",
+        "web/index.html",
+        "tests/test_follow_web.py",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "openaver-related-ranking",
+      "cadence": "monthly",
+      "volatile": true,
+      "name": "OpenAver 相似探索算法证据",
+      "url": "https://github.com/slive777/OpenAver",
+      "snapshot": "docs/reference-snapshots/openaver-related-ranking.md",
+      "checked_on": "2026-10-01",
+      "sha256": "3495931929fc2d3e74984a1d79cdab558d916ca92cea4e1e5232aa072e6d42b9",
+      "git": {
+        "repository": "https://github.com/slive777/OpenAver.git",
+        "ref": "refs/heads/main",
+        "revision": "8cc17e50453d9f69a81f5fee1a072df80f7aab73"
+      },
+      "role": "相关推荐使用 Tag IDF 与结构化共同点的固定算法参考；Peach 独立增加 MMR、多样性和稳定破同分。",
+      "consumers": [
+        "src/peach/related.py",
+        "src/peach/web_contract.py",
+        "scripts/audit_related_ranker.py",
+        "tests/test_related.py"
+      ]
+    },
+    {
+      "id": "youtube-stats-buffer-20260829",
+      "cadence": "manual",
+      "volatile": true,
+      "name": "YouTube Stats for Nerds Buffer Graph",
+      "url": "https://www.youtube.com/",
+      "snapshot": "docs/reference-snapshots/youtube-stats-buffer-measured.md",
+      "checked_on": "2026-08-29",
+      "sha256": "cc2d01738821be9c0aff2c9c772bc015ae02ca7d4feae6336dd8194e4d6efdc7",
+      "role": "播放统计中的连接速度、网络活动和缓冲健康滚动历史图参考；Peach 保留自己的播放器、色彩与数据口径。时间轴不采用本条，见快照的移植说明。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/player/stats.ts",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "vercel-geist-tabs-secondary",
+      "cadence": "monthly",
+      "name": "Vercel Geist Tabs 规范与 secondary 变体",
+      "url": "https://vercel.com/geist/tabs",
+      "snapshot": "docs/reference-snapshots/upstream/vercel-geist-tabs.md",
+      "checked_on": "2026-09-03",
+      "sha256": "41d0602d64c6a941e350d01b3c70b86e6a57a3f55d621ba43af26e081b46e347",
+      "role": "分类切换条的组件归属、条数上限、计数徽标与可访问性语义；secondary 变体是 Peach 现有 chip 条的规范原型。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/react/entity-filter/entity-filter-page.tsx",
+        "frontend/src/application/catalog.js",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "vercel-geist-switch-segmented",
+      "cadence": "monthly",
+      "name": "Vercel Geist Switch 分段器取舍",
+      "url": "https://vercel.com/geist/switch",
+      "snapshot": "docs/reference-snapshots/upstream/vercel-geist-switch.md",
+      "checked_on": "2026-09-03",
+      "sha256": "20e383d97024c9a0ff7a26fcdcd120a1bc0904bdfb10ffe96a6e03f8dd758849",
+      "role": "判定分段器只用于 2–3 项互斥视图、超过 3 项或长标签改用 Tabs 的分界线。",
+      "consumers": [
+        "web/css/",
+        "frontend/src/react/components/segmented.tsx",
+        "frontend/src/react/settings-panel/settings-panel.tsx",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "readme-immich",
+      "cadence": "quarterly",
+      "name": "immich README",
+      "url": "https://raw.githubusercontent.com/immich-app/immich/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-immich.md",
+      "checked_on": "2026-09-06",
+      "sha256": "27b511ae6ee3be2295c4c1e0674dd0ac5b0c6023d9fdd9187869b1605ff56fad",
+      "role": "短定位、下载与文档入口、精简功能层级；Peach 仅借鉴信息结构。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-bruno",
+      "cadence": "quarterly",
+      "name": "bruno README",
+      "url": "https://raw.githubusercontent.com/usebruno/bruno/main/readme.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-bruno.md",
+      "checked_on": "2026-10-13",
+      "sha256": "fec8af393e65aae5f85c89a2e4cc787bc7ed014b94336ab8179762386c0930b2",
+      "role": "小尺寸具象 Logo 配短介绍；Peach 使用自己的桃形 Logo，不复制上游品牌素材。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-hoppscotch",
+      "cadence": "quarterly",
+      "name": "hoppscotch README",
+      "url": "https://raw.githubusercontent.com/hoppscotch/hoppscotch/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-hoppscotch.md",
+      "checked_on": "2026-09-06",
+      "sha256": "f943825e526b79841882127fbf6a3c043359efd1ca6f47794c851f827a6373b4",
+      "role": "集中导航与图片替代文本；Peach 统一三枚 flat 徽章，不复制长功能清单。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "boardui-input",
+      "cadence": "weekly",
+      "name": "BoardUI Input 组件源",
+      "url": "https://www.boardui.com/r/input.json",
+      "snapshot": "docs/reference-snapshots/upstream/boardui-input.json",
+      "checked_on": "2026-10-08",
+      "sha256": "13ceeea958db33a449ac8114819a5956072410655ec7e669c96113ff275bcc1a",
+      "role": "输入框焦点口径：field 基类是 ring-2 ring-inset ring-transparent，悬停 border-button-hover、聚焦 border-button-active 且聚焦压过悬停，无外发光，transition 明确列了 box-shadow；Peach 输入面板按用户的决定保留白底与静止那条边，环画在边的内侧。",
+      "consumers": [
+        "web/css/22-followmanage.css",
+        "web/css/01-base.css",
+        "web/css/02-topbar.css",
+        "web/css/15-detail.css",
+        "web/board.css",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "boardui-theme",
+      "cadence": "weekly",
+      "name": "BoardUI 主题 token 源",
+      "url": "https://www.boardui.com/r/theme.json",
+      "snapshot": "docs/reference-snapshots/upstream/boardui-theme.json",
+      "checked_on": "2026-10-08",
+      "sha256": "060b0fd6818f34dbc086007a4aae8477ac0780429ce0304ba020e6ce6ed9f75a",
+      "role": "border-button-active 的取值出处（浅色 neutral-400、深色 neutral-600）；Peach 只取该档，不搬全量变量表。",
+      "consumers": [
+        "web/board.css",
+        "web/css/22-followmanage.css",
+        "web/css/01-base.css",
+        "web/css/02-topbar.css",
+        "web/css/15-detail.css"
+      ]
+    },
+    {
+      "id": "boardui-auth-card",
+      "cadence": "weekly",
+      "name": "BoardUI Auth Card 组件源",
+      "url": "https://www.boardui.com/r/auth-card.json",
+      "snapshot": "docs/reference-snapshots/upstream/boardui-auth-card.json",
+      "checked_on": "2026-10-08",
+      "sha256": "334f65d6dbd7be9ed9275239b58c607e101df586c5b9a0e78d9624bde1c0bc78",
+      "role": "同底色下的嵌套卡层次：一条发丝边加 shadow-xs（0 1px 2px 0 rgb(0 0 0 / 0.18)），shadow-sm 与它同批取自上游的主题 token；xs 是在 auth-card 的 24px 大圆角上成立的，Peach 这两处是 10px 小圆角，贴地细影只剩一条硬边读成环，所以改用 sm 的两档扩散，圆角沿用本站 token。",
+      "consumers": [
+        "web/board.css",
+        "web/css/22-followmanage.css",
+        "tests/test_web_ui.py"
+      ]
+    },
+    {
+      "id": "amane-content-routes",
+      "cadence": "weekly",
+      "name": "amane 内容路由与站点特性",
+      "url": "https://raw.githubusercontent.com/sqzw-x/amane/main/docs/dev/content-routes.md",
+      "snapshot": "docs/reference-snapshots/upstream/amane-content-routes.md",
+      "checked_on": "2026-10-13",
+      "sha256": "bf2d5dbf4cebeb142e6571a9074768e2b16c31eabc0cffbf9a0db71a167614af",
+      "git": {
+        "repository": "https://github.com/sqzw-x/amane.git",
+        "ref": "refs/heads/main",
+        "revision": "cc42cee6ecf290cf05af1caa347d2dc2d5aeffcd"
+      },
+      "role": "按内容类型给一条有序来源链的原则，以及逐站的领域判断：javdb 没有国产分区且不解析 plot、javbus 欧美目录不可用、kin8 从任意番号抽数字拼详情会误匹配、mgstage 不进有码默认表否则有码号也会去问它、单厂牌 API 对每个候选 SKU 都发请求、DMM 与厂牌官网的日期是 SKU 分层不必相等。Peach 只取可迁移的原则与站点判断，链上成员限于自己已接解析器的来源；候选与人工复核的契约、不落盘 NFO 是 Peach 自己的边界，上游没有这两条。",
+      "consumers": [
+        "src/peach/metadata_routes.py",
+        "src/peach/library_processing.py",
+        "src/peach/community_catalog.py",
+        "docs/SOURCING.md",
+        "tests/test_metadata_routes.py"
+      ]
+    },
+    {
+      "id": "readme-yingku",
+      "cadence": "quarterly",
+      "name": "映库 Yingku 说明",
+      "url": "https://raw.githubusercontent.com/CChester36/Yingku/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-yingku.md",
+      "checked_on": "2026-09-22",
+      "sha256": "81c7c77e4f859727c4a0d4bbc443935c01dddf2971e17ca5eba7bfd778e4cb0c",
+      "git": {
+        "repository": "https://github.com/CChester36/Yingku.git",
+        "ref": "refs/heads/main",
+        "revision": "c3c0e41d21f4ae6538217a2c5d5dd12de0a2bb68"
+      },
+      "role": "同类本地馆藏管理器的信息组织：人物页三个直达入口、本地作品与作品总数并列、页头的数据质量计数。源码未公开（README 自己写着这一条），结论来自 README 与它挂的 5 张演示图，加上论坛帖里 8 张真实截图的测读；截图给不出可哈希的上游字节，登记的是 README 本体。Peach 不复制它的界面，只取这三处的组织方式。README 另取它的页头链接行、粗体引导的主要功能短列表和「问题反馈要附什么、遮盖什么」的写法。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-openaver",
+      "cadence": "quarterly",
+      "name": "OpenAver 说明",
+      "url": "https://raw.githubusercontent.com/slive777/OpenAver/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-openaver.md",
+      "checked_on": "2026-10-13",
+      "sha256": "3f119fffc60a479d6cc0905cf7f4a8da4aa4f1b8c85926821fe4f69230d211f7",
+      "git": {
+        "repository": "https://github.com/slive777/OpenAver.git",
+        "ref": "refs/heads/main",
+        "revision": "502278a3e09c7520838ffb00b2ff080323a4cdcb"
+      },
+      "role": "同类本地影片管理器的 README 信息结构：页头几条粗体承诺、规格速览表、截图表与常见问题。Peach 只借结构，不复制文案、截图、功能承诺与免责声明条款。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-amane",
+      "cadence": "quarterly",
+      "name": "amane 说明",
+      "url": "https://raw.githubusercontent.com/sqzw-x/amane/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-amane.md",
+      "checked_on": "2026-10-13",
+      "sha256": "eeb3a4313b593d38847abab0135df7b19b60dbe983daed684ede01813d589036",
+      "git": {
+        "repository": "https://github.com/sqzw-x/amane.git",
+        "ref": "refs/heads/main",
+        "revision": "cc42cee6ecf290cf05af1caa347d2dc2d5aeffcd"
+      },
+      "role": "同类项目的极简 README：一行一个功能、安装只给入口、开发说明压到最后。Peach 只借篇幅控制，不复制文案。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-stash",
+      "cadence": "quarterly",
+      "name": "Stash 说明",
+      "url": "https://raw.githubusercontent.com/stashapp/stash/develop/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-stash.md",
+      "checked_on": "2026-09-26",
+      "sha256": "9919670b3e5813dcd1175cc0fe3cf0fcf5092aa8a2e17446b22d2d7d32eeeb98",
+      "git": {
+        "repository": "https://github.com/stashapp/stash.git",
+        "ref": "refs/heads/develop",
+        "revision": "b6b09dd5fd9b6be6e36deb3d20bc5c4cf52450a6"
+      },
+      "role": "自托管成人馆藏应用的 README：一句定位加大截图、演示视频入口、首次运行的未签名提示与 FFmpeg 说明。Peach 只借这几处的位置，不复制文案与截图。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-metatube",
+      "cadence": "quarterly",
+      "name": "MetaTube Jellyfin 插件说明",
+      "url": "https://raw.githubusercontent.com/metatube-community/jellyfin-plugin-metatube/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-metatube.md",
+      "checked_on": "2026-09-26",
+      "sha256": "71548894457ccba2c55665923c179e0711b69e75e5ecf3c75d64cc747c281113",
+      "git": {
+        "repository": "https://github.com/metatube-community/jellyfin-plugin-metatube.git",
+        "ref": "refs/heads/main",
+        "revision": "f7c1f336fc2bd3b35b82af7c6e69da09a196e3d2"
+      },
+      "role": "同类元数据插件的 README：功能一行一条、详细说明全部链到文档。Peach 只借「README 不展开细节」的做法。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "readme-mdcx",
+      "cadence": "quarterly",
+      "name": "MDCx 说明",
+      "url": "https://raw.githubusercontent.com/sqzw-x/mdcx/master/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-mdcx.md",
+      "checked_on": "2026-09-26",
+      "sha256": "d3a1f722660278be9f65e102e627c65d197aaa1460a2346b3d49aacc8f0307c7",
+      "git": {
+        "repository": "https://github.com/sqzw-x/mdcx.git",
+        "ref": "refs/heads/master",
+        "revision": "58e3f930f2e864fceb8a53ceef818716e2a6413d"
+      },
+      "role": "同类刮削器的 README：上游项目谱系与致谢写法。Peach 只借致谢的位置，不复制附加使用条款。",
+      "consumers": [
+        "README.md",
+        "README.en.md"
+      ]
+    },
+    {
+      "id": "evilcharts-registry",
+      "cadence": "weekly",
+      "name": "EvilCharts 组件注册表",
+      "url": "https://raw.githubusercontent.com/legions-developer/evilcharts/main/registry.json",
+      "snapshot": "docs/reference-snapshots/upstream/evilcharts-registry.json",
+      "checked_on": "2026-09-26",
+      "sha256": "68811224d182f9e318604e2d03499e8f2e63a4869a749fbc8e96536c48cbe211",
+      "git": {
+        "repository": "https://github.com/legions-developer/evilcharts.git",
+        "ref": "refs/heads/main",
+        "revision": "500ecd44c1fdcf319ba83ea68f3771bc76125974"
+      },
+      "role": "统计页与口味页柱状、径向、雷达图的组件出处与依赖清单：Recharts 分支的 recharts-bar-chart、recharts-radial-chart、recharts-radar-chart 连同它们 import 的 chart、tooltip、legend、background、brush、dot 部件逐字复制进 frontend/src/react/evilcharts/registry/，逐文件哈希在同目录 UPSTREAM.sha256。上游没有热力图；ECharts 分支画在 Canvas 上，读不到 BoardUI 的 CSS token，不采用。浮层内容因旧样式表的 .grid 同名冲突由 Peach 重组，差异见 frontend/src/react/evilcharts/ORIGIN.md 与 ADR-0076。",
+      "consumers": [
+        "frontend/src/react/evilcharts/",
+        "frontend/src/react/charts/",
+        "frontend/src/react/stats/",
+        "frontend/src/react/taste/charts.tsx",
+        "tests/test_frontend_build.py"
+      ]
+    },
+    {
+      "id": "readme-sakuramediabe",
+      "cadence": "quarterly",
+      "name": "SakuraMedia 后端说明",
+      "url": "https://raw.githubusercontent.com/tinypinglite/sakuramediabe/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-sakuramediabe.md",
+      "checked_on": "2026-10-13",
+      "sha256": "e90948f44e8e1ba74440500023bc377bb29c5e33aae856ccba5d0d8852142756",
+      "git": {
+        "repository": "https://github.com/tinypinglite/sakuramediabe.git",
+        "ref": "refs/heads/main",
+        "revision": "154c3b2fce82f890414388c120604f8ba6a0097a"
+      },
+      "role": "SakuraMedia 后端（GPL-3.0）只作行为与算法边界证据，不引入代码：字幕同目录纯番号配对、封套左右分割点的对称判据（Peach 不采用对称判据，见 jav_poster_crop）、「想要」与关注分开、记录比文件重要、被并实体留指针，以及推荐权重、Torznab 客户端、自动下载判据、时刻合集、遥测与图片打包。",
+      "consumers": [
+        "docs/REUSE.md",
+        "src/peach/jav_poster_crop.py",
+        "src/peach/wants.py"
+      ]
+    },
+    {
+      "id": "readme-sakuramedia",
+      "cadence": "quarterly",
+      "name": "SakuraMedia 客户端说明",
+      "url": "https://raw.githubusercontent.com/tinypinglite/sakuramedia/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-sakuramedia.md",
+      "checked_on": "2026-10-13",
+      "sha256": "09ddc717b3ba9e62abc0846a0cb265d02ad3bdb32b451c516e44a30b537f38fc",
+      "git": {
+        "repository": "https://github.com/tinypinglite/sakuramedia.git",
+        "ref": "refs/heads/main",
+        "revision": "8cfc99b7963404694ae563ef0d1f3af58254b195"
+      },
+      "role": "SakuraMedia 的 Flutter 客户端只作行为证据：诊断提示的「原因、修法、跳转」三元组（待办第 26 条）、先看画面再选片（第 49 条）与多端原生客户端（第 70 条）。",
+      "consumers": []
+    },
+    {
+      "id": "readme-neoavdc",
+      "cadence": "quarterly",
+      "name": "NeoAVDC 说明",
+      "url": "https://raw.githubusercontent.com/haoo999/NeoAVDC/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-neoavdc.md",
+      "checked_on": "2026-10-01",
+      "sha256": "eb3239931d39a26f81ba24f8a2289c9d92b9c0d1a83454e38626fe87025f5337",
+      "git": {
+        "repository": "https://github.com/haoo999/NeoAVDC.git",
+        "ref": "refs/heads/main",
+        "revision": "651048c70d6586d18196275f53062c495be7c5f0"
+      },
+      "role": "NeoAVDC（MIT）的番号解析、字幕扩展名、HTTP 正文解码与封套折痕位置只作参照；Peach 的番号规则、字幕配对与正封取景各有自己的判据。待办第 25 条（NFO 与目录收纳）、第 59 条（番号清洗语料）引用它。",
+      "consumers": [
+        "docs/REUSE.md",
+        "src/peach/catalog_rules.py",
+        "src/peach/http.py",
+        "src/peach/jav_poster_crop.py"
+      ]
+    },
+    {
+      "id": "readme-javboss",
+      "cadence": "quarterly",
+      "name": "JavBoss 说明",
+      "url": "https://raw.githubusercontent.com/Solr159/JavBoss/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javboss.md",
+      "checked_on": "2026-10-13",
+      "sha256": "0deb93f5050709caddf8a3cbb0839e744569d0fc66c159c67cd8bacfd039869a",
+      "git": {
+        "repository": "https://github.com/Solr159/JavBoss.git",
+        "ref": "refs/heads/main",
+        "revision": "e7c5834916f1f1012d73dc901410c00d6597980b"
+      },
+      "role": "JavBoss（GPL-3.0）只作流程证据：CloudDrive2 gRPC 离线下载的提交、轮询与 infohash 对账（ADR-0089），NFO 里 `javboss` 类型的番号字段，以及待办第 58 条的来源缺陷台账。Peach 不复制代码，只提交到已挂载的网盘目录、不拉回本地。",
+      "consumers": [
+        "src/peach/downloads.py",
+        "src/peach/downloads_clouddrive.py",
+        "src/peach/library_nfo.py"
+      ]
+    },
+    {
+      "id": "readme-javdex",
+      "cadence": "quarterly",
+      "name": "Javdex 说明",
+      "url": "https://raw.githubusercontent.com/JavdexLabs/Javdex/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javdex.md",
+      "checked_on": "2026-10-01",
+      "sha256": "13e58bf88c32f1400a72e1aa7dc01788fb078ba81dd0119fa7f24883502752ac",
+      "git": {
+        "repository": "https://github.com/JavdexLabs/Javdex.git",
+        "ref": "refs/heads/main",
+        "revision": "004dc15d303dde90eb2829ca01d4f092b9f0ed2d"
+      },
+      "role": "Javdex（MIT）只作产品行为证据：局域网六位配对码、隐私模式（设置页的 SFW 模式）、外部清单导入的消歧规则与四种 NFO 兼容样例。",
+      "consumers": []
+    },
+    {
+      "id": "readme-javm",
+      "cadence": "quarterly",
+      "name": "javm 说明",
+      "url": "https://raw.githubusercontent.com/ddmoyu/javm/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javm.md",
+      "checked_on": "2026-10-01",
+      "sha256": "8cf83e21fb47410dee9906b876a7856723c2157063573f8c0f77c0960e9e5b84",
+      "git": {
+        "repository": "https://github.com/ddmoyu/javm.git",
+        "ref": "refs/heads/main",
+        "revision": "dd0e6b62b263258b6e78106c72017b3b470b4097"
+      },
+      "role": "javm（MIT）只作行为证据：库健康计数（待办第 26 条）、字段级跨源融合与广告片识别。它写死的遥测地址与流媒体截流不照搬（第 63 条）。",
+      "consumers": []
+    },
+    {
+      "id": "readme-mdcz",
+      "cadence": "quarterly",
+      "name": "mdcz 说明",
+      "url": "https://raw.githubusercontent.com/ShotHeadman/mdcz/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-mdcz.md",
+      "checked_on": "2026-10-13",
+      "sha256": "2b449cb8f20b4623b0032a284fa482ccadeddb9844dc5774836c265e80837f6a",
+      "git": {
+        "repository": "https://github.com/ShotHeadman/mdcz.git",
+        "ref": "refs/heads/main",
+        "revision": "295f828c76158c6411b52caf6fba9e7b0ee945ba"
+      },
+      "role": "mdcz（GPL-3.0，可并入 AGPL）的 DMM 失败分类、来源测试录制回放、无码官方站解析与字段聚合策略，对应待办第 44、45、54、55 条。",
+      "consumers": []
+    },
+    {
+      "id": "readme-javinizer-go",
+      "cadence": "quarterly",
+      "name": "Javinizer-Go 说明",
+      "url": "https://raw.githubusercontent.com/javinizer/javinizer-go/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javinizer-go.md",
+      "checked_on": "2026-10-01",
+      "sha256": "66359b9357354938625752b233b2222cfb0b4f4cddfc5bd9c94c47715c334de0",
+      "git": {
+        "repository": "https://github.com/javinizer/javinizer-go.git",
+        "ref": "refs/heads/main",
+        "revision": "47ebab11d113e3d536f6ef6c744a4926da6cf29e"
+      },
+      "role": "Javinizer-Go（MIT）最新版：DMM cid 前缀表、女优身份冲突四动作、无码官方站、头像裁剪记源图指纹、续传与停滞看门狗、r18.dev dump 本地镜像，对应待办第 44、50、54、56、57、61 条。历史快照与封面层引用的旧 revision 见 docs/REUSE.md，运行时调用路径已关（ADR-0044）。",
+      "consumers": [
+        "docs/REUSE.md"
+      ]
+    },
+    {
+      "id": "readme-ammds-doc",
+      "cadence": "quarterly",
+      "name": "AMMDS 文档仓说明",
+      "url": "https://raw.githubusercontent.com/QYG2297248353/AMMDS-DOC/master/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-ammds-doc.md",
+      "checked_on": "2026-10-01",
+      "sha256": "b2f280b7370b69b7dfdb7c48a98b7bacd6a31ba3f9e3123790d670e4282083d0",
+      "git": {
+        "repository": "https://github.com/QYG2297248353/AMMDS-DOC.git",
+        "ref": "refs/heads/master",
+        "revision": "177ccfceecd2902114a1b18a5818a09a19fe2f86"
+      },
+      "role": "AMMDS 的 API 文档与版本说明只作行为证据：独立 API key 与统一信封（待办第 27 条）、番号规则覆盖（第 44 条）、r18.dev dump 导入（第 61 条）、站点互联（第 67 条）与漫画库（第 68 条）。",
+      "consumers": []
+    },
+    {
+      "id": "readme-ammds-docker",
+      "cadence": "quarterly",
+      "name": "AMMDS 部署仓说明",
+      "url": "https://raw.githubusercontent.com/QYG2297248353/AMMDS-Docker/master/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-ammds-docker.md",
+      "checked_on": "2026-10-01",
+      "sha256": "410f8402f50f7db6ca1323a1ff94f2c346e2ee1ebbb42e48ee1af1c31f5fadf0",
+      "git": {
+        "repository": "https://github.com/QYG2297248353/AMMDS-Docker.git",
+        "ref": "refs/heads/master",
+        "revision": "a9a82ea4ebd8b87aa8c4aecf53acc1e5736bb595"
+      },
+      "role": "AMMDS 的部署形态与版本号参照，配合文档仓核对待办第 27、44、61、67、68 条所引的版本。",
+      "consumers": []
+    },
+    {
+      "id": "readme-javranking-extension",
+      "cadence": "quarterly",
+      "name": "javranking-extension 说明",
+      "url": "https://raw.githubusercontent.com/aizhimou/javranking-extension/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javranking-extension.md",
+      "checked_on": "2026-10-01",
+      "sha256": "f0619216f0c1d1da87e1068543627d9a3a1dec2978c774245d5d75f6b0ed7b26",
+      "git": {
+        "repository": "https://github.com/aizhimou/javranking-extension.git",
+        "ref": "refs/heads/main",
+        "revision": "206ec971b618e4a4e946604b6d333dc9222e616f"
+      },
+      "role": "javranking 扩展（MIT）读的公开静态榜单索引：版本清单与 search-index.json 的取法与规模，对应待办第 48 条。索引数据的许可条款未取得，只读引用并标明来源。",
+      "consumers": []
+    },
+    {
+      "id": "readme-cuelume",
+      "cadence": "quarterly",
+      "name": "Cuelume 说明",
+      "url": "https://raw.githubusercontent.com/danielwh2/cuelume/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-cuelume.md",
+      "checked_on": "2026-10-13",
+      "sha256": "50e0ef00c58113238dccef231356ea480aeffea2e1bbec26f9282e409172beb8",
+      "git": {
+        "repository": "https://github.com/danielwh2/cuelume.git",
+        "ref": "refs/heads/main",
+        "revision": "3ff42e3ea9e43c5b1ada736600875eea960d158f"
+      },
+      "role": "Cuelume（MIT，npm 0.2.4）的接口与音效清单，待办第 60 条的候选依赖；README 的迁移段写的是 0.3，引入时按 npm 实际版本精确钉住。",
+      "consumers": []
+    },
+    {
+      "id": "readme-jav-moviemanager",
+      "cadence": "quarterly",
+      "name": "JAV_MovieManager 说明",
+      "url": "https://raw.githubusercontent.com/4evergaeul/JAV_MovieManager/main/Readme.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-jav-moviemanager.md",
+      "checked_on": "2026-10-01",
+      "sha256": "241592d7da5114c67b09ed6537405747ba59aeb829ba1186164a6ae04f002b22",
+      "git": {
+        "repository": "https://github.com/4evergaeul/JAV_MovieManager.git",
+        "ref": "refs/heads/main",
+        "revision": "2ea646cc35a5f237c0724785ad741ededbae75b3"
+      },
+      "role": "JAV_MovieManager（GPL-3.0）只作行为证据：女优按体型属性筛选（待办第 53 条）；它直接执行用户 SQL、读写不分，第 62 条只借保存筛选的形状。",
+      "consumers": []
+    },
+    {
+      "id": "readme-nassav",
+      "cadence": "quarterly",
+      "name": "NASSAV 说明",
+      "url": "https://raw.githubusercontent.com/Satoing/NASSAV/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-nassav.md",
+      "checked_on": "2026-10-01",
+      "sha256": "e2b92b90ca88f56c67e8c794df8c412db00b35979b58056bc9838648de4edd9f",
+      "git": {
+        "repository": "https://github.com/Satoing/NASSAV.git",
+        "ref": "refs/heads/main",
+        "revision": "0c5ff7fe11d77cae5d4367776bce92e1b687c6ae"
+      },
+      "role": "NASSAV（MIT）的下载器按权重回退与 sqlite 去重只作调度形状参照；数据源是未授权转载站，整体不采用。",
+      "consumers": []
+    },
+    {
+      "id": "readme-garage",
+      "cadence": "quarterly",
+      "name": "garage 说明",
+      "url": "https://raw.githubusercontent.com/gsxhnd/garage/master/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-garage.md",
+      "checked_on": "2026-10-01",
+      "sha256": "cf78c6eccea456a08c6dce6e1cd6675b258ae0ecebc43e8032345caf19a864a1",
+      "git": {
+        "repository": "https://github.com/gsxhnd/garage.git",
+        "ref": "refs/heads/master",
+        "revision": "915e477f640f0501b682f68052ba7097716f42ef"
+      },
+      "role": "garage 的 `garage_jav/javbus.go` 是 JavBus 作品页磁力取法（gid、uc 与 ajax 接口）的协议证据，对应待办第 43 条。",
+      "consumers": []
+    },
+    {
+      "id": "readme-atlas",
+      "cadence": "quarterly",
+      "name": "Atlas 说明",
+      "url": "https://raw.githubusercontent.com/Zoroaaa/Atlas/v3/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-atlas.md",
+      "checked_on": "2026-10-13",
+      "sha256": "2f002a235c8bd28848318bb3b55c79fe2812a504af6afc3709833ca65a7d7144",
+      "git": {
+        "repository": "https://github.com/Zoroaaa/Atlas.git",
+        "ref": "refs/heads/v3",
+        "revision": "b1a3b518d87edc8052502401e747f7ec276cab22"
+      },
+      "role": "Atlas 的 `services/jav-utils.ts` `parseMagnets` 只解析 JavBus 一家，作待办第 43 条磁力取法的第二份证据；其余「磁力搜索」只是跳转链接。",
+      "consumers": []
+    },
+    {
+      "id": "readme-javinfo-cli",
+      "cadence": "quarterly",
+      "name": "javinfo 命令行说明",
+      "url": "https://raw.githubusercontent.com/javinfo/cli/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javinfo-cli.md",
+      "checked_on": "2026-10-01",
+      "sha256": "7361839d302a1314adb1388bc5e200029ebde511f799e500a2031ba7b95bd8b1",
+      "git": {
+        "repository": "https://github.com/javinfo/cli.git",
+        "ref": "refs/heads/main",
+        "revision": "6db9d837ac044c9c1dc04fe4a9552659f0f5cf12"
+      },
+      "role": "javinfo.dev API 的调用方式与计费口径，待办第 65 条「可选来源」的依据；用户自带 API key 才启用。",
+      "consumers": []
+    },
+    {
+      "id": "readme-javinfo-mcp",
+      "cadence": "quarterly",
+      "name": "javinfo MCP 说明",
+      "url": "https://raw.githubusercontent.com/javinfo/mcp/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javinfo-mcp.md",
+      "checked_on": "2026-10-01",
+      "sha256": "8be98ee47bd3de73d7a8c8bca0f4682c3b5f5f70cb7f800ae8b8ca520a7f2d8d",
+      "git": {
+        "repository": "https://github.com/javinfo/mcp.git",
+        "ref": "refs/heads/main",
+        "revision": "55bda1d7b33a6a5f0695f9dc5d93b05903b6b243"
+      },
+      "role": "javinfo.dev 的 MCP 封装，与命令行仓同属待办第 65 条的证据；只看端点与字段，不引入。",
+      "consumers": []
+    },
+    {
+      "id": "readme-javinfo-legacy",
+      "cadence": "quarterly",
+      "name": "javinfo 归档仓说明",
+      "url": "https://raw.githubusercontent.com/javinfo/legacy/main/README.md",
+      "snapshot": "docs/reference-snapshots/upstream/readme-javinfo-legacy.md",
+      "checked_on": "2026-10-01",
+      "sha256": "7b4c17d8cb1ab26c4c8bd806543cacb979de883089281633a92a4651f3621c37",
+      "git": {
+        "repository": "https://github.com/javinfo/legacy.git",
+        "ref": "refs/heads/main",
+        "revision": "d9e3ed31520b6afb6ad3ad5abd90b8f17a955e60"
+      },
+      "role": "javinfo 的归档仓没有许可证，只借思路不借代码；它依赖的 r18 旧 API 已失效，没有 Peach 缺的解析器（待办第 65 条）。",
+      "consumers": []
+    }
+  ]
+}

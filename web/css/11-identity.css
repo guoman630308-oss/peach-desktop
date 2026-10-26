@@ -1,0 +1,8 @@
+/* 页面标题只有一套字形。原来管理区 26px、索引页 20px、播放列表 28px，
+   在侧栏里一路点过去就是三种大小；间距由各自的版式决定，字形不再各拍各的。 */
+/* 行高 1.25 取自 2026-09-04 实测的 Geist Heading 32（32px/40px/600）。字距那一档
+   不照抄：Geist 的 -0.04em 是给拉丁字母调的，压在中文标题上会把字挤成一团。 */
+.listtitle,.index .ihead h2{
+  font-size:var(--fs-3xl);line-height:1.25;letter-spacing:-.01em;font-weight:600}
+.listtitle{margin:0 0 20px}
+.listtitle[hidden]{display:none}

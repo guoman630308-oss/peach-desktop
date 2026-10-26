@@ -1,0 +1,4 @@
+/* 灯箱打开时的整页锁滚与共用折叠。灯箱本身在 React 里，样式见
+   `frontend/src/react/photo-lightbox/photo-lightbox.css`。 */
+body.photolight-open{overflow:hidden}
+

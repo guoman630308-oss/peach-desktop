@@ -1,0 +1,28 @@
+/* ── 在线追更 ── */
+.follow{padding:4px 0 42px}
+/* 这个文件只剩进页骨架（`followContentSkeletonHtml`）在用；页面本身归 `follow-feed` 岛
+   （`frontend/src/react/follow-feed/follow-feed.css`，卡上的站点图标、版本字样与另见徽章也在那里），
+   详情归 `follow-detail` 岛（`frontend/src/react/follow-detail/follow-detail.css`）。 */
+.followauthors{padding:3px 0 10px;margin:0 0 2px;overscroll-behavior-inline:contain}
+.followauthors .av{width:76px}
+.followlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--tile)),1fr))}
+.followlist.followphotowall{grid-template-columns:repeat(5,minmax(0,1fr));gap:14px 10px;align-items:start}
+/* 固定比例视图的媒体框在懒加载前占好高度。 */
+@media (max-width:1400px){.followlist.followphotowall{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:1000px){.followlist.followphotowall{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.followphotowall[data-images-only="true"] .skeletoncard :is(b,em){display:none}
+@media (max-width:640px){
+  .followauthors{margin-right:-12px;padding-top:3px}
+  .followlist.followphotowall{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 8px}
+}
+
+/* 骨架里那面图片墙的列数，与资料页照片墙（`frontend/src/react/entity-body/entity-body.css`）、
+   岛里那面墙（`follow-feed.css`）同一套档位。骨架一律按固定比例铺。 */
+.followlist.followphotowall[data-size]{--photo-columns:5;grid-template-columns:repeat(var(--photo-columns),minmax(0,1fr))}
+.followlist.followphotowall[data-size="big"]{--photo-columns:3}
+@media(max-width:1400px){.followlist.followphotowall[data-size]{--photo-columns:4}
+  .followlist.followphotowall[data-size="big"]{--photo-columns:2}}
+@media(max-width:1000px){.followlist.followphotowall[data-size]{--photo-columns:3}
+  .followlist.followphotowall[data-size="big"]{--photo-columns:1}}
+@media(max-width:640px){.followlist.followphotowall[data-size]{--photo-columns:2}
+  .followlist.followphotowall[data-size="big"]{--photo-columns:1}}

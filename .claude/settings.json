@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& .\\\\scripts\\\\test.ps1 *)",
+      "PowerShell(.\\\\scripts\\\\test.ps1 *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [{"hooks": [
+      {"type": "command", "command": "${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe", "args": ["-X", "utf8", "${CLAUDE_PROJECT_DIR}/scripts/job_status.py", "--write", "--hook-event"], "timeout": 30},
+      {"type": "command", "command": "uv", "args": ["run", "--no-project", "python", "-X", "utf8", "${CLAUDE_PROJECT_DIR}/scripts/release_due.py", "--hook-event"], "timeout": 30}
+    ]}],
+    "StopFailure": [{"hooks": [{"type": "command", "command": "${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe", "args": ["-X", "utf8", "${CLAUDE_PROJECT_DIR}/scripts/job_status.py", "--write", "--hook-event"], "timeout": 30}]}],
+    "SessionEnd": [{"hooks": [{"type": "command", "command": "${CLAUDE_PROJECT_DIR}/.venv/Scripts/python.exe", "args": ["-X", "utf8", "${CLAUDE_PROJECT_DIR}/scripts/job_status.py", "--write", "--hook-event"], "timeout": 30}]}]
+  }
+}

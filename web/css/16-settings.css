@@ -1,0 +1,6 @@
+/* 设置面板打开时锁住背后的页面。面板本身由常驻组件 `settings-panel` 实现，样式在
+   `frontend/src/react/settings-panel/settings-panel.css`；类名由它的句柄开合时挂在 body 上。 */
+body.settings-open{overflow:hidden}
+/* 页面滚动条属于 html 而不只是 body：锁住 body 后文档根仍可滚，打开弹层时
+   背后的页滚动条还在，弹层自身加上它就是两条。 */
+@supports selector(:has(*)){html:has(body.settings-open){overflow:hidden}}

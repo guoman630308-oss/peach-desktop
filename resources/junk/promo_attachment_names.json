@@ -1,0 +1,63 @@
+{
+  "说明": "垃圾复核用的推广附件命名词库，由 peach.web_batch.promo_name_rules 读取。每条规则只按扩展名、体积上限和主名命中，命中项只进复核队列，分数低于 trash_junk.py 的自动移入回收站门槛，须看过内容再处理。names 去掉空白后不分大小写整名比较；patterns 是不分大小写的整名正则；parent_is_name 要求父目录名与主名相同；max_bytes 含边界，体积为 0 不命中。",
+  "rules": [
+    {
+      "reason": "游戏下载站推广视频的固定命名，须核验视频内容",
+      "suffixes": [".mp4"],
+      "max_bytes": 4194304,
+      "names": ["18+游戏大全(996gg.cc)-七龍珠H版-三國志H版-三國群淫傳等"]
+    },
+    {
+      "reason": "社区推广视频的固定命名，须核验视频内容",
+      "suffixes": [".mp4"],
+      "max_bytes": 33554431,
+      "names": ["社區最新情報", "社区最新情报"]
+    },
+    {
+      "reason": "无内容描述的宣传视频候选，须核验视频内容",
+      "suffixes": [".wmv"],
+      "max_bytes": 125829119,
+      "names": ["最新情報", "最新情报"]
+    },
+    {
+      "reason": "微型推广二维码候选，须核验图片内容",
+      "suffixes": [".png"],
+      "max_bytes": 4096,
+      "names": ["51风流", "代开实习证明", "扫码约炮", "探花社区"]
+    },
+    {
+      "reason": "网站推广二维码候选，须核验图片内容",
+      "suffixes": [".png"],
+      "max_bytes": 131072,
+      "parent_is_name": true,
+      "patterns": ["｜(?:91porn|AI裸绘|小太妹|抖音极速|海角乱伦|萝莉岛)｜[^\\\\/]{1,80}｜?"]
+    },
+    {
+      "reason": "下载站推广导航图片，须核验图片内容",
+      "suffixes": [".jpg", ".jpeg", ".png", ".gif"],
+      "max_bytes": 2097151,
+      "patterns": ["如何使用谷歌DNS让您更快进入下载网页步骤\\s*0?[123]"]
+    },
+    {
+      "reason": "下载站横幅的固定命名，须核验图片内容",
+      "suffixes": [".jpg", ".jpeg", ".png", ".gif"],
+      "max_bytes": 2097151,
+      "patterns": [
+        "~?Free Adult Movie, Fastest & Newest Porn Movie Site",
+        "hav\\.so[_ ]+最新成人高清店長推薦強片天天更新"
+      ]
+    },
+    {
+      "reason": "下载站地址或二维码推广卡片，须核验图片内容",
+      "suffixes": [".jpg", ".jpeg", ".png", ".gif"],
+      "max_bytes": 2097151,
+      "patterns": ["(?=.*(?:高速下载|高速下載|免注册|免註冊|手机看片|手機看片)).*HiHSP\\.(?:com|pw).*"]
+    },
+    {
+      "reason": "推广安装包附件的固定命名，须核验压缩包内容",
+      "suffixes": [".rar"],
+      "max_bytes": 65536,
+      "names": ["1024核工厂"]
+    }
+  ]
+}

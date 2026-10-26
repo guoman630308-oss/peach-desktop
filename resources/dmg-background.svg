@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <defs>
+    <radialGradient id="peach" cx="50%" cy="0%" r="78%">
+      <stop stop-color="#fff0e9"/><stop offset="1" stop-color="#fcfaf8"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#peach)" d="M0 0h640v420H0z"/>
+  <g text-anchor="middle" font-family="PingFang SC, sans-serif">
+    <text x="320" y="62" font-size="24" font-weight="600" fill="#292625">安装 Peach</text>
+    <text x="320" y="94" font-size="14" fill="#82736c">将 Peach 拖到右侧的「应用程序」</text>
+    <text x="320" y="382" font-size="12" fill="#98867b">安装后，从「应用程序」打开 Peach。</text>
+  </g>
+  <path d="M291 220h52m-9-8 9 8-9 8" fill="none" stroke="#bc9a89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

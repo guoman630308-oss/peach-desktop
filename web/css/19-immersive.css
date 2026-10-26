@@ -1,0 +1,115 @@
+/* ── 列表尾部与通用面 ──
+   加载更多、空态、Geist Scroller 与 Empty State、选择条与批量条、全站 760px 以下的窄屏总表，
+   以及排序行的版式开关、共用勾选框与封套取景。沉浸模式的样式在
+   `frontend/src/react/immerse/immerse.css`。 */
+.loadmore{min-height:42px;margin:18px auto 0;text-align:center;color:var(--muted);padding:12px}
+.empty{color:var(--muted);padding:20px 0;text-align:center}
+@media (max-width:760px){
+  .brand .sub{display:none}
+  :root{--tile:168px;--topH:52px;--sortH:60px}
+  /* 确认弹层的两个键是本项目 44px 命中区的对象，桌面的 32px 是 Geist 控件高度。 */
+  .geist-modal-footer .geist-button{min-height:44px;padding:0 14px}
+  .cleanupgrid{grid-template-columns:minmax(0,1fr)}
+  .count{align-items:center;flex-direction:row;gap:10px;padding-block:8px;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-inline:contain}
+  .count::-webkit-scrollbar{display:none}
+  .count>span:first-child{line-height:36px;white-space:nowrap}
+  .count.junkcount{align-items:stretch;flex-direction:column;overflow:visible;padding-block:8px}
+  .reviewtabs button{height:44px}
+  /* 顶栏在窄屏会被搜索框撑破 —— 搜索收成一个按钮，点了才展开。只裁横向：竖向也裁的话，
+     那几枚玻璃按钮往下落的投影在顶栏下沿被切平，头像那一排上方就多出一条横线。 */
+  .top{gap:4px;padding:0 8px;overflow:clip visible}
+  /* 顶栏 fixed、正文让出同样的高度，与 YouTube 手机版同一写法：`ytm-mobile-topbar-renderer`
+     fixed 贴顶，`ytm-app` 让出 48px。吸顶顶栏留在文档流里，iPhone 上一聚焦搜索框，Safari 把
+     整页往上滚来显露它（用户录屏量得约 200px），筛选框也跟着翻出来。取证与未取得的部分见
+     docs/reference-snapshots/youtube-mobile-topbar-measured.md。 */
+  .top{position:fixed;top:0;left:0;right:0}
+  body{padding-top:var(--topH)}
+  .top:has(.search.open){overflow:visible}
+  .brand h1{font-size:var(--fs-lg)}
+  .ib{width:36px;height:36px}
+  .ib svg{width:19px;height:19px}
+  /* 展开的搜索栏不铺满整条：左边留出返回按钮，和 YouTube 手机版一致——
+     否则进了搜索就没有退出的入口，只能靠失焦或 Esc。 */
+  /* 左右留白 8、返回键与搜索框间距 4、控件同高 36，按顶栏实际高度垂直居中。 */
+  .search{position:absolute;left:48px;right:8px;top:calc(50% - 18px);height:36px;padding:0 14px;
+    max-width:none;margin:0;display:none;z-index:5;background:var(--surface)}
+  .search.open{display:flex}
+  /* 展开搜索时整条顶栏让位：筛选、品牌和右侧动作全部收起，只留返回箭头和输入框。
+     不收起的话筛选按钮和返回箭头会叠在同一个位置上。 */
+  .top:has(.search.open) #filterBtn,
+  .top:has(.search.open) .brand,
+  .top:has(.search.open) #searchBtn,
+  .top:has(.search.open) #immerseBtn,
+  .top:has(.search.open) #selectMode,
+  .top:has(.search.open) #settingsBtn{display:none!important}
+  .top:has(.search.open) .searchback{display:inline-flex;position:absolute;left:8px;top:calc(50% - 18px);z-index:6}
+  /* 下拉栏以搜索框为包含块（搜索框自身是 absolute），往左伸 40px 盖过返回键那一列，
+     和顶栏两侧同样留 8。不用 fixed：玻璃层的 backdrop-filter 会让搜索框成为 fixed 元素的
+     包含块，关掉透明效果时又变回视口，两种情形下拉栏落点不同。 */
+  .searchmenu{position:absolute;left:-40px;right:0;top:calc(100% + 8px);max-height:70vh;overflow:auto;overscroll-behavior:contain}
+  #searchBtn{display:inline-flex!important}
+  /* 移动端不需要密度切换和筛选抽屉按钮挤在一起 */
+  #density{display:none}
+  /* 宽屏靠 `.search{flex:1}` 把动作按钮顶到右边；窄屏搜索框收成绝对定位后脱离
+     了流，没有东西再撑开中间，按钮会全部挤在品牌名右侧、右半条留空。
+     动作组的第一个按钮吃掉剩余空间，整组回到右边。 */
+  #searchBtn{margin-left:auto}
+  /* 窄屏改成单列居中，头像在名字上方——参考 beeg 的资料页。
+     左像右文那套是给宽屏的：手机上 92 px 头像旁边只剩两百多像素，别名和链接被挤成
+     两三行，头像下面又空着一大片。居中之后名字和链接都拿到整行宽度。 */
+  .entityprofile{grid-template-columns:minmax(0,1fr);gap:12px;padding:16px;justify-items:center;text-align:center}
+  /* 单列时头像上下各是一整行，没有「右边那列有多高」可跟，尺寸就还是钉住的 96px。 */
+  .entityportrait{height:96px;min-height:96px;max-height:96px;width:96px}.entityhero h2{font-size:var(--fs-xl)}
+  .entityfoot{padding:10px 16px}
+  /* 标题行是 flex，`text-align:center` 管不到它，得自己居中。 */
+  .entitytitle{justify-content:center}
+  .popmenu.gselectmenu button{min-height:44px}
+  .entityhero .alias{margin-bottom:10px}
+  /* 骨架那一行外链占位跟着单列卡居中，上下的让位与资料卡岛窄屏的横滚层一致，换真卡时不跳。 */
+  .entityhero .entitylinks{justify-content:center;margin-top:9px;margin-bottom:-4px;padding-block:4px}
+  .stats h2{font-size:var(--fs-xl)}.stats .insightcopy h2{font-size:var(--fs-3xl)}
+  /* 窄屏下标题也得一起缩。`/follow` 渲染在 `#stats` 里，上面那条 `.stats h2`
+     会只把它打到 23px，页面标题要跟它同一档。 */
+  .listtitle,.index .ihead h2{font-size:var(--fs-2xl)}
+}
+/* 这个 16px 是 iOS 的阈值，不是刻度里的一档：Safari 对小于 16px 的输入框会自动放大页面。
+   所以它写死，不跟 --fs-lg 走——刻度改一档就把这个防放大保护悄悄破坏掉了。 */
+@media (max-width:760px){input,textarea,select{font-size:16px!important}}
+/* 标题分两级往下收：平板宽度走 24px，真手机才到 20px。一步从 32 掉到 20 会把
+   页面标题压得比它下面 24px 的指标数字还小，层级整个翻过来。24 这一档是 Geist
+   自己就有的 Heading 24，不是新开的字号。 */
+@media (max-width:640px){
+  .listtitle,.index .ihead h2{font-size:var(--fs-xl)}
+}
+#searchBtn{display:none}
+.searchback{display:none}
+
+.iconswitch{min-width:0;margin:0;padding:3px;border:1px solid var(--line-soft);border-radius:var(--surface-radius);background:var(--overlay-5)}.iconswitch label{position:relative;display:inline-grid;width:34px;height:28px;place-items:center;border-radius:var(--control-radius);color:var(--muted);cursor:pointer}.iconswitch input{position:absolute;inline-size:1px;block-size:1px;opacity:0}.iconswitch label:hover{color:var(--ink)}.iconswitch label:has(input:checked){background:var(--surface);color:var(--ink);box-shadow:0 1px 2px #0005}.iconswitch label:has(input:focus-visible){outline:2px solid var(--tungsten);outline-offset:2px}.iconswitch svg{display:block;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* 取景：正封模式下，整张封套要把镜头推到右半边；本身就是竖版正封的则整张用；
+   16:9 官方剧照没有「正封那一块」，只能按人脸取。
+   判据是图片自己的宽高比，由 onload 写进 data-frame。
+   封面本身不垫底色，传统正封的比例留白由容器的同图模糊底承接，整幅大封使用纯色底。 */
+.poster.cover{width:100%;height:100%;object-fit:cover;display:block;background:none}
+/* --cover-x / --cover-y 都由人脸检出写入。哪个轴生效取决于容器和图片谁更竖：
+   `object-fit:cover` 只裁一个轴，另一个轴的锚点是死值。 */
+/* 没有折痕数据的封套只能贴最右边缘：那是「正封顶着封套右缘」这条规律的最小假设。 */
+.poster.cover.front[data-frame="sleeve"]{object-position:100% var(--cover-y,22%)}
+/* 有框数据的走这一档：`clip-path` 把框外面四边都切掉，剩下的那一块由 `--panel-left`
+   与 `--panel-top` 摆正、`--panel-height` 放到铺满卡片高度。`inset:0` 定死了 left/right，
+   和这里的 left+width 过约束，显式撤掉再写，不靠浏览器取舍；元素盒本身就是原始宽高比，
+   `object-fit` 在这里三种取值等价，写 fill 表明「不要再插手缩放」。
+   四个值都由 `panelFrame` 算好：沿折痕和按比例算出来的框满高贴右缘，top 为 0、
+   height 为 100%，纵向一个像素都不裁；只有人手工横着框才用得上另两个轴。 */
+.poster.cover.front.panel{inset:var(--panel-top,0%) auto auto var(--panel-left,0%);width:auto;
+  max-width:none;height:var(--panel-height,100%);aspect-ratio:var(--panel-aspect);object-fit:fill;
+  clip-path:inset(var(--panel-clip,0 0 0 0))}
+.poster.cover.front[data-frame="front"]{object-fit:contain;object-position:50% 50%}
+/* 剧照比大图容器宽得多，裁的是横向，所以横向锚点必须跟着人走。没检出时回落
+   居中：那是取不到人脸时唯一站得住的猜测。 */
+/* 整张放进卡片，传统封面的比例留白由容器补底。 */
+.poster.cover.whole{object-fit:contain;object-position:50% 50%}
+/* 整幅画面按人脸取景并铺满卡片。 */
+.poster.cover.front[data-frame="still"]{
+  object-fit:cover;object-position:var(--cover-x,50%) var(--cover-y,50%)}

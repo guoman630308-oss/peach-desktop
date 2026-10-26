@@ -1,0 +1,60 @@
+/* ── 关注一族与管理区共用的反馈控件 ──
+   关注管理页本身归 `follow-manage` 岛，分区卡是 `frontend/src/react/components/card.tsx`。这里剩下的
+   是壳与几座岛都在挂的 Geist Note、项目横幅、上下文卡、任务进度面板、创作者圆框、行内链接，
+   以及链接管理骨架与进度圆环。控件按实测 Geist（docs/reference-snapshots/vercel-geist-controls-measured.md）。 */
+
+/* Geist Note：字段、卡片、分区旁的持久上下文，以及需要用户处理的失败，全部走这里。
+   瞬时回执用 toast，销毁确认用 dialog/confirm。整页范围的失败也是这个盒子，只是多
+   一个关闭键（见下面的 .fwarn），不另立一套横幅。 */
+/* Note 默认无填充，filled 使用不透明浅色面；状态含义由文字和图标共同表达。 */
+:root{--feedback-success:var(--color-accent-600)}
+:root[data-theme="dark"]{--feedback-success:var(--color-accent-400)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--feedback-success:var(--color-accent-400)}}
+.geist-note{--feedback-color:var(--muted);display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:12px;margin:0;padding:6px 12px;min-height:40px;box-sizing:border-box;border:1px solid var(--line);border-radius:var(--control-radius);background:color-mix(in srgb,var(--feedback-color) 8%,var(--ground));color:var(--feedback-color);font-size:var(--fs-md);line-height:24px;overflow-wrap:anywhere}
+.geist-note>svg{width:16px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.geist-note.geist-note>p{margin:0;color:inherit;font:inherit;align-self:center}.geist-note>p b{margin-right:8px;color:inherit}
+.geist-note-warning{--feedback-color:var(--meter);border-color:color-mix(in srgb,var(--meter) 32%,var(--ground))}
+.geist-note-error{--feedback-color:var(--drop);border-color:color-mix(in srgb,var(--drop) 30%,var(--ground))}
+.geist-note-filled{background:color-mix(in srgb,var(--feedback-color) 8%,var(--ground))}
+.geist-note-small{min-height:32px;padding:4px 8px;font-size:var(--fs-xs);line-height:22px}
+.geist-note-small>svg{height:22px}
+/* 折叠明细跟结论同一列，带操作按钮时那一列到行尾为止。 */
+.geist-note-details{grid-column:2/-1;min-width:0;margin-bottom:6px;font-size:var(--fs-sm);line-height:22px}
+.geist-note-details>summary{cursor:pointer;color:inherit}
+/* 明细可能有上千条：只在这块里滚，长路径就地换行，不让页面被撑破。 */
+.geist-note-details ul{box-sizing:border-box;display:grid;gap:8px;max-height:min(40vh,520px);margin:8px 0 0;padding-inline-start:0;list-style:none;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.geist-note-details li{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+.geist-note-details li>a{justify-self:start;color:var(--ink);font-weight:500}
+.geist-note-details li>b{font-weight:500}
+.geist-note-details li>span,.geist-note-details li>code,.geist-note-details p{color:var(--muted)}
+.geist-note-details li>code{font-size:var(--fs-xs)}
+.geist-note-details p{margin:8px 0 0;overflow-wrap:anywhere}
+.context-card{position:fixed;inset:auto;margin:0;width:320px;max-width:calc(100vw - 16px);box-sizing:border-box;overflow:auto;overscroll-behavior:contain;padding:16px;border:1px solid var(--line);border-radius:var(--floating-radius);background:var(--ground);color:var(--ink);box-shadow:var(--elevation-dropdown);font-size:var(--fs-md);line-height:1.5;overflow-wrap:anywhere;z-index:var(--layer-popover);pointer-events:auto}
+.context-card[hidden]{display:none}.context-card h3{margin:0 0 8px;font-size:var(--fs-md)}.context-card dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;margin:0}.context-card dt{color:var(--muted)}.context-card dd{margin:0}
+/* 检查失败明细持续保留到状态解决，复用 Note 的边界、图标和语义色。 */
+.fwarn{grid-template-columns:16px minmax(0,1fr);margin:10px 0 14px}
+.fwarn>span{min-width:0}
+.fwarn p{margin:0}
+
+/* 进度面板（`frontend/src/jobs.ts`）：发丝边 --field-ring 配 primary 的白面，和 CheckboxCard 同一档，
+   躺在分区的 --ground 灰面上是一张白卡。 */
+.followtask{border:1px solid var(--field-ring);border-radius:var(--surface-radius);background:var(--color-background-primary-default);margin-bottom:16px}
+.followtask>.geist-fieldset-content{padding:20px;min-width:0;overflow-wrap:anywhere}
+.favatar{width:28px;height:28px;flex:none;border-radius:var(--pill-radius);object-fit:cover;
+  background:var(--overlay-5);outline:1px solid oklch(1 0 0 / 0.1);outline-offset:-1px}
+/* 取不到头像时是一个明确的空位，不是首字母——首字母会让「未取得」看着像取到了。 */
+.favatar.none{display:grid;place-items:center;color:var(--muted);
+  font-size:var(--fs-xs);outline-color:var(--line-soft)}
+/* 行内文字链接：与上下文同字号同行高，悬停出下划线。间距不在基类里写死——
+   句中链接（「去管理关注看原因」）多出 10px 就成了断句；确实要与前文
+   拉开的场合（空态的一句话）由所在容器给。 */
+.flink{border:0;background:none;padding:0;color:var(--tungsten);font:inherit;cursor:pointer}
+.flink:hover{color:var(--tungsten);text-decoration:none}
+.empty .flink{margin-left:6px}
+
+/* 资源标识统一由 MiddleTruncate 计算可见文本。星号让本规则与「类 + 元素」的末尾省略
+   选择器同权重，并凭源码顺序覆盖，避免两套省略同时生效。 */
+*[data-middle-truncate]{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:clip}
+.geist-note:has(>[data-note-action]){grid-template-columns:16px minmax(0,1fr) auto;align-items:center}
+.geist-note>[data-note-action]{margin:0;white-space:nowrap}
+@media(max-width:600px){.geist-note:has(>[data-note-action]){grid-template-columns:16px minmax(0,1fr)}.geist-note>[data-note-action]{grid-column:2;justify-self:start}}

@@ -1,0 +1,5 @@
+# ripgrep 专用忽略（不影响 Git）：压缩后的单行 vendor 资产超过工具 JSON 记录 64KB 上限，跳过。
+# 写成通配而不是钉版本号：钉过的 8.23.9 在升到 8.24.0 之后原样留了下来，忽略规则指向一个
+# 不存在的目录，等于没生效。版本精确固定是 vendor 清单的事，由 tests/test_dependency_policy.py 管。
+web/vendor/videojs/*/video.min.js
+web/vendor/videojs/*/video-js.min.css

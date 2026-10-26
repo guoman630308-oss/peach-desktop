@@ -1,0 +1,34 @@
+{
+  "version": "9.0.2",
+  "license": "GPL-3.0-or-later",
+  "sources": [
+    {
+      "name": "dav1d",
+      "revision": "1.5.4",
+      "url": "https://download.videolan.org/pub/videolan/dav1d/1.5.4/dav1d-1.5.4.tar.xz",
+      "sha256": "686616b7c69eb88d44459391ab25cac13b6647a3b288835c5784e71c1514a5c5",
+      "archive": "dav1d-1.5.4.tar.xz"
+    },
+    {
+      "name": "ffmpeg",
+      "revision": "n9.0.2",
+      "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+      "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+      "archive": "ffmpeg-9.0.2.tar.xz"
+    },
+    {
+      "name": "x264",
+      "revision": "b35605ace3ddf7c1a5d67a2eb553f034aef41d55",
+      "url": "https://code.videolan.org/videolan/x264/-/archive/b35605ace3ddf7c1a5d67a2eb553f034aef41d55/x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55.tar.gz",
+      "sha256": "cd71a7515b0e9a012e1ac9b1f8415bebcaf6fc97d4db32286642ac4c0fbe24f9",
+      "archive": "x264-b35605ace3ddf7c1a5d67a2eb553f034aef41d55.tar.gz"
+    },
+    {
+      "name": "nv-codec-headers",
+      "revision": "n13.1.15.0",
+      "url": "https://github.com/FFmpeg/nv-codec-headers/archive/refs/tags/n13.1.15.0.tar.gz",
+      "sha256": "2255bc74d038b95aa4be30f5f66322c2176acbdb90ada1851db6993536fbeaf7",
+      "archive": "nv-codec-headers-n13.1.15.0.tar.gz"
+    }
+  ]
+}

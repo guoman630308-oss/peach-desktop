@@ -1,0 +1,69 @@
+/* `board-skeleton.ts` 画的管理区骨架：遗留外壳在 React 子树接手之前铺的那一屏。
+   新建框占位、活动页分区与卡内那一列、指标带与主详情左栏仍在 web/css 的 04、05 两份。 */
+/* 播放列表页：页头与卡片栅格。 */
+.ui-playlistpage{padding:4px 0 42px}.ui-playlistpage>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.ui-playlistpage h2{margin:0 0 8px}.ui-playlistpage p{margin:0;color:var(--muted);font-size:var(--fs-sm)}
+.ui-playlistcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+/* 活动页：窄列与数据管理同一条 812px，因为接手之后的正文也停在这条中线上。 */
+.ui-activitypage{width:min(812px,100%);margin:0 auto;display:grid;gap:32px}
+.ui-activity-runs{list-style:none;margin:0;padding:0;display:grid;gap:12px;min-width:0}
+.ui-playlistpage h2{
+  font-size:var(--fs-3xl);line-height:1.25;letter-spacing:-.01em;font-weight:600}
+@media (max-width:760px){
+  .ui-playlistpage>header{align-items:stretch;flex-direction:column}
+  .ui-playlistpage h2{font-size:var(--fs-2xl)}
+}
+@media (max-width:640px){
+  .ui-playlistpage h2{font-size:var(--fs-xl)}
+}
+.ui-activitypage{width:100%;max-width:var(--board-content)}
+/* 骨架落在 `#stats` 里，web/css/04-manage.css 的 `.stats h2` 与 `.ui-playlistpage h2` 同一档特指度，
+   这一条排在它前面，所以多写一级 `>header` 压过它的字号。 */
+.ui-playlistpage>header h2{font:var(--board-title);letter-spacing:0}
+
+/* 统计页与口味页：口味页的页头、主详情，两页共用的数据面板。 */
+.ui-tastehead{min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap}
+.ui-tastesummaries{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--line-soft);border-radius:var(--floating-radius);background:var(--ground)}
+.ui-tastestate{min-height:20px;color:var(--meter);font-size:var(--fs-xs);margin:8px 0}.ui-tastesummaries{margin-bottom:16px}
+.ui-tastehero{overflow:hidden;border:1px solid var(--line-soft);border-radius:var(--floating-radius);background:var(--ground);min-height:330px;display:grid;grid-template-columns:minmax(260px,36%) minmax(0,1fr);margin-bottom:16px}
+.ui-tastebars{min-width:0;padding:24px;align-self:center}
+.ui-insightpanel{overflow:hidden;border:1px solid var(--line-soft);border-radius:var(--floating-radius);background:var(--ground)}
+.ui-insightpanel>header{min-height:52px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--line-soft)}
+.ui-insightpanel>header h3{margin:0;font-size:var(--fs-md)}
+.ui-insightpanel>header p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs)}
+.ui-insightpanelbody{min-width:0;padding:14px 16px 16px}
+@media(max-width:900px){.ui-tastehero{grid-template-columns:minmax(220px,40%) minmax(0,1fr)}}
+@media(max-width:640px){
+  .ui-tastehead{align-items:stretch}
+  .ui-tastesummaries{grid-auto-columns:minmax(168px,82%)}
+  .ui-tastehero{min-height:0;grid-template-columns:minmax(0,1fr)}
+  .ui-tastebars{padding:18px}
+  .ui-insightpanel>header{padding:0 14px}
+  .ui-insightpanelbody{padding:12px}
+}
+/* Board 的那一层：指标格不描边、面板圆角 16。 */
+.ui-tastehead{gap:16px}
+/* 底色拆成两条 longhand：打包会把 `background:none` 压成 `background:0 0`，背景位置跟着变成 0px。 */
+.ui-tastesummaries{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:row;gap:16px;overflow:visible;border:0;background-color:transparent;background-image:none}
+.ui-insightpanel,.ui-tastehero{border:0;border-radius:16px;background:var(--ground);overflow:clip}
+.ui-insightpanel>header{border:0;padding-top:8px}
+@media(max-width:1000px){.ui-tastesummaries{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+/* 口味页三个面板的标题同一档：Heading 20/26、上 24 左 24 下 12。 */
+.ui-insightpanel>header:not(:has([role="tablist"])){display:block;min-height:0;padding:24px 24px 12px}
+.ui-insightpanel>header h3{margin:0;font:var(--board-heading);color:var(--color-text-primary)}
+/* 关注列表骨架的容器与按键都是 React 那侧的类名，这里只补一件 Tailwind 表达不了的事：
+   工具行窄于 740px 时带字的键收成纯图标。React 按工具行自己的宽度量，骨架拿关注列表那张卡
+   做容器，它的内容宽度就是工具行的宽度，按同一条线收。 */
+.ui-follow-skeleton-surface{container:follow-list/inline-size}
+@container follow-list (max-width:739.98px){.ui-follow-skeleton-toolbar [data-compact-label]{display:none}}
+
+/* 骨架里的几样通用件：一列文字条、口味页的雷达、舞台详情的画面格与活跃图那一格。雷达与画面格同时挂着
+   web/css/09-skeleton.css 的 `.skeleton`（`height:18px`），播放列表新建那一行同时挂着 04-manage.css 的
+   `.playlistcreate`（flex）；那两条同一档特指度、排在后面，所以这三处多写一级 `[class~=…]` 压过它们。 */
+.ui-skeleton-lines{display:grid;gap:12px;min-width:0}
+[class~=playlistcreate].ui-skeleton-lines{display:grid;gap:12px}
+[class~=skeleton].ui-skeleton-radar{width:100%;height:260px;clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%)}
+[class~=skeleton].ui-skeleton-detail-media{height:auto;aspect-ratio:16/9;min-width:0;max-height:76vh}
+/* 两张活跃图并排。图本身归 React（`frontend/src/react/taste/charts.tsx`），这一条留给
+   遗留壳铺的那张骨架：它在这一格里画两块等待中的面板。 */
+.ui-board-activity-charts{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;margin:20px 0}
+@media(max-width:1000px){.ui-board-activity-charts{grid-template-columns:1fr}}

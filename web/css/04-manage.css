@@ -1,0 +1,70 @@
+/* 统计页 */
+.stats{padding:0 0 42px}
+/* 播放列表页骨架的新建框占位；页头与卡片栅格在 frontend/src/board-skeleton.css。 */
+.playlistcreate{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+/* 账本只读那一条是 Note：框、图标字形和整套色调都在 `.geist-note` 那一份里，这里只留
+   它在页面里的位置。自己再描一圈暖色边、把字写成 --ink 的话，底色说的是「注意」、
+   文字说的是「普通说明」，同一条提示上两句话对不上。 */
+.geist-note.runtimegate{margin:0 0 12px}
+/* 复核页的正文归 React 子树（ADR-0031）。这几条只服务遗留骨架：一列分类、工具条上
+   那三枚占位和六张占位卡，卡高由 `--review-card-height` 说了算。 */
+.review{--review-card-height:440px;padding:0 0 42px}
+.reviewsection{margin-bottom:20px}
+.reviewlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;align-items:start}
+.reviewbulkbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+/* 活动页骨架的分区与卡内那一列；窄列与列表在 frontend/src/board-skeleton.css，
+   卡片框体沿用 `.cleanupfieldset`。 */
+.activitysection{display:grid;gap:12px;min-width:0}
+.activitysection .geist-fieldset-title{margin:0;font:var(--board-heading);font-family:var(--font-sans);letter-spacing:0}
+.activity-run>.geist-fieldset-content{display:grid;gap:6px}
+.cleanupgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+/* Geist Fieldset：全框只有一条线，在底部操作条上方。标题是正文区的第一行，
+   底下不划线（证据：vercel.com/geist/fieldset 的 Multiple Fieldsets 示例）。
+   操作条固定 52px、竖直居中，按钮一律靠右；左侧有说明时说明推到最左。
+   字阶照 Geist 示例实测：标题 20px/600、说明 14px/400——标题必须压过正文。 */
+.geist-fieldset-title{margin:0 0 8px;color:var(--ink);font-size:var(--fs-xl);font-weight:600}
+.cleanupfieldset>.geist-fieldset-footer{box-sizing:border-box;min-height:var(--fieldset-bar-h);
+  margin:0;padding:12px 12px 12px 20px;display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  border-top:1px solid var(--line-soft);background:var(--overlay-5)}
+/* 说明可以换行、按钮不能被压扁：窄屏下操作条仍是一行，说明占剩下的宽度，
+   条子按内容长高（证据：vercel.com/geist/fieldset 在 375px 下操作条仍是
+   flex-direction:row、nowrap，min-height 56px 实测长到 65/85/105px，
+   按钮保持 70–186px 的内容宽度，没有一个铺满）。 */
+.geist-fieldset-footer>p,.geist-fieldset-footer>span,
+.resourcesyncfooter>p{min-width:0;margin-right:auto}
+.cleanupfieldset>.geist-fieldset-footer>p{margin:0 auto 0 0;text-align:left}
+/* 没有 min-height：卡片高度由内容决定，和同页的「网盘与账本」一致。三列时那条
+   176px 地板是用来对齐同一行的，改成单列后它只是把每张卡都撑出一段空白。 */
+.cleanupfieldset{display:flex;flex-direction:column;min-width:0;margin:0;padding:0;overflow:hidden;
+  border:1px solid var(--field-ring);border-radius:var(--floating-radius);background:var(--ground)}
+.cleanupfieldset>.geist-fieldset-content{flex:1;min-height:0;padding:20px}.cleanupfieldset strong{display:block;font-size:var(--fs-md);font-weight:500;color:var(--ink-2)}
+.cleanupfieldset p{margin:0;color:var(--muted);font-size:var(--fs-md);line-height:1.45}
+/* 主数字下面那行分项。空着时整行不占位——没有分项的卡不该比别人多一段留白。 */
+.cleanupmeta{margin-top:6px;font-size:var(--fs-sm)}
+.cleanupmeta:empty{display:none}
+/* 操作条上的按钮一律填 --ground：条子是 --page，按钮要比条子亮才分得出来，
+   与 .geist-button 的次级档同一套。hover 只提亮底色、描边和文字，不出蓝色。
+
+   危险按钮静止态就是 --drop 实底加白字，配方在 `01-base.css` 的 `button.danger`，
+   全站一份。次级不描边，与 `.geist-button` 同一条：它自己是一块比操作条亮一档的面。 */
+/* 排除下拉触发器要用 `:where(:not(…))`，不能直接写 `:not(…)`。采集来源那张卡的下拉触发器
+   正好是 `.cleanupfieldset` 里的一个 button，这条不排除它就把 `.gselectfield` 那圈线也去了
+   ——按钮不描边，输入类控件仍旧描边。而裸 `:not()` 会把这条抬到 0,2,1，反过来压过
+   `.geist-button.primary`（0,2,0），同一张卡上的主动作于是丢掉实底变成一行字；
+   `:where()` 权重恒为零，排除生效、层级不动。 */
+.cleanupfieldset button:where(:not(.gselectfield)){box-sizing:border-box;flex:none;min-height:32px;padding:0 12px;border:0;border-radius:var(--control-radius);box-shadow:0 0 0 1px var(--line-soft);
+  background:var(--ground);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;
+  transition:color .15s ease-in-out,background-color .15s ease-in-out}
+.cleanupfieldset button:where(:not(.gselectfield)):hover{background:color-mix(in srgb,var(--ink) 8%,var(--ground));color:var(--ink)}
+.cleanupfieldset button:where(:not(.gselectfield)) svg{width:16px;height:16px;stroke:currentColor;fill:none}
+.stats h2{margin:0 0 4px;font-size:var(--fs-2xl)}
+.stats .sub{color:var(--muted);margin:0}
+/* 来源和凭证页的正文归 React 子树（ADR-0031）。这两条只服务遗留骨架：那一句静态说明
+   和四块占位卡，宽度另由 `board.css` 那条钉到 `--board-content`。 */
+.scraping-page{width:min(812px,100%);margin:0 auto;display:grid;gap:20px}
+.scraping-page>h1,.scraping-page p{margin:0}
+
+/* 分类那一列与工具条在骨架里也要占住位置，正文归 React 子树之后只剩这几条。 */
+.reviewcontrols{display:grid;gap:12px;padding-block:12px;margin-bottom:16px}
+.reviewcontrols .reviewtabs{margin-bottom:0}
+.reviewbulktoolbar{padding-block:0;margin-bottom:0}

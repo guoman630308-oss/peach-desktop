@@ -1,0 +1,29 @@
+/* 文字档按内容收宽，选项保持单行。 */
+fieldset.iconswitch-text{display:inline-flex;justify-self:start}
+fieldset.iconswitch-text label{width:auto;min-width:52px;padding-inline:10px;white-space:nowrap}
+
+/* 自绘单值拉条（`dialSliderHtml` / `wireDialSlider`）。几何取自 feralui.dev/gradients 的
+   `.dial-slider`，实测记在 docs/reference-snapshots/feralui-studio-boardui-accent-measured.md：
+   30px 高、20px 轨道、每 10% 一根 1×8px 刻度、3×20px 的圆头抓手，刻度与抓手默认透明，
+   悬停或拖动时才现形——一条静止的拉条上，九根刻度和一枚抓手比那条线本身还抢眼。
+   上游用自己的 ink 色画焦点环，这里仍走站内的 --tungsten：蓝只给焦点环这条是全站的。
+   当前位置只有 --dial-at 一个来源，填充宽度和抓手位置读的是同一个数。 */
+.ui-dial{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-width:0}
+.ui-dial-slider{position:relative;display:flex;align-items:center;height:30px;min-width:0;
+  cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.ui-dial-track{position:relative;width:100%;height:20px;border-radius:var(--pill-radius);
+  background:color-mix(in srgb,var(--ink) 11%,transparent);box-shadow:inset 0 1px 2px var(--overlay-5);overflow:hidden}
+.ui-dial-fill{position:absolute;inset:0 auto 0 0;width:var(--dial-at,0%);
+  background:color-mix(in srgb,var(--ink) 42%,transparent)}
+.ui-dial-slider[data-dragging] .ui-dial-fill{background:color-mix(in srgb,var(--ink) 55%,transparent)}
+.ui-dial-ticks{position:absolute;left:0;right:0;display:flex;justify-content:space-between;
+  padding:0 10%;opacity:0;pointer-events:none;transition:opacity .12s ease}
+.ui-dial-ticks span{width:1px;height:8px;background:color-mix(in srgb,var(--ink) 20%,transparent)}
+.ui-dial-handle{position:absolute;left:var(--dial-at,0%);width:3px;height:20px;transform:translateX(-50%);
+  border-radius:var(--pill-radius);background:var(--ink);box-shadow:0 1px 2px var(--overlay-5);
+  opacity:0;pointer-events:none;transition:opacity .12s ease}
+.ui-dial-slider:hover :is(.ui-dial-ticks,.ui-dial-handle),
+.ui-dial-slider:focus-visible :is(.ui-dial-ticks,.ui-dial-handle),
+.ui-dial-slider[data-dragging] :is(.ui-dial-ticks,.ui-dial-handle){opacity:1}
+.ui-dial-slider:focus-visible{outline:2px solid var(--tungsten);outline-offset:3px;border-radius:var(--pill-radius)}
+.ui-dial-value{min-width:44px;color:var(--ink-2);font-weight:400;text-align:right}

@@ -1,0 +1,44 @@
+/* `skeleton.ts` 画的骨架件。卡片骨架、标签与头像占位和微光的共用部分在 web/css/09-skeleton.css。 */
+/* 字母表骨架：一个首字一张卡，卡里一行一枚标签。 */
+.ui-alphagroup{padding:16px 20px 12px;border-radius:var(--floating-radius);background:var(--ground)}
+.ui-alphalist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:2px 16px}
+.ui-alphagroup{border-radius:16px;box-shadow:none}
+/* 卡与卡之间的 16px 同页面字母表那一列（`TagAlphabet` 的 `gap-4`）。 */
+section:has(>.ui-alphagroup){display:flex;flex-direction:column;gap:16px}
+/* 统计与口味两页的骨架。四格与真的指标带同宽同高：下限 140px、单格 96px、内边距 14/16、间隙 4px
+   都取自 .metricstrip / .ui-tastesummaries，手机上同样露边滚动。 */
+.ui-skeletondashstrip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);overflow-x:auto;
+  border:1px solid var(--line-soft);border-radius:var(--floating-radius);background:var(--ground)}
+.ui-skeletondashstrip>span{box-sizing:border-box;min-height:96px;min-width:0;display:grid;align-content:center;
+  gap:4px;padding:14px 16px;border-right:1px solid var(--line-soft)}
+.ui-skeletondashstrip>span:last-child{border-right:0}
+.ui-skeletondashstrip i,.ui-skeletondashstrip b,.ui-skeletondashstrip em{display:block;background:var(--hover);
+  border-radius:var(--control-radius)}
+.ui-skeletondashstrip i{width:52%;height:17px}.ui-skeletondashstrip b{width:68%;height:28px}
+.ui-skeletondashstrip em{width:60%;height:17px}
+@media(max-width:640px){.ui-skeletondashstrip{grid-auto-columns:minmax(168px,82%)}}
+.ui-skeletondashhero,.ui-skeletondashpanel{display:grid;min-width:0;overflow:hidden;border:1px solid var(--line-soft);
+  border-radius:var(--floating-radius);background:var(--ground)}
+.ui-skeletondashhero{min-height:330px;grid-template-columns:minmax(260px,36%) minmax(0,1fr)}
+.ui-skeletondashhero i,.ui-skeletondashhero b,.ui-skeletondashpanel i,.ui-skeletondashpanel b,.ui-skeletondashpanel em{
+  display:block;background:var(--hover)}
+.ui-skeletondashhero i{margin:28px 24px;border-radius:var(--control-radius)}.ui-skeletondashhero b{margin:24px;border-radius:var(--control-radius)}
+.ui-skeletondashpanel{grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+.ui-skeletondashpanel i{grid-column:1/-1;width:26%;height:18px;border-radius:var(--control-radius)}
+.ui-skeletondashpanel b,.ui-skeletondashpanel em{height:84px;border-radius:var(--control-radius)}
+@media(max-width:640px){.ui-skeletondashhero{grid-template-columns:minmax(0,1fr)}.ui-skeletondashhero i{min-height:180px}.ui-skeletondashhero b{min-height:220px}.ui-skeletondashpanel{grid-template-columns:1fr}}
+/* 微光与卡片骨架同一条（web/css/09-skeleton.css 的 `skeleton-sweep`）。 */
+.ui-skeletondashhero i,.ui-skeletondashhero b,
+.ui-skeletondashpanel i,.ui-skeletondashpanel b,.ui-skeletondashpanel em,
+.ui-skeletondashstrip i,.ui-skeletondashstrip b,.ui-skeletondashstrip em{position:relative;overflow:hidden}
+.ui-skeletondashhero i::after,.ui-skeletondashhero b::after,
+.ui-skeletondashpanel i::after,.ui-skeletondashpanel b::after,.ui-skeletondashpanel em::after,
+.ui-skeletondashstrip i::after,.ui-skeletondashstrip b::after,.ui-skeletondashstrip em::after{content:'';position:absolute;inset:0;right:-200%;
+  visibility:visible;border-radius:inherit;
+  background:linear-gradient(to right,var(--hover),var(--skeleton-sheen) 50%,var(--hover));
+  background-size:50% 100%;
+  animation:skeleton-sweep 1.5s ease-in-out infinite reverse}
+/* Board 的那一层：指标格不描边、各自一张圆角 16 的卡。 */
+.ui-skeletondashstrip{border:0;gap:16px;background-color:transparent;background-image:none}
+.ui-skeletondashstrip>span{border:0;border-radius:16px;background:var(--ground);min-height:152px}
+.ui-skeletondashhero,.ui-skeletondashpanel{border:0;border-radius:16px}

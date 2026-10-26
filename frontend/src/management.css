@@ -1,0 +1,37 @@
+/* 数据管理页的遗留骨架（`management.ts`）。卡片框体、统计条与操作条在 web/css/04-manage.css。 */
+/* 数据管理整页收进一条窄列（vercel.com/geist/fieldset 实测示例块宽 812px），
+   fieldset 一行一个，不再拼三列。 */
+.ui-cleanuppage{width:min(812px,100%);margin:0 auto;display:grid;gap:32px}
+/* 整理那张卡：两份模板、一排预设、一段结果。字段标签是块级、排在控件上方（Geist 的
+   Label 就是这个形状）；来源下拉靠框内前缀图标自报用途，同一行不再挂文字标签。 */
+.ui-organizefields{display:grid;gap:12px;margin-top:12px}
+.ui-organizefield{display:grid;gap:6px;min-width:0}
+.ui-organizefield>span{color:var(--ink-2);font-size:var(--fs-sm)}
+.ui-organizepresets{display:flex;flex-wrap:wrap;gap:8px}
+/* 正文跟管理区页头钉在同一条中线上（web/board.css 里 `.scraping-page` 那一条的说明）。 */
+.ui-cleanuppage{width:100%;max-width:var(--board-content)}
+/* 整理卡骨架：三颗预设就是最终那种次级键，库名和预设名要等数据。来源下拉的占位宽度在
+   web/css/09-skeleton.css 的 `.organize-source-skeleton`。占位条 `skeleton-text` 是旧表的类，按 `[class~=…]` 写，
+   React 样式产物里不出现和旧表同名的类。 */
+.ui-organize-preset-skeleton>[class~=skeleton-text]{width:4.5em;max-width:none}
+.ui-organize-input-skeleton{display:flex;align-items:center}
+/* 链接管理与资源同步两段：段标题在卡外。骨架落在 `#stats` 里，web/css/04-manage.css 的 `.stats h2`
+   与 `.ui-resourcesync>h2` 同一档特指度、排在它后面，所以标题多写一级 `section` 压过它的字号与外边距。 */
+.ui-resourcesync{scroll-margin-top:calc(var(--topH) + 18px);display:grid;gap:16px}
+section.ui-resourcesync>h2{margin:0;font:var(--board-heading);letter-spacing:0}
+/* 链接管理骨架的概览格与主要站点一行。正文归 React 子树（ADR-0031），这几条只服务骨架。 */
+.ui-linkstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 32px;margin-top:16px}
+.ui-linkstats>div,.ui-linkhosts{display:grid;gap:2px;min-width:0}
+.ui-linkstats span,.ui-linkhosts span{color:var(--muted);font-size:var(--fs-xs)}
+.ui-linkstats b{font-size:var(--fs-xl);font-variant-numeric:tabular-nums}
+.ui-linkstats small{color:var(--muted);font-size:var(--fs-xs)}
+.ui-linkhosts{margin-top:16px}
+.ui-linkhosts b{font-weight:500;font-size:var(--fs-sm);overflow-wrap:anywhere}
+/* 数据管理骨架顶上那排读数卡：五张在 1120 内一行摆下，窄了折两列、再折一列；卡面本身（`.board-plain-stat`）
+   与 Board 取证在 web/board.css。React 那一排的同一组折行在 `react/components/stat-card.tsx`。 */
+.ui-cleanupstats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+.ui-board-plain-stat-head{display:flex;align-items:center;gap:8px;min-width:0;color:var(--color-text-secondary);font:var(--board-body-medium);white-space:nowrap}
+.ui-board-stat-tile{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:6px;background:var(--color-background-primary-default);color:var(--color-text-primary)}
+.ui-board-stat-tile svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:1119px){.ui-cleanupstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:559px){.ui-cleanupstats{grid-template-columns:minmax(0,1fr)}}

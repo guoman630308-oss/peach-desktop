@@ -1,0 +1,6 @@
+/* 页码格（同目录 `pagination.ts` 的 `paginationHtml`）。整条分页条的外形与 Board 取证在 web/board.css 的 `.board-pagination`。 */
+.ui-board-page,.ui-board-page-dots{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0;padding:0;border:0;border-radius:8px;background-color:transparent;background-image:none;color:var(--color-text-secondary);font:var(--board-body-medium);font-variant-numeric:tabular-nums}
+.ui-board-page{cursor:pointer;transition:none}
+.ui-board-page:hover{background:var(--color-background-primary-hover);color:var(--color-text-primary)}
+.ui-board-page[aria-current="page"]{border:1px solid var(--color-border-button-default);background:var(--color-background-primary-default);color:var(--color-text-primary);box-shadow:var(--elevation-xs)}
+.ui-board-page-dots{color:var(--color-text-tertiary)}

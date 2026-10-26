@@ -1,0 +1,13 @@
+# 仓库里一律存 LF，工作区也一律签出 LF。
+# 2026-08：Windows 侧的编辑器把 105 个文件整体改写成 CRLF，git 视作全文件改动，
+# 16000 行的假 diff 把真正未提交的那点改动完全埋掉。跨 Windows/macOS 两台机器
+# 开发时，这条必须显式声明，不能依赖各自的 core.autocrlf。
+* text=auto eol=lf
+
+# 第三方自托管产物按原样保存，不做任何换行改写。
+web/vendor/videojs/** -text
+
+# 随仓库分发的实体标识（ADR-0026）按原样保存：清单记着每份的 sha256，换行改写会让
+# 摘要对不上。PNG 和 JPEG 靠 `text=auto` 自己就能躲过，SVG 躲不过——它是文本，一次
+# 签出就被改字节，而校验失败的表现是「仓库里的图明明没动却报摘要不符」。
+resources/marks/** -text

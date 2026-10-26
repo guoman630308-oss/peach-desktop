@@ -1,0 +1,624 @@
+/* 作品详情（`item-detail-page.tsx`）。
+ *
+ * 舞台里的格子（`[data-stage-grid]` / `[data-stage-media]` / `[data-stage-side]` /
+ * `[data-stage-side-content]`）、标题行、规格行、标签行、操作键条（`[data-stage-actions]` 与关注详情
+ * 也有的 `later` / `seen` / `dislike` 三枚）和队列（`[data-mix-queue]` 一族）是和关注详情共用的，
+ * 几何归 `../stage/stage.css` 与 `../../player/player.css`；这里只写作品详情自己的几块。
+ *
+ * 选择器全用 `data-*`，前面挂 `[data-item-detail]`（「接着看」在格子外面，挂 `[data-item-related]`）：
+ * 舞台样式表与 `web/` 下的遗留样式表都排在后面，同权重时它们赢，多一层属性才压得住
+ * `[data-stage-actions] button` 这类通用规则。反过来，共用容器的通用规则（操作键的底色、
+ * `.srcbig.metered` 的字色）在这里不能被顺手压掉，碰到这种地方选择器用 `:where()` 把权重降回去。
+ *
+ * 类选择器一条不写，否则产物里的类名会和旧样式表同名（`test/legacy-class-names.test.ts`）。
+ * 有两处的类不是岛挂的：来源徽标由壳的 `badgeHtml` 画成 `srcbig`，选择器收起时由
+ * `dismissMenu` 挂上 `leaving`。这两处用 `[class~=…]` 认，权重和类选择器相同。 */
+
+/* 作品与队列都没取到时，播放器格里只有那条重试提示：格子照播放器的 16:9 撑开，提示居中，
+   不塌成一条压着提示的窄条。 */
+.peach-react [data-item-detail] [data-item-placeholder] {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  padding: 16px;
+}
+
+/* ── 播放区：没挂载、在线与计费三种说明块 ──
+   说明块铺满播放器格，不上下留黑；圆角跟着格走（格只圆左上角，右边贴着侧栏）。 */
+.peach-react [data-item-gallery] { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.peach-react [data-item-gallery] > [class~="video-js"] { order: 0; flex: none; }
+.peach-react [data-item-gallery] > [data-carousel-below] { order: 1; flex: none; }
+.peach-react [data-item-gallery]:not([data-item-picture]) > [data-jav-preview-toggle] { left: 64px; }
+.peach-react [data-item-gallery][data-item-picture] > :is([class~="video-js"], video, [data-item-gate], #playerStatsBtn, #playerStats, #playerNet, [data-ambient-canvas]) { display: none; }
+.peach-react [data-catalog-picture] { display: block; width: 100%; height: auto; max-height: calc(76vh - 112px); object-fit: contain; min-height: 0; }
+.peach-react [data-item-gallery][data-item-picture] > [role="note"] { margin: 24px; }
+.peach-react [data-item-detail] [data-item-gate] {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: inherit;
+  background: var(--sunk);
+  border: 1px dashed var(--meter);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+}
+:where(.peach-react [data-item-detail] [data-item-gate]) b { font-size: var(--fs-md); }
+/* 来源徽标自己的字色（`.srcbig.metered` 那一档）要留着，这两条的权重不能高过它。 */
+:where(.peach-react [data-item-detail] [data-item-gate]) span { font-size: var(--fs-xs); color: var(--muted); }
+/* 脱盘：实线框、页面底色，说明一句一行居中；「重新检测」是这一块唯一的动作。 */
+.peach-react [data-item-detail] [data-item-gate="offline"] {
+  cursor: default;
+  border-style: solid;
+  gap: 7px;
+  min-height: 220px;
+  padding: 24px;
+  background: var(--ground);
+  color: var(--ink);
+}
+.peach-react [data-item-detail] [data-item-gate="offline"] b { letter-spacing: .08em; }
+.peach-react [data-item-detail] [data-item-gate="offline"] span {
+  max-width: 34ch;
+  text-align: center;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.peach-react [data-item-detail] [data-item-gate="offline"] button { cursor: pointer; margin-top: 4px; }
+
+/* ── 队列行 ──
+   徽章和标题同一行，标题那一行自己是 flex 容器：`[data-mix-item-text]` 的 b/span 都是块级的，并排只能靠
+   这一层，`min-width:0` 才让中段省略照旧按剩余宽度算。 */
+.peach-react [data-mix-queue] [data-queue-head] { display: flex; align-items: center; gap: 5px; margin-top: 0; color: var(--ink); }
+.peach-react [data-mix-queue] [data-queue-head] b { flex: 1; min-width: 0; }
+/* 版本字样最多占一半：长字样自己省略，番号总留得下。 */
+.peach-react [data-mix-queue] [data-queue-edition] { flex: 0 1 auto; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; }
+/* 播放列表的顺序靠拖，每格右上角只剩抓手和移出，压在缩略图上，深色半透明底。 */
+.peach-react [data-mix-queue] [data-queue-edit] {
+  position: absolute;
+  z-index: 3;
+  right: 5px;
+  top: 5px;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--control-radius);
+  background: rgba(0, 0, 0, .62);
+  color: #fff;
+}
+.peach-react [data-mix-queue] [data-queue-grip] { display: grid; place-items: center; width: 20px; color: var(--muted); cursor: grab; }
+.peach-react [data-mix-queue] [data-queue-grip] svg { width: 16px; height: 16px; stroke: currentColor; fill: none; }
+.peach-react [data-mix-queue] [data-queue-edit] button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: transparent;
+  color: #fff;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.peach-react [data-mix-queue] [data-queue-edit] button:hover { background: var(--hover); }
+.peach-react [data-mix-queue] [data-queue-edit] svg { width: 15px; height: 15px; stroke: currentColor; fill: none; }
+
+/* ── 标题 ──
+   默认折成两行：番号在前、正文在后，两行够认出是哪一部；正文动辄五六行，整段摊开会把评分、标签
+   和动作全推到折叠线以下。真溢出时标题下面那排键最前面多一枚展开键，没溢出就不画它（判定在
+   `DetailTitle` 的 ResizeObserver 里）。来源徽标是行内块、站在第一行开头，随文字一起被折。那排键
+   自成一行排在标题下面：夹在被折的文字末尾会一起被裁掉。徽标盒与一行等高、贴行顶，字形居中
+   就落在这一行的正中；`middle` 对的是基线上方半个 x 高，番号的大写和汉字看着都比徽标高。 */
+.peach-react [data-item-detail] [data-item-title] { display: block; margin-bottom: 10px; }
+.peach-react [data-item-detail] [data-item-title] [class~="srcbig"] {
+  display: inline-grid;
+  vertical-align: top;
+  width: 17px;
+  height: 28px;
+  margin: 0 8px 0 0;
+  place-items: center;
+}
+.peach-react [data-item-detail] [data-item-title] [data-title-line] { min-width: 0; margin: 0; line-height: 1.75; }
+.peach-react [data-item-detail] [data-detail-title] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.peach-react [data-item-detail] [data-detail-title][data-expanded] { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
+.peach-react [data-item-detail] [data-detail-title][data-foldable] { cursor: pointer; }
+/* 展开、取景与两枚文件键：26px 的纯图标方键。图标必须显式写 stroke/fill，Lucide 是描边路径，
+   缺了就被按默认 fill:black 画成黑块。在线条目没有那两枚文件键，标题又没溢出时这一排里一枚
+   可见的键都没有，整行连边距一起收掉。 */
+.peach-react [data-item-detail] [data-title-tools] { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; flex-wrap: nowrap; }
+.peach-react [data-item-detail] [data-title-tools]:not(:has(button:not([hidden]))) { display: none; }
+.peach-react [data-item-detail] [data-title-tools] button {
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+.peach-react [data-item-detail] [data-title-tools] button[hidden] { display: none; }
+/* 取景键包在一层 24px 行高的块级宿主里，按钮按 inline-grid 落在行框基线上，这一排高 26.5px，
+   同排的键居中后下移 0.25px，侧栏下方各块的纵向位置都以这一排为准。 */
+.peach-react [data-item-detail] [data-title-tools] [data-cover-crop-host] { display: contents; }
+.peach-react [data-item-detail] [data-title-tools] button svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+.peach-react [data-item-detail] [data-title-tools] button > svg {
+  display: block;
+  margin: 0;
+  flex-shrink: 0;
+  align-self: center;
+  justify-self: center;
+}
+.peach-react [data-item-detail] [data-title-tools] button:hover { background: var(--hover); color: var(--ink); }
+.peach-react [data-item-detail] [data-title-tools] button:disabled {
+  background: var(--sunk);
+  border-color: var(--line-soft);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.peach-react [data-item-detail] [data-title-state] {
+  display: block;
+  min-width: 0;
+  flex: 1 1 100%;
+  margin: -4px 0 10px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.peach-react [data-item-detail] [data-title-state]:empty { display: none; }
+
+/* ── 评分 ──
+   五颗星站在标题和那行规格之间，和标题、规格行印在同一条左边线上；对齐的依据是印出来的星形，
+   不是按钮的命中区：26px 的方块里画 19px 的星，星形自己在 24 格视区里又从第 2 格才起笔，两层
+   加起来把第一颗星的墨往右推了约 4px，这一排因此往左让 4px。命中区仍旧保持 26px。
+   上下同理：标题末行下面自带约 8px 的行距，星形在自己的方块里上下也各空掉约 5px，上外边距回收
+   掉那 6px，上下印出来才是同一个数。
+   整排是同一种琥珀 `--rating`，空心是未评、实心是已评。悬停预演「点下去会变成几星」：整排先退回
+   空心，再把指针那一颗和它左边的填上。`:has(~ …:hover)` 是这里唯一需要的「前一个兄弟」——把 DOM
+   倒过来写也能做到，代价是读屏和 Tab 顺序跟着倒过来。 */
+.peach-react [data-item-detail] [data-item-rating] { display: flex; align-items: center; gap: 8px; margin: -6px 0 10px; }
+.peach-react [data-item-detail] [data-rating-stars] { display: inline-flex; align-items: center; gap: 2px; margin-left: -4px; }
+.peach-react [data-item-detail] [data-rate] {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: transparent;
+  color: var(--rating);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.peach-react [data-item-detail] [data-rate] svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.peach-react [data-item-detail] [data-rate][data-on="true"] svg { fill: currentColor; }
+.peach-react [data-item-detail] [data-rating-stars]:hover button[data-rate] svg { fill: none; }
+.peach-react [data-item-detail] [data-rating-stars]:hover button[data-rate]:hover svg,
+.peach-react [data-item-detail] [data-rating-stars]:hover button[data-rate]:has(~ [data-rate]:hover) svg { fill: currentColor; }
+.peach-react [data-item-detail] [data-rate]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-item-detail] [data-rating-value] { color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+
+/* ── 规格行 ──
+   产地那一条是能点开的集合，其余几条是读数。按钮只脱掉浏览器默认外观，位置、字号和颜色与读数
+   同一套，两者在同一行上不能高低不齐。 */
+.peach-react [data-item-detail] [data-spec-item] { display: inline-flex; align-items: center; gap: 5px; }
+.peach-react [data-item-detail] [data-spec-item] svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.peach-react [data-item-detail] [data-open-region] { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.peach-react [data-item-detail] [data-open-region]:hover { color: var(--ink); }
+
+/* ── 出演与署名 ──
+   按类别分组：组标题在上，同类横向排开并按需换行；每个名字独占一行会让共演作品撑满整个侧栏。
+   组标题、头像和名字共用左边缘，详情栏里的所有身份信息都从内容区起点对齐。 */
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-item-identity] { display: flex; flex-direction: column; gap: 14px; margin: 0 0 18px; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-identity-primary] { display: flex; flex-wrap: wrap; gap: 14px 26px; align-items: flex-start; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-identity-primary] > [data-id-group] { width: max-content; max-width: 100%; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-group] { min-width: 0; --id-cell: 62px; --id-face: 46px; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-group="performer"] { --id-cell: 58px; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-label] {
+  margin: 0 0 7px;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-row] { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-start; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-group="performer"] [data-id-row] { gap: 10px; }
+/* 有实体 id 的格是入口（`data-entity-kind`），「未归属」指向一个集合，样式同源；没有 id 的只是
+   一个名字，不给指针。可点的身份只用颜色、头像描边反馈，不用下划线。 */
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  width: var(--id-cell, 62px);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  cursor: default;
+}
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell]:is([data-entity-kind], [data-open-unowned]) {
+  color: var(--tungsten);
+  cursor: pointer;
+  text-decoration: none;
+}
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell]:is([data-entity-kind], [data-open-unowned]):hover { color: var(--ink); }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell][hidden] { display: none; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-face] {
+  position: relative;
+  width: var(--id-face, 46px);
+  height: var(--id-face, 46px);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--sunk);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-md);
+}
+/* 没有图的头像（BoardUI avatar 的首字盘）：主文字色 10% 混底、次文字色首字，不与卡片底同色。 */
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-face]:not(:has(img)) {
+  background: color-mix(in srgb, var(--color-text-primary) 10%, var(--color-background-primary-default));
+  color: var(--color-text-secondary);
+}
+/* `#fff` 与首字母只在取不到图时露出来：厂牌标识文件是自带边距的不透明方图，图片那条 cover
+   铺满整格，不再另给 logo 格加 padding 和 contain。 */
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell="studio"] [data-id-face] { border-radius: var(--surface-radius); background: #fff; color: #555; }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-face] img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-face] svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+/* 行高必须容得下下伸部：1.25 在 12px 下只有 15px 行框，而这里同时开着 overflow:hidden 截省略号，
+   「Prestige」的 g 尾巴会被切掉。 */
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-name] {
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  text-align: left;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell]:is([data-entity-kind], [data-open-unowned]):hover [data-id-face] { box-shadow: 0 0 0 2px var(--ink-2); }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell]:is([data-entity-kind], [data-open-unowned]):hover [data-id-name] { color: var(--ink); }
+.peach-react :is([data-item-detail], [data-follow-detail]) [data-id-cell][data-entity-kind]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-item-detail] [data-cast-more] {
+  align-self: center;
+  margin: 0;
+}
+.peach-react [data-item-detail] [data-series-rows] { display: grid; gap: 7px; }
+.peach-react [data-item-detail] [data-series-link] {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  cursor: default;
+}
+.peach-react [data-item-detail] [data-series-link] svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+.peach-react [data-item-detail] button[data-series-link] { cursor: pointer; }
+.peach-react [data-item-detail] button[data-series-link]:hover { color: var(--tungsten); }
+
+/* ── 标签 ──
+   左半边点下去是按这个标签筛选，右半边是删除；两边都有悬停反馈，筛选那边没有选中态，照孤立按钮
+   的写法抬填充。 */
+.peach-react [data-item-detail] [data-detail-tag] {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--tag-radius);
+  background: var(--tag-fill);
+  overflow: hidden;
+  min-height: 30px;
+  max-width: 100%;
+}
+.peach-react [data-item-detail] [data-detail-tag] button { border: 0; background: transparent; color: var(--ink-2); cursor: pointer; height: 28px; }
+/* 长标签单行省略：按钮高度定死 28px，折成两行时第二行会被切掉一半。全名在 title 上。 */
+.peach-react [data-item-detail] [data-detail-tag] [data-tag] { min-width: 0; padding: 3px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peach-react [data-item-detail] [data-detail-tag] [data-remove-tag] { width: 28px; padding: 0; display: grid; place-items: center; color: var(--muted); }
+.peach-react [data-item-detail] [data-detail-tag] [data-tag]:hover { background: var(--hover); color: var(--ink); }
+.peach-react [data-item-detail] [data-detail-tag] [data-remove-tag]:hover {
+  color: var(--drop);
+  background: color-mix(in srgb, var(--drop) 12%, transparent);
+}
+.peach-react [data-item-detail] [data-detail-tag] svg,
+.peach-react [data-item-detail] [data-tag-plus] svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+.peach-react [data-item-detail] [data-tag-plus] {
+  width: 30px;
+  height: 30px;
+  border: 1px dashed var(--line);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.peach-react [data-item-detail] [data-tag-plus]:hover { background: var(--hover); color: var(--ink); }
+
+/* 标签选择器：挂在标签行下面的磨砂浮层；进出场与全站菜单同一对关键帧（`board.css` 的
+   `board-menu-in` / `board-menu-out`），`leaving` 由 `dismissMenu` 挂上。手机上贴底、单列。 */
+.peach-react [data-item-detail] [data-tag-picker] {
+  position: absolute;
+  z-index: 120;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 8px);
+  max-height: min(480px, 70vh);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border-radius: var(--floating-radius);
+  background: var(--frost-panel);
+  box-shadow: 0 24px 70px -24px #000;
+  backdrop-filter: saturate(1.8) blur(20px);
+  -webkit-backdrop-filter: saturate(1.8) blur(20px);
+}
+.peach-react [data-item-detail] [data-tag-picker][hidden] { display: none; }
+.peach-react [data-item-detail] [data-tag-picker]:not([hidden]) { animation: board-menu-in .15s ease-out backwards; transform-origin: top left; }
+.peach-react [data-item-detail] [data-tag-picker][class~="leaving"] { animation: board-menu-out .15s ease-out forwards; }
+.peach-react [data-item-detail] [data-tag-search] {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.peach-react [data-item-detail] [data-tag-search] svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  color: var(--muted);
+}
+/* 内边距与占位字色用浏览器默认值：岛的 Preflight 把它们清成 0 与半透明 currentColor，`revert` 退回 UA 值。 */
+.peach-react [data-item-detail] [data-tag-search] input {
+  min-width: 0;
+  flex: 1;
+  padding: revert;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  font-size: var(--fs-lg);
+}
+.peach-react [data-item-detail] [data-tag-search] input::placeholder { color: revert; }
+.peach-react [data-item-detail] [data-tag-body] { max-height: calc(min(480px, 70vh) - 54px); overflow: auto; padding: 12px; }
+.peach-react [data-item-detail] [data-tag-section] + [data-tag-section] {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.peach-react [data-item-detail] [data-tag-section] h4 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  letter-spacing: .12em;
+  font-weight: 600;
+}
+.peach-react [data-item-detail] [data-tag-grid] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; }
+.peach-react [data-item-detail] [data-pick] {
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: transparent;
+  color: var(--ink-2);
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.peach-react [data-item-detail] [data-pick]:is(:hover, [data-active], [aria-pressed="true"]) { background: var(--hover); color: var(--ink); }
+.peach-react [data-item-detail] [data-pick-name] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peach-react [data-item-detail] [data-pick-count] { margin-left: auto; color: var(--muted); font-size: var(--fs-xs); }
+.peach-react [data-item-detail] [data-pick] svg { width: 14px; height: 14px; flex: none; }
+@media (max-width: 760px) {
+  .peach-react [data-item-detail] [data-tag-picker] { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; }
+  .peach-react [data-item-detail] [data-tag-grid] { grid-template-columns: 1fr; }
+}
+
+/* ── 观看轨迹 ──
+   两格读数并排，各自一张浅底卡：上面一行名称与百分比，下面一条 4px 的轨。离开位置那条画看过的
+   一段和离开的那一点；真实观看那条换一个色标，区分「看过的位置」和「看过多少」。 */
+.peach-react [data-item-detail] [data-item-trace] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0;
+  margin: 8px 0 16px;
+}
+.peach-react [data-item-detail] [data-trace-metric] { min-width: 0; padding: 14px 12px; background: var(--surface); border-radius: 12px; }
+.peach-react [data-item-detail] [data-trace-label] {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-item-detail] [data-trace-label] > span:last-child { color: var(--ink); font-variant-numeric: tabular-nums; }
+.peach-react [data-item-detail] [data-trace-bar] {
+  position: relative;
+  height: 4px;
+  background: var(--line);
+  border: 0;
+  border-radius: 4px;
+}
+.peach-react [data-item-detail] [data-trace-bar] u {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--loupe) 26%, transparent);
+  text-decoration: none;
+}
+.peach-react [data-item-detail] [data-trace-bar] b {
+  position: absolute;
+  left: 0;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--tungsten);
+  border-radius: var(--pill-radius);
+}
+.peach-react [data-item-detail] [data-trace-bar] [data-trace-real] { background: color-mix(in srgb, var(--keep) 40%, transparent); }
+
+/* ── 操作键条里作品详情才有的几枚 ──
+   这一排里的色相各自指向一种判断（红=不合口味、绿=看过、橙=回收），喜欢与加入播放列表是整理动作，
+   同走中性墨色；加入播放列表开的是弹层，没有按下态，只有悬停这一档。回收站那一枚推到行尾。 */
+.peach-react [data-item-detail] [data-fb="like"]:hover { color: var(--ink); background: var(--hover); }
+.peach-react [data-item-detail] [data-fb="like"][aria-pressed="true"] { color: var(--ink); background: var(--picked); }
+.peach-react [data-item-detail] [data-fb="playlist"]:hover { color: var(--ink); background: var(--hover); }
+.peach-react [data-item-detail] [data-fb="reason"]:is(:hover, [aria-expanded="true"], [data-has-reason="true"]) {
+  color: #FF669D;
+  background: color-mix(in srgb, #FF669D 12%, transparent);
+}
+.peach-react [data-item-detail] [data-fb="dispose"] { margin-left: auto; }
+.peach-react [data-item-detail] [data-fb="dispose"]:is(:hover, [aria-pressed="true"]) {
+  color: var(--meter);
+  background: color-mix(in srgb, var(--meter) 12%, transparent);
+}
+.peach-react [data-item-detail] [data-fb="quality"]:is(:hover, [aria-pressed="true"]) {
+  color: #B78CFF;
+  background: color-mix(in srgb, #B78CFF 13%, transparent);
+}
+
+/* ── 喜爱理由 ── */
+.peach-react [data-item-detail] [data-item-preference] { border: 0; padding: 0; margin: 0 0 14px; background: transparent; }
+.peach-react [data-item-detail] [data-item-preference][hidden] { display: none; }
+.peach-react [data-item-detail] [data-item-preference] textarea {
+  display: block;
+  width: 100%;
+  min-height: 62px;
+  resize: vertical;
+  padding: 8px 9px;
+  color: var(--ink);
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  line-height: 1.5;
+  font-size: var(--fs-md);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.peach-react [data-item-detail] [data-item-preference] textarea:hover { border-color: var(--field-ring-hover); }
+.peach-react [data-item-detail] [data-item-preference] textarea:focus { box-shadow: inset 0 0 0 2px var(--color-border-button-active); outline: 0; }
+.peach-react [data-item-detail] [data-preference-foot] { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 7px; }
+.peach-react [data-item-detail] [data-preference-foot] > span { margin-right: auto; color: var(--muted); font-size: var(--fs-xs); }
+.peach-react [data-item-detail] [data-preference-foot] > span:empty { display: none; }
+.peach-react [data-item-detail] [data-save-preference] { min-width: 58px; padding-inline: 12px; }
+
+/* ── 记一次高潮 ──
+   整行宽的次级键：浅底、细边，只有图标带粉色；右边的计数是一枚小药丸。 */
+.peach-react [data-item-detail] [data-kind="o"] {
+  width: 100%;
+  min-height: 40px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 #ffffff0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color .14s ease;
+}
+.peach-react [data-item-detail] [data-kind="o"] svg { width: 20px; height: 20px; fill: currentColor; color: #ff669d; }
+.peach-react [data-item-detail] [data-kind="o"] b {
+  font-size: 12px;
+  line-height: 18px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--picked);
+  font-weight: 500;
+}
+.peach-react [data-item-detail] [data-kind="o"]:hover { background: var(--hover); }
+
+/* ── 接着看 ──
+   底色和上面的详情栏同源：半透明的氛围色落在舞台那圈只铺到 58% 的径向渐变外面，会让这一条浅
+   一档，整幅宽度上于是有一道深浅不匀的色差。分界靠 `--line-soft` 那条明确的线画出来——「接着看」
+   是另一件事，同色的两块之间只留白读不出边界。横排竖向不滚，滑到头也不把手势交给外面那层浮窗，
+   不画滚动条：拖动与滚轮靠壳的 `wireDrag`。 */
+.peach-react [data-item-related] { border-top: 1px solid var(--line-soft); padding: 11px 15px 12px; background: var(--detail-surface); }
+.peach-react [data-item-related] > h3 {
+  margin: 0 0 8px;
+  font-size: var(--fs-xs);
+  letter-spacing: .1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.peach-react [data-item-related] [data-related-row] {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  padding: 32px 16px 16px;
+  margin: -24px -16px -4px;
+  scrollbar-width: none;
+}
+.peach-react [data-item-related] [data-related-row]::-webkit-scrollbar { display: none; }
+.peach-react [data-item-related] [data-related-state] { min-width: 0; }

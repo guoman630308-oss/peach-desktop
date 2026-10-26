@@ -1,0 +1,674 @@
+/* 实体资料页的资料卡（`entity-hero-page.tsx`、`hero-pop.tsx`、`name-picker.tsx`）。
+ *
+ * 取值同这块迁到 React 之前壳里那一版：`web/css/07-entity.css` 的资料卡一族加 Board 覆盖层
+ * （`web/board.css` 的 `.entityhero` 那几条与首页头像格那套共享规则），以及
+ * `web/css/19-immersive.css` 760px 以下的单列居中。骨架（`entitySkeletonHtml`）仍用旧类名画，
+ * 它的几何写在旧样式表里；这里的每一个尺寸都要和它对得上，骨架换成真卡时高度才不跳。
+ *
+ * 选择器全用 `data-*`：旧样式表不分层、排在后面，写旧类名会被接管。颜色读遗留层的 `--ground`、
+ * `--ink`、`--muted`、`--hover` 这组：它们在 `:root` 上按 Board 的值算好再继承进来，而
+ * `.peach-react` 上重新声明的 `--color-*` 是上游 theme.css 的值，读那一组会和骨架、和页面上
+ * 其余部分差一档。字体同理，取 Board 正文那一副（`--board-body`），CJK 才落在同一款字上。 */
+
+/* ── 卡 ──
+ * 一块 --ground 底、18px 圆角、不描边的卡。`overflow:hidden` 让底带的直角被卡的圆角裁掉。 */
+.peach-react [data-entity-card] {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0 0 22px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ground);
+  color: var(--ink);
+  font: var(--board-body);
+  letter-spacing: 0;
+}
+/* 全站焦点环（`01-base.css`）把 React 子树排除在外，这里自己画同一副。 */
+.peach-react [data-entity-card] :is(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+
+/* 头像跟着右边那列的行数长：外链与看片那一行都在时圆框放到 160px，其余 120px；上限 160px
+ * 免得圆框把这一页的主角抢了。尺寸按有哪几行定，不取这一行高度的百分比：圆框的宽决定头像
+ * 那一列多宽，列宽又决定别名会不会折行、身份列有多高，取百分比就成了一个圈。Chromium 只解
+ * 这个圈的第一轮，别名折行后多出的那截会压进卡底的内边距，看片那一行贴到同台艺人的分隔线上。 */
+.peach-react [data-entity-profile] {
+  --portrait-size: 120px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  padding: 20px;
+}
+.peach-react [data-entity-profile]:has(> [data-entity-identity] > [data-entity-links]):has(> [data-entity-identity] > [data-entry-marks]) {
+  --portrait-size: 160px;
+}
+/* 女优有资料时多出第三栏：右边那张资料表（ADR-0069），隔一道竖线。三栏的判据是内容区的宽度，
+ * 不是视口：宽度由 `#index` 上的 `data-hero-wide` 带进来（壳的 `syncHeroWide`），骨架读同一个开关。 */
+#index[data-hero-wide] .peach-react [data-entity-profile]:has(> [data-entity-facts]) {
+  grid-template-columns: auto minmax(0, 1fr) minmax(280px, 360px);
+}
+
+/* ── 头像 ──
+ * 外面这一层只为换头像那枚加号存在：圆框自己是 `overflow:hidden`，贴在它边上的按钮放进去就没了。
+ * 挂加号的宿主叠成和圆框一样大、一样位置的一块，高度与居中取圆框同一个 `--portrait-size`，加号的
+ * `right/bottom` 就量在圆框上；它盖在脸上，不接指针。不用 `transform` 居中：它会给弹层的
+ * `fixed` 遮罩另起包含块。 */
+/* 头像跟身份那一列竖向居中，但这一格最高只比圆框多 64px：身份列被几十条外链撑高时，
+ * 拉伸到上限就停、贴着行顶，圆框离卡顶至多 32px，不会被居中挤出首屏。 */
+.peach-react [data-entity-portrait-wrap] {
+  position: relative;
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  max-height: calc(var(--portrait-size) + 64px);
+}
+.peach-react [data-entity-portrait-wrap] > [data-avatar-picker] {
+  position: absolute;
+  top: calc((100% - var(--portrait-size)) / 2);
+  right: 0;
+  left: 0;
+  height: var(--portrait-size);
+  pointer-events: none;
+}
+.peach-react [data-entity-portrait-wrap] > [data-avatar-picker] > * { pointer-events: auto; }
+/* `position:relative` 是给人脸放大留的包含块：放大后的 img 转成绝对定位，偏移相对这个框算。 */
+.peach-react [data-entity-portrait] {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: auto;
+  max-width: 100%;
+  height: var(--portrait-size);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--overlay-5);
+  color: var(--muted);
+  font-size: var(--fs-4xl);
+}
+.peach-react [data-entity-portrait="square"] { border-radius: var(--floating-radius); }
+.peach-react [data-entity-portrait] > span { grid-area: 1 / 1; }
+/* 首字母只是取不到图时的垫底，有图就让位；兜底链把 img 摘掉后 `:has` 不再匹配，它自己回来。 */
+.peach-react [data-entity-portrait]:has(img) > span { display: none; }
+/* 预检给每张图的 `max-width:100%` 要放开：人脸放大往图上写的宽常常超过框宽（`avatarFrame`）。 */
+.peach-react [data-entity-portrait] img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+}
+/* 「图比框小就别放大」（`01-base.css` 的 `[data-fit-native]` 那组）：厂牌与事务所的标识按
+ * `fitNativeImage` 量出的原始像素摆在框正中，缺省仍是铺满。 */
+.peach-react [data-entity-portrait]:is([data-fit-native="mark"], [data-native-small="true"]) img {
+  width: var(--markw, 100%);
+  height: var(--markh, 100%);
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+  object-fit: contain;
+}
+/* 超扁、超高的标识：短边已撑到下限（`markClamp`），cover 裁掉长边两头。 */
+.peach-react [data-entity-portrait][data-native-clamp="true"] img { object-fit: cover; }
+/* 没有人脸取景的竖长头像偏上取：脸多在画面上半截。有取景时 `facePos` 的内联样式盖过这一条。 */
+.peach-react [data-entity-portrait="round"] img { object-position: 50% 25%; }
+
+/* ── 身份 ── */
+.peach-react [data-entity-identity] { min-width: 0; max-width: 100%; }
+/* 统称选择器贴着标题：它改的就是标题上那个名字，隔开就看不出改的是哪一个。 */
+.peach-react [data-entity-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 0 9px;
+}
+.peach-react [data-entity-title] h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 32px;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.peach-react [data-namepick-toggle] svg,
+.peach-react [data-namepick-menu] svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 名字下面那一行。分类在最左侧，各项带图标；装不下就整项换行。 */
+.peach-react [data-entity-alias] {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+.peach-react [data-entity-alias] b { color: var(--ink); font-weight: inherit; }
+.peach-react [data-entity-alias="meta"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+}
+.peach-react [data-meta-item] { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.peach-react [data-meta-item="classification"] { white-space: nowrap; flex: none; }
+.peach-react [data-meta-item="names"] { flex-wrap: wrap; }
+.peach-react [data-meta-item] > svg,
+.peach-react [data-entity-facts] dt svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--muted);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.peach-react [data-alias-names] > span + span::before {
+  margin: 0 6px;
+  color: var(--muted);
+  content: "·";
+}
+/* 事务所与所属片商是站内去处，同旧 `.entitylink`：钨蓝字，悬停换墨色。 */
+.peach-react [data-entity-alias] a {
+  color: var(--tungsten);
+  text-decoration: none;
+  cursor: pointer;
+}
+.peach-react [data-entity-alias] a:hover { color: var(--ink); }
+
+/* ── 「+N」与它的浮层 ── */
+.peach-react [data-hero-more] {
+  height: 22px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill-radius);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.peach-react [data-hero-more]:is(:hover, [aria-expanded="true"]) {
+  background: color-mix(in srgb, var(--ink) 8%, var(--ground));
+}
+/* 标签那一格的「+N」排在标签的流里，间距归 flex 的 gap。 */
+.peach-react [data-hero-more="fact"] { margin-left: 0; }
+/* 盒子同锚定菜单（`.popmenu` 加 Board 那条浮层外观）：底色、描边、16px 圆角、投影与开合动效。
+ * 浏览器给 `[popover]` 的居中盒子在这里拆掉，位置由 `placePop` 按视口算。 */
+.peach-react [data-hero-pop] {
+  position: fixed;
+  inset: auto;
+  z-index: var(--layer-popover);
+  display: grid;
+  gap: 8px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(440px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--elevation-dropdown);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  text-align: left;
+  transform-origin: top left;
+  animation: board-menu-in 0.15s ease-out backwards;
+}
+.peach-react [data-hero-pop]:not(:popover-open) { display: none; }
+.peach-react [data-hero-pop-head] { margin: 0; font-weight: 500; }
+.peach-react [data-hero-pop] dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+  margin: 0;
+}
+.peach-react [data-hero-pop] dt { color: var(--muted); white-space: nowrap; }
+.peach-react [data-hero-pop] dd {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.peach-react [data-hero-pop] dd[data-wide] { grid-column: 1 / -1; }
+/* 一个名字一行，读音小一档排在名字下面。 */
+.peach-react [data-pop-name] { display: grid; }
+.peach-react [data-hero-pop] small { color: var(--muted); font-size: var(--fs-xs); line-height: 1.4; }
+
+/* ── 资料表 ── */
+.peach-react [data-entity-facts] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-self: stretch;
+  align-content: center;
+  justify-self: stretch;
+  gap: 10px 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 0 2px 24px;
+  border-left: 1px solid var(--line-soft);
+  font-size: var(--fs-sm);
+  line-height: 22px;
+  text-align: left;
+}
+/* 内容区不到 900px 时排到身份信息下面，隔的线换成横的。 */
+#index:not([data-hero-wide]) .peach-react [data-entity-facts] {
+  grid-column: 1 / -1;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
+  border-left: 0;
+}
+.peach-react [data-entity-facts] dt {
+  display: flex;
+  align-items: center;
+  align-self: start;
+  gap: 6px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.peach-react [data-entity-facts] dd { min-width: 0; margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.peach-react [data-entity-facts] :is([data-fact-tone="num"], dd[data-fact="num"]) { font-variant-numeric: tabular-nums; }
+.peach-react [data-entity-facts] [data-fact-tone="sub"] { color: var(--muted); }
+.peach-react [data-entity-facts] dd[data-fact="clip"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 站上的标签只是读数，不是这一页的筛选（那排在下面的筛选条里），所以是标签的脸、不接点击。 */
+.peach-react :is(dd[data-fact="tags"], [data-fact-tags]) { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 一枚标签至多一行宽，超长的截成省略号，全文在 title 里。 */
+.peach-react [data-fact-tag] {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 var(--tag-pad-x);
+  border: 1px solid var(--line);
+  border-radius: var(--tag-radius);
+  background: var(--tag-fill);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+/* ── 外链 ──
+ * 一行次级按钮：36px 高、10px 圆角、一圈线，跟 Board 的 secondary Button 同一个形。它们是「去哪」
+ * 的入口，不是标签，所以不画成药丸。选择器要压过 `board.css` 里「一句话就是一个链接」那条
+ * （`body a[target=_blank]:not(…):not(.cardlink)`，三个类两个标签）：它会把字染蓝、抹平边框与内边距。 */
+.peach-react [data-entity-links] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  margin-top: 14px;
+}
+/* 标签名放进 :where 不计特指度，下面按 data-link 取值分的变体才压得住这条底样式。 */
+.peach-react [data-entity-card] [data-entity-links] > :where(a, span)[data-link] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  height: 36px;
+  min-height: 0;
+  padding: 0 12px 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: none;
+}
+.peach-react [data-entity-card] [data-entity-links] > a[data-link]:hover {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--ink) 8%, var(--ground));
+  text-decoration: none;
+}
+.peach-react [data-entity-card] [data-entity-links] > :is([data-link="private"], [data-link="gone"]) {
+  border-style: dashed;
+  color: var(--muted);
+}
+/* 纯图标的链接收成正方形，没有文字就不给文字留位置。 */
+.peach-react [data-entity-card] [data-entity-links] > :is([data-link="icon"], [data-link="gone"]) {
+  justify-content: center;
+  gap: 0;
+  width: 36px;
+  padding: 0;
+}
+.peach-react [data-entity-card] [data-entity-links] > [data-link="url"] { letter-spacing: 0.02em; }
+.peach-react [data-link-label] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 圆盘本身不垫底色：品牌标记直接画在按钮上，垫一层只会让它看着像被禁用了。 */
+.peach-react [data-link-icon] {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: var(--badge-radius);
+  background: transparent;
+}
+.peach-react [data-link-icon] svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+/* 站点圆标取不到时兜底链把 img 摘掉、露出下面的地球。 */
+.peach-react [data-link-icon] img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  background: var(--sunk);
+  object-fit: cover;
+}
+/* 品牌标记是填充字形，不吃上面那套描边；它自己画满整个圆盘。 */
+.peach-react [data-link-icon="brand"] svg { width: 100%; height: 100%; stroke: none; filter: none; }
+
+/* ── 外部入口 ──
+ * 两站自己的横向标识排在一起，不套药丸。高度统一 22px，hover 垫一层与上面那排外链同一档的
+ * 填充，负外边距让垫层不把这一行撑开。32px 的间距减掉左右各 8px 的垫层，两枚标识之间还剩 16px。
+ * 字重 500 与最小高度来自上面说的那条外链规则：旧版的选择器只压过了它的颜色与内边距。 */
+.peach-react [data-entry-marks] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 32px;
+  max-width: 100%;
+  margin-top: 14px;
+}
+.peach-react [data-entity-card] [data-entry-marks] > a[data-entry-mark] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 20px;
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+.peach-react [data-entity-card] [data-entry-marks] > a[data-entry-mark]:hover {
+  background: color-mix(in srgb, var(--ink) 8%, var(--ground));
+  text-decoration: none;
+}
+/* 两枚标识按字母的高度对齐，不按外框：只定高，宽度由 viewBox 的比例推出来。 */
+.peach-react [data-entry-mark] svg { width: auto; height: 22px; }
+.peach-react [data-entry-ordinal] { color: var(--muted); font-size: var(--fs-sm); }
+/* MISSAV 那枚的规则照它站上那套：Halant 500、`MISS` 跟页面墨色、`AV` 用它的粉。 */
+.peach-react [data-missav-mark] {
+  font-family: Halant, Georgia, "Times New Roman", serif;
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  line-height: 22px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.peach-react [data-missav-mark] > span:last-child { color: #FE628E; }
+
+/* 「订阅新作」：一枚 RSS 图标，关着跟页面墨色并慢慢呼吸，订上了换成订阅橙。 */
+@keyframes entryfeed-breathe { 0%, 100% { color: var(--ink); } 50% { color: var(--feed-mark); } }
+.peach-react [data-entry-feed] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin: -4px;
+  padding: 4px;
+  border-radius: var(--control-radius);
+  color: var(--ink);
+  cursor: pointer;
+}
+.peach-react [data-entry-feed]:hover { background: color-mix(in srgb, var(--ink) 8%, var(--ground)); }
+.peach-react [data-entry-feed]:has(:checked) { color: var(--feed-mark); }
+.peach-react [data-entry-feed]:has(:focus-visible) { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-entry-feed]:has([aria-busy="true"]) { opacity: 0.6; cursor: progress; }
+.peach-react [data-entry-feed] > svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+.peach-react [data-entry-feed]:not(:has(:checked)) { animation: entryfeed-breathe 2.4s ease-in-out infinite; }
+.peach-react [data-entry-feed]:not(:has(:checked)):is(:hover, :has(:focus-visible)) { animation: none; color: var(--feed-mark); }
+.peach-react [data-entity-feed] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+/* 说明走 Tooltip（Geist 实测：最宽 250px、内边距 8／6px、13px 字、1.3 行高），进顶层，
+ * 位置由 `placePop` 按视口算。 */
+.peach-react [data-entry-feed-tip] {
+  position: fixed;
+  inset: auto;
+  z-index: var(--layer-tooltip);
+  width: max-content;
+  max-width: 250px;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: visible;
+  border: 0;
+  border-radius: var(--surface-radius);
+  background: var(--ink);
+  color: var(--ground);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  line-height: 1.3;
+  white-space: normal;
+  pointer-events: none;
+}
+
+/* ── 卡底：同台艺人 ──
+ * 横滚的一条轨道，这一排是谁由 aria-label 说。每一枚就是首页那枚女优头像（`board.css`「首页顶部
+ * 两排」）：76px 宽、6/4px 内边距、12px 圆角，悬停抬整格底色，48px 圆头像不另描圈。 */
+.peach-react [data-entity-foot] {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--board-card-foot);
+}
+.peach-react [data-related-people] {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-top: -3px;
+  padding-top: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+.peach-react [data-related-people]::-webkit-scrollbar { display: none; }
+.peach-react [data-related-people] > button {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 76px;
+  max-width: none;
+  height: auto;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: var(--board-body-medium);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--lift-motion, var(--board-motion)), scale calc(var(--spring-press-ms) * 1ms) var(--spring-press),
+    background-color 0.2s ease-out, color 0.2s ease-out;
+}
+.peach-react [data-related-people] > button:hover { background: var(--hover); color: var(--ink); }
+.peach-react [data-related-people] > button:active { scale: 0.96; transition: scale 0.06s ease-out; }
+.peach-react [data-hero-ring] {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 10%, var(--surface));
+  color: var(--muted);
+  font: 600 18px/24px var(--board-font);
+}
+.peach-react [data-hero-ring] > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  font: inherit;
+}
+.peach-react [data-hero-ring] > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+}
+.peach-react [data-hero-costar-name] {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font: var(--board-caption);
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+/* ── 名字与别名菜单 ──
+ * 面板本身是 BoardUI 的菜单面；菜单项同旧锚定菜单那一行：36px 高、10px 圆角、次级字色，悬停
+ * 抬一档底色。勾只给当前统称，未选中那几行也占着同样宽度的位置，切换时整列文字不横跳。 */
+.peach-react [data-namepick-menu] {
+  width: min(260px, calc(100vw - 16px));
+  font: var(--board-body);
+  letter-spacing: 0;
+}
+.peach-react [data-namepick-list],
+.peach-react [data-namepick-list] > section { display: grid; gap: 2px; outline: none; }
+.peach-react [data-namepick-menu] [role^="menuitem"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  overflow-wrap: anywhere;
+  outline: none;
+  cursor: pointer;
+}
+.peach-react [data-namepick-menu] [role^="menuitem"]:is([data-hovered], [data-focus-visible]) {
+  background: var(--hover);
+  color: var(--ink);
+}
+.peach-react [data-namepick-menu] [role="menuitemradio"] svg { visibility: hidden; }
+.peach-react [data-namepick-menu] [aria-checked="true"] {
+  background: color-mix(in srgb, var(--ink) 10%, var(--surface));
+  color: var(--ink);
+}
+.peach-react [data-namepick-menu] [aria-checked="true"] svg { visibility: visible; }
+.peach-react [data-namepick-rule] { height: 0; margin: 4px 1px; border: 0; border-top: 1px solid var(--border-10); }
+
+/* ── 窄屏 ──
+ * 单列居中，头像在名字上方（参考 beeg 的资料页）。 */
+@media (max-width: 760px) {
+  .peach-react [data-entity-profile] {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  /* 单列时没有「右边那列有多高」可跟，尺寸钉住 96px；写在外层自己身上才压得过按行数给的那一档，
+   * 换头像加号的宿主跟着同一个变量叠在圆框上。 */
+  .peach-react [data-entity-portrait-wrap] { --portrait-size: 96px; }
+  .peach-react [data-entity-portrait] { width: 96px; }
+  .peach-react [data-entity-identity] { width: 100%; }
+  .peach-react [data-entity-foot] { padding: 10px 16px; }
+  .peach-react [data-entity-title] { justify-content: center; }
+  /* 这枚开关紧挨着名字，画的仍是 32px，命中区由一层伸出去、不着墨的方块补到 44px。 */
+  .peach-react [data-namepick-toggle] { position: relative; }
+  .peach-react [data-namepick-toggle]::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+  .peach-react [data-namepick-menu] [role^="menuitem"] { min-height: 44px; }
+  .peach-react [data-entity-alias] { margin-bottom: 10px; }
+  .peach-react :is([data-entity-alias="meta"], [data-meta-item="names"]) { justify-content: center; }
+  /* 外链窄屏下横滚，不换行。居中写 `safe center`：装不下时贴左，溢出的那几条才滑得到。滚动的
+   * 那一层顶到卡的左右边，切口落在卡沿；上下各让出 4px 给焦点环。 */
+  .peach-react [data-entity-links] {
+    flex-wrap: nowrap;
+    justify-content: safe center;
+    max-width: none;
+    margin-top: 9px;
+    margin-bottom: -4px;
+    margin-inline: -16px;
+    padding-block: 4px;
+    padding-inline: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+  }
+  .peach-react [data-entity-links]::-webkit-scrollbar { display: none; }
+  .peach-react [data-entity-card] [data-entity-links] > * { flex: none; }
+  .peach-react [data-entry-marks] { justify-content: center; }
+}

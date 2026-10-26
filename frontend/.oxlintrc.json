@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "plugins": ["typescript", "oxc"],
+  "jsPlugins": ["@shadcn/lint"],
+  "ignorePatterns": ["src/react/boardui/**", "src/react/evilcharts/**"],
+  "settings": {
+    "shadcn": {
+      "ui": "@/components",
+      "note": "BoardUI 源码在 src/react/boardui/，只加不改；设计规则与例外见 docs/FRONTEND.md。"
+    }
+  },
+  "rules": {
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "oxc/no-accumulating-spread": "error"
+  },
+  "overrides": [{
+    "files": ["src/react/**/*"],
+    "rules": {
+      "shadcn/no-restyle": ["error", { "allow": ["layout"] }],
+      "shadcn/no-raw-colors": ["error", {
+        "allow": ["text-body-*", "text-caption-*", "text-display-*", "text-headline-*", "text-large-title-*",
+                  "text-title-*", "shadow-dropdown"]
+      }],
+      "shadcn/no-arbitrary-values": "error",
+      "shadcn/no-inline-styles": "error",
+      "shadcn/no-unknown-classes": ["error", { "allow": ["ui-configpage", "ui-configgroup", "ui-board-local-nav", "swiper", "swiper-wrapper", "swiper-slide", "swiper-zoom-container",
+        "mono", "javedition", "censored", "chip", "geist-button",
+        "primary", "popmenu", "geist-input"] }],
+      "shadcn/require-static-classes": "error"
+    }
+  }]
+}

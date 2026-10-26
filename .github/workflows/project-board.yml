@@ -1,0 +1,46 @@
+name: 项目看板同步
+
+on:
+  issues:
+    types: [opened, reopened, closed, labeled, unlabeled, edited]
+  pull_request_target:
+    types: [opened, reopened, closed, edited, ready_for_review, converted_to_draft]
+  release:
+    types: [published, edited, deleted]
+  push:
+    branches: [master]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peach-project-board
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'peach-mitao/peach'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: 同步 Issue、PR、已发布版本与看板
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_BOARD_TOKEN }}
+          PYTHONUTF8: '1'
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo '缺少 PROJECT_BOARD_TOKEN：需要 repo 与 project 权限的项目自动化凭据。' >&2
+            exit 1
+          fi
+          python scripts/project_board.py --apply --event "$GITHUB_EVENT_PATH"

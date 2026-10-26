@@ -1,0 +1,878 @@
+/* 馆藏作品卡与卡片网格（`media-card.tsx`、`../catalog-grid/`）。
+ *
+ * 卡片的几何与状态都写在这里，取值与壳里同形的卡一致：`web/css/12-cards.css` 的
+ * `.card`／`.pic`／`.meta` 一族（壳里的垃圾文件卡、关注卡与新作卡用它），以及 Board 覆盖层
+ * （`web/board.css`）的封面圆角、来源角标玻璃底与选中描边。选择器全用 `data-media-*`：
+ * 旧样式表不分层、排在后面，写旧类名就会被那边同名的规则接管。
+ *
+ * 封面格里的图、来源角标和头像圆框里的内容是遗留层拼的 HTML（取景链、来源图标和头像回落
+ * 都归壳），它们自己的类名照旧由旧样式表管：`.poster.cover` 的取景、`.src` 的图标尺寸。
+ * 这里只管这张卡的几何与状态。 */
+
+/* ── 网格 ──
+ * 目录列表是一叠：连续的一段视频合成一格网格，竖屏带插进来时从行边界剪开，上下两半各是
+ * 一段。列距 16px 是给悬停面留的：卡片悬停时底色往盒外多铺 8px，列距再窄就顶到邻卡。 */
+.peach-react [data-media-sections] { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.peach-react [data-media-grid] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile)), 1fr));
+  gap: 24px 16px;
+}
+/* 铺悬停面的卡按自己的内容定高、贴行顶：同一行里横版封面挨着竖版正封时，行高由竖版撑起，
+ * 横版卡跟着拉满的话，悬停面就铺进封面和文字下面那一大块空白。回收站的卡与垃圾卡是有边的面，
+ * 同一行照旧拉齐，垃圾卡的三颗键靠这个贴底。 */
+.peach-react [data-media-grid] > [data-media-card]:not([data-variant="resource"], [data-variant="junk"]) { align-self: start; }
+body[data-surface="/trash"] .peach-react [data-media-grid] > [data-media-card] { align-self: stretch; }
+/* 详情页接着看那一排：岛根挂在作品详情的横排 `[data-related-row]` 里，卡片在这一层横着排，卡距同那一排。 */
+.peach-react [data-media-next-row] { display: flex; gap: 16px; }
+body[data-surface="/trash"] .peach-react [data-media-grid] {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+
+/* ── 卡片盒 ──
+ * 字体与行高取页面正文那一档（14px/20px），卡里没写行高的每一格都按它排，不继承岛根的 1.5。 */
+.peach-react [data-media-card] {
+  position: relative;
+  font: var(--board-body);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow: visible;
+  border-radius: var(--surface-radius);
+  background: transparent;
+  cursor: pointer;
+  transform-origin: center;
+  transition: transform .18s ease, filter .18s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.peach-react [data-media-card][data-variant="short"] { flex: none; width: 214px; }
+.peach-react [data-media-card][data-variant="next"] { flex: none; width: 216px; }
+body[data-density="dense"] .peach-react [data-media-card][data-variant="short"] { width: calc(214px * 168 / 336); }
+/* 悬停面往卡片盒外多铺 8px：不动网格尺寸、不挤相邻卡，只让命中反馈比内容大一圈。回收站的资源卡
+ * 与垃圾卡是有边的面，不铺。 */
+.peach-react [data-media-card]:not([data-variant="resource"], [data-variant="junk"]):is(:hover, :focus-within) {
+  background: var(--hover);
+  box-shadow: 0 0 0 8px var(--hover);
+}
+.peach-react [data-media-card]:not([data-variant="resource"], [data-variant="junk"]):hover [data-media-pic] { filter: saturate(.9) brightness(.94); }
+.peach-react [data-select-mode] [data-media-card] { cursor: default; user-select: none; }
+.peach-react [data-select-mode] :is([data-media-open], [data-media-preview], [data-media-later], [data-media-seek]),
+.peach-react [data-select-mode] :is([data-media-later], [data-media-seek]) button { pointer-events: none !important; }
+@media (hover: hover) and (pointer: fine) {
+  .peach-react [data-media-card][data-longhover] { z-index: 8; transform: translateY(-7px) scale(1.065); filter: brightness(1.04); }
+}
+
+/* 回收站那一屏的卡是一块有边的面，封面贴边；元信息区在框里留出四周的边距，不用网格卡那套
+ * 「垫 8px 再 -8px 抵消」（卡本身 overflow:hidden，垫出去的一圈也会被裁掉）。标题两行，
+ * 署名、标签与归入原因各一行，屏外估高和加载骨架共用这份内容预算。 */
+body[data-surface="/trash"] .peach-react [data-media-card] {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background: var(--color-background-primary-default);
+}
+body[data-surface="/trash"] .peach-react [data-media-card] [data-media-pic] { --pic-radius: 0px; }
+body[data-surface="/trash"] .peach-react [data-media-card] [data-media-meta] {
+  --card-meta-byline: 20px;
+  --card-meta-tags: calc(var(--fs-xs) * 1.45 + var(--tag-pad-y) * 2 + 2px + 3px);
+  --card-meta-block: calc(var(--fs-md) * 2.7 + 3px + var(--card-meta-byline) + var(--card-meta-tags) + 23px);
+  min-height: 0;
+  margin: 0;
+  padding: 10px 12px 12px;
+}
+body[data-surface="/trash"] .peach-react [data-media-card] [data-media-title] { min-height: 2.7em; align-content: start; }
+body[data-surface="/trash"] .peach-react [data-media-card] [data-media-text] { gap: 3px; }
+body[data-surface="/trash"] .peach-react [data-media-text] > [data-media-tags] { margin-top: 0; }
+body[data-surface="/trash"] .peach-react button[data-media-title] {
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+}
+.peach-react [data-media-title-text] {
+  display: -webkit-box; max-height: 2.7em; overflow: hidden; text-decoration: inherit;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+/* 整张卡的打开点击区垫在封面与元信息区下面。 */
+.peach-react [data-media-open] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.peach-react [data-media-open]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-media-card] > :is([data-media-pic], [data-media-stack], [data-media-meta]) { position: relative; z-index: 2; }
+
+/* ── 视口外跳过渲染 ──
+ * 跳过的是卡里的两块，封面与元信息区；卡片盒照常排版。封面高度由 `aspect-ratio` 从列宽推出，
+ * 元信息区高度由它自己的排版 token 推出：两行标题（2.7em）、一行归属、3px 行距，有标签的
+ * 卡再加一行标签。跳过渲染连带 paint containment，裁切边是元信息区的 padding box，所以
+ * 四周垫 8px 再用 -8px 抵消，头像的悬停描边和焦点环不被裁；垫出来的一圈不接指针。
+ * 接着看那一排只有一行、往横向排，屏外的卡不改变整页高度，不套这份估计。 */
+.peach-react [data-media-meta] {
+  --card-meta-byline: calc(2lh + 2px);
+  --card-meta-tags: calc(var(--fs-xs) * 1.45 + var(--tag-pad-y) * 2 + 2px + 12px);
+  --card-meta-block: calc(var(--fs-md) * 2.7 + 6px + var(--card-meta-byline) + var(--card-meta-tags));
+}
+.peach-react [data-media-card]:not([data-variant="next"]) :is([data-media-pic], [data-media-meta]) { content-visibility: auto; }
+.peach-react [data-media-card]:not([data-variant="next"]) [data-media-meta] {
+  flex-shrink: 0;
+  margin: -8px;
+  padding: 8px;
+  pointer-events: none;
+  min-height: calc(var(--card-meta-block) + 16px);
+  contain-intrinsic-block-size: auto var(--card-meta-block);
+}
+.peach-react [data-media-card]:not([data-variant="next"]) [data-media-meta] > * { pointer-events: auto; }
+
+/* ── 封面格 ──
+ * 圆角只在最外面裁一次：`clip-path` 配一层满格的矩形蒙版，格子里的黑底、封面、悬停视频和模糊衬底
+ * 先合成一张再按 `--pic-radius` 切。格子本身不写 `border-radius`，`overflow` 与 `content-visibility`
+ * 的裁切就只是矩形：按圆角裁的话每一层各切一次，抗锯齿那一圈里底下的黑会透上来，浅色封面四角就是
+ * 一圈灰黑边。光有 `clip-path` 不够，没有蒙版时 Chrome 照样逐层切。 */
+.peach-react :is([data-media-pic], [data-mix-cover]) {
+  --pic-radius: var(--surface-radius);
+  clip-path: inset(0 round var(--pic-radius));
+  mask-image: linear-gradient(#000 0 0);
+}
+.peach-react [data-media-pic] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  aspect-ratio: var(--card-ratio, 16 / 9);
+  background: #000;
+}
+/* 传统正封的比例留白复用共享封面取景写入的同图补底。 */
+.peach-react [data-media-pic]::before {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+  background: var(--cover-blur, none) center / cover no-repeat;
+  filter: blur(26px) brightness(.5);
+}
+.peach-react [data-media-card][data-selected] [data-media-pic]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  box-sizing: border-box;
+  border: 2px solid var(--on-media);
+  border-radius: var(--pic-radius);
+  pointer-events: none;
+}
+/* 封面那一层铺满格子，图本身的几何归旧样式表的 `.poster`。 */
+.peach-react [data-media-art] { position: absolute; inset: 0; display: block; }
+.peach-react [data-media-nopic] {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+/* 悬停预览：本地源是分段跳播的视频，远端源是接触印相格子的扫视图，都由壳插进封面格，
+ * 不透明黑底盖掉下面的封面。 */
+.peach-react [data-media-pic] > :is(video, img) {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+.peach-react [data-media-pic] > video { opacity: 0; transition: opacity .2s; }
+.peach-react [data-media-pic] > video[data-playing] { opacity: 1; }
+
+/* 叠层纸边：这张卡代表不止一条（分卷或版次）。叠层往上溢出到行间距里，卡片盒不为它留白，
+ * 同一行里叠层卡和普通卡的封面与文字才平齐。纸边与封面是同一种表面，圆角同一档。 */
+.peach-react [data-media-stack] { position: relative; isolation: isolate; border-radius: var(--surface-radius); }
+.peach-react [data-media-stack]::before,
+.peach-react [data-media-stack]::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border: 1px solid var(--border-15);
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--surface) 84%, var(--video-glow, #15202a));
+}
+.peach-react [data-media-stack]::before { inset: 0 12px 8px; transform: translateY(-7px); opacity: .54; }
+.peach-react [data-media-stack]::after { inset: 0 6px 4px; transform: translateY(-4px); opacity: .78; }
+.peach-react [data-media-stack] [data-media-pic] { z-index: 1; }
+
+/* ── 封面上的角标 ── */
+.peach-react [data-media-badge] {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--glass-fill);
+  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(145%);
+  color: var(--color-text-secondary);
+  font: var(--board-caption);
+  white-space: nowrap;
+  transition: opacity .15s ease;
+}
+.peach-react [data-media-badge] > span { width: 20px; height: 20px; padding: 0; background: transparent; }
+.peach-react [data-media-duration] {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: var(--badge-radius);
+  background: color-mix(in srgb, #000 70%, transparent);
+  color: #f2eadf;
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  transition: opacity .15s ease;
+}
+/* 悬停或键盘聚焦时封面上的角标淡出，右上角让给悬停工具。分卷／版本计数还要退出命中与 Tab 序：
+ * 它压在倒计时圈上面，只透明的话圈接不到指针；visibility 等淡出走完再翻。关注卡的合并计数同一套
+ * （`../follow-feed/follow-feed.css`）。聚焦认 `:focus-visible`，鼠标点过留下的焦点不算。 */
+@media (hover: hover) and (pointer: fine) {
+  .peach-react [data-media-card]:is(:hover, :has(:focus-visible)) :is([data-media-badge], [data-media-duration], [data-follow-sources]) { opacity: 0; visibility: hidden; pointer-events: none; }
+  .peach-react [data-media-card]:is(:hover, :has(:focus-visible)) [data-media-group] {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .15s ease, visibility 0s .15s;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .peach-react [data-media-badge] { background: var(--ground); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+.peach-react [data-media-group] {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 6;
+  min-height: 27px;
+  padding: 5px 9px;
+  border-radius: var(--control-radius);
+  background: rgb(12 8 8 / .72);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: opacity .15s ease;
+}
+/* 勾选圆亮出来时占住右上角那 26px：分卷与版本徽标往左让开，「128 卷」不被圆盖住。 */
+.peach-react :is([data-select-mode] [data-media-group], [data-media-card][data-selected] [data-media-group]) { right: 44px; }
+.peach-react [data-media-scrub] {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 3px;
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+/* 两条的长度都由卡片写在元素上的 `--media-fill` 给。 */
+.peach-react [data-media-scrub] > i { display: block; width: var(--media-fill); height: 100%; background: var(--loupe); }
+.peach-react [data-media-progress] {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  height: 4px;
+  background: rgb(255 255 255 / .3);
+}
+.peach-react [data-media-progress] > i { display: block; width: var(--media-fill); height: 100%; background: var(--tungsten); }
+
+/* 多选的勾是正圆，全站一个形状。多选模式下每张都亮出空圈，选中的那张填满。 */
+.peach-react [data-media-check] {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 8;
+  display: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgb(255 255 255 / .28);
+  border-radius: 50%;
+  background: rgb(0 0 0 / .34);
+  color: rgb(255 255 255 / .72);
+  backdrop-filter: saturate(1.8) blur(12px);
+  -webkit-backdrop-filter: saturate(1.8) blur(12px);
+}
+.peach-react :is([data-select-mode] [data-media-check], [data-media-card][data-selected] [data-media-check]) { display: grid; }
+.peach-react [data-media-card][data-selected] [data-media-check] {
+  border-color: var(--on-media);
+  background: var(--on-media);
+  color: var(--on-media-ink);
+  box-shadow: 0 3px 12px #0008;
+}
+.peach-react [data-media-trash-mark] {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 7;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgb(255 177 74 / .4);
+  border-radius: var(--badge-radius);
+  background: rgb(0 0 0 / .58);
+  color: #ffb14a;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  backdrop-filter: saturate(1.8) blur(12px);
+  -webkit-backdrop-filter: saturate(1.8) blur(12px);
+}
+.peach-react [data-pending-delete] [data-media-trash-mark] { display: flex; }
+.peach-react [data-pending-delete] :is([data-media-art] > img, [data-media-pic] > :is(video, img)) {
+  filter: grayscale(.9) brightness(.54);
+  opacity: .68;
+}
+.peach-react [data-pending-delete] [data-media-pic]::before { filter: blur(26px) grayscale(.9) brightness(.27); opacity: .68; }
+.peach-react [data-pending-delete] [data-media-meta] { opacity: .58; }
+.peach-react [data-pending-delete]:hover [data-media-meta] { opacity: .76; }
+
+/* 角标里的字形：描边线稿，尺寸按位置给。 */
+.peach-react [data-media-card] :is([data-media-check], [data-media-trash-mark], [data-media-later], [data-media-seek], [data-media-glyph], [data-media-kind-glyph], [data-media-resource-action]) svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.peach-react [data-media-check] svg { width: 16px; height: 16px; }
+.peach-react [data-media-trash-mark] svg { width: 14px; height: 14px; }
+
+/* ── 悬停工具 ──
+ * 右上角一圈倒计时：停够 `--hover-delay` 走满一圈，卡片随即抬起放大；居中三颗快退、快进与
+ * 打开详情，右下角「稍后看」。它们是同一种磨砂圆底，只差尺寸。 */
+.peach-react [data-media-preview] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / .24);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  transition: transform .15s ease, opacity .15s;
+}
+.peach-react :is([data-previewing], [data-media-card]:has(:focus-visible)) [data-media-preview] { opacity: 1; pointer-events: auto; }
+.peach-react [data-longhover] [data-media-preview] { opacity: 0; pointer-events: none; }
+.peach-react [data-media-preview] > svg:first-child { position: absolute; inset: 0; width: 36px; height: 36px; transform: rotate(-90deg); }
+.peach-react [data-media-preview] circle { fill: none; stroke-width: 2; }
+.peach-react [data-media-preview] circle:first-child { stroke: rgb(255 255 255 / .18); }
+.peach-react [data-media-preview] circle:last-child {
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-dasharray: 106.814;
+  stroke-dashoffset: 106.814;
+}
+.peach-react [data-previewing] [data-media-preview] circle:last-child { animation: preview-arc var(--hover-delay) linear forwards; }
+.peach-react [data-longhover] [data-media-preview] circle:last-child { animation: none; }
+@keyframes preview-arc { to { stroke-dashoffset: 0; } }
+.peach-react [data-media-ring-play] {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  margin-left: 1px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.peach-react :is([data-media-later], [data-media-seek]) {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+.peach-react [data-media-seek] { inset: 50% auto auto 50%; transform: translate(-50%, -50%); }
+.peach-react [data-media-later] { right: 12px; bottom: 12px; }
+.peach-react :is([data-longhover] [data-media-seek], [data-media-card]:is(:hover, :has(:focus-visible)) [data-media-later]) { opacity: 1; }
+.peach-react :is([data-media-later], [data-media-seek]) button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgb(255 255 255 / .12);
+  border-radius: 50%;
+  background: rgb(0 0 0 / .24);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: none;
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  transition: transform .15s ease, background .15s ease;
+}
+.peach-react :is([data-longhover] [data-media-seek], [data-media-card]:is(:hover, :has(:focus-visible)) [data-media-later]) button { pointer-events: auto; }
+.peach-react :is([data-media-preview], :is([data-media-later], [data-media-seek]) button):hover { background: rgb(0 0 0 / .34); }
+.peach-react [data-media-seek] svg { width: 34px; height: 34px; }
+.peach-react [data-media-later] button { width: 36px; height: 36px; padding: 0; }
+.peach-react [data-media-later] svg { width: 21px; height: 21px; }
+.peach-react [data-media-later] button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+
+/* ── 元信息区 ── */
+.peach-react [data-media-meta] { display: flex; gap: 10px; min-width: 0; }
+.peach-react [data-media-avatar] {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  margin-top: 2px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sunk);
+  color: inherit;
+  cursor: pointer;
+}
+.peach-react :is(button, a)[data-media-avatar]:hover { box-shadow: 0 0 0 2px var(--ink-2); }
+/* 有人脸框时 `avatarFrame`（`card-art/framing.ts`）在图加载后往图上写内联的位置与百分比尺寸，把脸
+   放大到框中，宽度常常超过框宽；岛里的 Tailwind 预检给每张图 `max-width:100%`，不放开的话宽被
+   夹回框宽、高照样放大，脸偏到左边，右侧露出底下的首字母。同 `legacy-avatar.ts`。 */
+.peach-react [data-media-avatar] > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+.peach-react [data-media-avatar] > span:first-child {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-family: Bahnschrift, "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: var(--fs-sm);
+}
+/* 共演头像最多五枚，常态紧叠；指到的一枚抬起并放大，右侧邻座逐枚朝标题方向让开。 */
+.peach-react [data-media-avatars] {
+  display: flex;
+  flex: none;
+  max-width: calc(100% - 48px);
+  margin: -4px -2px -2px;
+  padding: 6px 2px 2px 5px;
+  --lift-motion: calc(var(--spring-press-ms) * 1ms) var(--spring-press);
+}
+.peach-react [data-media-avatars]:has(:is(:hover, :focus-visible)) { --lift-motion: var(--board-motion); }
+.peach-react [data-media-avatars] > [data-media-avatar] {
+  margin-top: 0;
+  box-shadow: 0 0 0 2px var(--ground);
+  transform: translate(var(--lift-x, 0), var(--lift-y, 0)) scale(var(--lift-scale, 1));
+  transition: transform var(--lift-motion, var(--board-motion));
+}
+.peach-react [data-media-avatars] > * + * { margin-left: -22px; }
+/* 没有图的一枚只有居中的首字母，叠到 -22px 时字被左边那枚盖掉大半：这一枚只让出 8px，字整个露出来。 */
+.peach-react [data-media-avatars] > * + :not(:has(img)) { margin-left: -8px; }
+.peach-react [data-media-avatars] > :nth-child(1) { z-index: 5; }
+.peach-react [data-media-avatars] > :nth-child(2) { z-index: 4; }
+.peach-react [data-media-avatars] > :nth-child(3) { z-index: 3; }
+.peach-react [data-media-avatars] > :nth-child(4) { z-index: 2; }
+.peach-react [data-media-avatars] > :nth-child(5) { z-index: 1; }
+.peach-react [data-media-avatars] > :is(:hover, :focus-visible) {
+  z-index: 6;
+  box-shadow: 0 0 0 2px var(--ink-2);
+  --lift-y: -4px;
+  --lift-scale: 1.05;
+}
+.peach-react [data-media-avatars] > :is(:hover, :focus-visible) + * { --lift-y: -1.8px; --lift-x: 10px; }
+.peach-react [data-media-avatars] > :is(:hover, :focus-visible) + * + * { --lift-y: -.81px; --lift-x: 20px; }
+.peach-react [data-media-avatars] > :is(:hover, :focus-visible) + * + * + * { --lift-x: 30px; }
+.peach-react [data-media-avatars] > :is(:hover, :focus-visible) + * + * + * + * { --lift-x: 40px; }
+/* 接着看那一排与竖屏带的窄卡只放两个头像：第三个挤掉的正好是署名那一行的宽度。 */
+.peach-react :is([data-variant="next"], [data-variant="short"]) [data-media-avatars] > :nth-child(n+3) { display: none; }
+
+.peach-react [data-media-text] { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; }
+/* 标题最多两行，署名紧随实际文本；桌面元信息区保留统一高度。 */
+.peach-react [data-media-title] {
+  display: -webkit-box;
+  width: 100%;
+  min-height: 0;
+  max-height: 2.7em;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: var(--fs-md);
+  line-height: 1.35;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.peach-react span[data-media-title] { cursor: default; }
+/* 番号与版本徽标在别处是一个不折行的整块；卡片标题只有两行，整块比卡宽时会被直接切掉、
+ * 没有省略号。这里拆成行内的几枚徽标，放不下的折到下一行，第二行末尾照样由 line-clamp 收住。
+ * 这两枚类由 `core/jav-title.ts` 挂上，按 `[class~=…]` 认，权重与类选择器相同。 */
+.peach-react [data-media-title] [class~="ui-javidentity"] { display: inline; white-space: normal; }
+.peach-react [data-media-title] [class~="javedition"] { margin-left: 5px; }
+.peach-react [data-media-byline] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-jav-item]:not([data-variant="next"]) [data-media-meta] { --card-meta-byline: calc(2lh + 2px); }
+.peach-react [data-media-who] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.peach-react button[data-media-who] { cursor: pointer; }
+.peach-react [data-media-who] > span { overflow: hidden; text-overflow: ellipsis; }
+.peach-react :is([data-media-release], [data-media-size]) { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.peach-react [data-media-byline] svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.peach-react span[data-media-who] { cursor: default; }
+.peach-react [data-media-who-more] { color: var(--muted); }
+.peach-react [data-media-flags] { display: flex; gap: 3px; margin-left: auto; }
+.peach-react [data-media-flags] > i { display: block; width: 6px; height: 6px; }
+.peach-react [data-flag="dislike"] { background: var(--drop); }
+.peach-react [data-flag="seen"] { background: var(--muted); }
+.peach-react [data-flag="later"] { background: var(--ink); }
+.peach-react [data-media-why] { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peach-react [data-variant="next"] [data-media-why] { color: var(--loupe); }
+.peach-react [data-variant="next"] [data-media-byline] { flex-wrap: nowrap; overflow: hidden; }
+.peach-react [data-variant="next"] [data-media-who] { flex: 0 1 auto; max-width: 55%; }
+.peach-react [data-variant="next"] [data-media-who-more] { flex: none; white-space: nowrap; }
+.peach-react [data-variant="next"] [data-media-why] { flex: 1 1 0; }
+.peach-react [data-variant="next"] :is([data-media-size], [data-media-watch-count]) { display: none; }
+
+/* 标签：宁可少放几颗，也要把名字写全。这一行可换行、只有一颗那么高，放不下的整颗落到第二行
+ * 被切掉。四周垫 4px 再用 -4px 抵消，焦点环整圈落在裁切边以内；这一行自己不接指针。 */
+.peach-react [data-media-tags] {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+  height: calc(var(--fs-xs) * 1.45 + var(--tag-pad-y) * 2 + 2px + 8px);
+  min-width: 0;
+  margin: -4px;
+  padding: 4px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.peach-react [data-media-text] > [data-media-tags] { margin-top: 6px; }
+.peach-react [data-media-tags] > * { pointer-events: auto; }
+.peach-react [data-media-tag] {
+  max-width: 100%;
+  padding: var(--tag-pad-y) var(--tag-pad-x);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--tag-radius);
+  background: var(--tag-fill);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-media-tag]:hover { background: var(--hover); color: var(--ink); }
+.peach-react [data-media-tag]:disabled { cursor: not-allowed; }
+@media (max-width: 760px) {
+  .peach-react [data-media-tags] > :nth-child(n+3) { display: none; }
+}
+
+/* 密集一档固定为标题、身份、标签三行。缺少标签时第三行仍保留，同一网格不会被撑成四行；
+ * 普通卡也留出叠层卡的 7px，每行是否出现分卷卡不决定整行高度。回收站的网格列宽是自己定的，
+ * 不跟密度走，卡是有边的面，这一套不套给它。 */
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-grid] > :is([data-media-card], [data-mix-card]) { padding-top: 7px; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-meta] { --card-meta-block: calc(2.7em + 36px); }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-text] {
+  display: grid;
+  grid-template-rows: 1.35em 1.35em 30px;
+  gap: 3px;
+  height: calc(var(--card-meta-block) + 8px);
+  margin: -4px;
+  padding: 4px;
+  overflow: hidden;
+  pointer-events: none;
+}
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-text] > :not([data-media-tags]) { pointer-events: auto; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-title] {
+  display: block;
+  max-width: 100%;
+  min-height: 1.35em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-line-clamp: unset;
+}
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-byline] {
+  flex-wrap: nowrap;
+  height: 1.35em;
+  min-height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-who] { flex: 0 1 auto; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] :is([data-media-who-more], [data-media-size]) { flex: none; white-space: nowrap; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] :is([data-media-why], [data-media-watch-count]) { display: none; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-tags] { flex-wrap: nowrap; align-items: flex-start; height: 38px; overflow: hidden; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-text] > [data-media-tags] { margin-top: -4px; }
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-media-card] [data-media-tag]:nth-child(n+2) { display: none; }
+
+/* ── 回收站里的资源卡 ── */
+body[data-surface="/trash"] .peach-react [data-media-text] { height: var(--card-meta-block); }
+body[data-surface="/trash"] .peach-react [data-media-byline] { flex-wrap: nowrap; height: 20px; flex: none; overflow: hidden; }
+body[data-surface="/trash"] .peach-react [data-media-size] { flex: none; white-space: nowrap; }
+body[data-surface="/trash"] .peach-react [data-media-tags] {
+  height: calc(var(--card-meta-tags) - 3px); flex: none; flex-wrap: nowrap; overflow: hidden;
+}
+.peach-react [data-media-disposal-reason] {
+  flex: none; height: 20px; overflow: hidden; color: var(--ink-2);
+  font-size: var(--fs-xs); line-height: 20px; text-overflow: ellipsis; white-space: nowrap;
+}
+.peach-react [data-pending-delete] [data-media-duration] { top: 10px; bottom: auto; }
+.peach-react [data-pending-delete] :is([data-media-preview], [data-media-later], [data-media-seek]) { display: none; }
+.peach-react [data-media-operation-error] {
+  position: absolute; z-index: 7; left: 10px; right: 10px; bottom: 48px;
+  padding: 8px; border-radius: var(--badge-radius); background: var(--ground); color: var(--drop);
+  font-size: var(--fs-xs); overflow-wrap: anywhere;
+}
+.peach-react [data-media-glyph] {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  letter-spacing: .08em;
+}
+.peach-react [data-media-glyph] svg { width: 32px; height: 32px; }
+.peach-react [data-media-glyph] b { font-weight: inherit; }
+.peach-react [data-media-kind-glyph] { display: grid; place-items: center; cursor: default; }
+.peach-react [data-media-kind-glyph] svg { width: 19px; height: 19px; }
+.peach-react [data-media-resource-action] {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgb(255 255 255 / .25);
+  border-radius: var(--control-radius);
+  background: rgb(0 0 0 / .64);
+  color: #fff;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  backdrop-filter: saturate(1.5) blur(10px);
+  -webkit-backdrop-filter: saturate(1.5) blur(10px);
+}
+.peach-react [data-media-resource-action]:hover:not([aria-busy]) { background: var(--hover); color: var(--ink); }
+.peach-react [data-media-resource-action]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-media-resource-action][aria-busy] { cursor: wait; opacity: .72; }
+.peach-react [data-media-resource-action] svg { width: 15px; height: 15px; }
+
+/* ── 竖屏带 ──
+ * 短片带是这一叠卡里的一张，和上下两段视频平级：同一张面、同一圈发丝边、同一个圆角。
+ * 宽屏上整块往左铺过侧栏轨道，面板铺到视口边上，左边两个圆角也就去掉了。 */
+.peach-react [data-shorts-strip] {
+  padding: 16px;
+  border: 0;
+  border-radius: var(--floating-radius);
+  background: var(--ground);
+  font: var(--board-body);
+}
+.peach-react [data-shorts-strip] > h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 11px;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.peach-react [data-shorts-count] {
+  color: var(--muted);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-shorts-enter] {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 48px;
+  margin-left: auto;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--pill-radius);
+  background: var(--overlay-5);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background .14s;
+}
+.peach-react [data-shorts-enter]:hover { background: var(--hover); }
+.peach-react [data-shorts-enter] svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+.peach-react [data-shorts-row] {
+  display: flex;
+  gap: 13px;
+  padding: 8px;
+  margin: -8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.peach-react [data-shorts-row]::-webkit-scrollbar { display: none; }
+@media (min-width: 761px) {
+  .peach-react [data-shorts-strip] {
+    margin-left: calc(-1 * (var(--railW) + 16px));
+    padding-left: calc(var(--railW) + 32px);
+    border-radius: 0 var(--floating-radius) var(--floating-radius) 0;
+  }
+  .peach-react [data-shorts-row] {
+    margin-left: calc(-1 * (var(--railW) + 32px + 8px));
+    padding-left: calc(var(--railW) + 32px + 8px);
+  }
+}
+
+/* ── 首页那张 Mix ──
+ * 署名行是一枚播放字形，标题与说明的字号同作品卡的元信息区；整张卡是点击区，悬停面同作品卡。 */
+.peach-react [data-mix-glyph] {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-10);
+  border-radius: 50%;
+  background: var(--overlay-5);
+  color: var(--ink);
+}
+.peach-react [data-mix-glyph] svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+.peach-react [data-media-grid] > [data-mix-card] { border-radius: var(--surface-radius); font: var(--board-body); }
+.peach-react [data-media-grid] > [data-mix-card] [data-mix-cover] { content-visibility: auto; }
+.peach-react [data-media-grid] [data-mix-badge] { letter-spacing: normal; line-height: inherit; }
+.peach-react [data-media-grid] [data-mix-title] {
+  font-family: inherit; font-size: var(--fs-md); font-weight: 700; line-height: 1.45; letter-spacing: normal; color: inherit;
+}
+.peach-react [data-media-grid] [data-mix-caption] {
+  margin-top: 2px; font-family: inherit; font-size: var(--fs-xs); line-height: inherit; letter-spacing: normal; color: var(--muted);
+}
+
+/* ── 网格的等待、续页与失败 ── */
+.peach-react [data-media-grid] > [data-mix-card]:is(:hover, :focus-within) {
+  border-radius: var(--surface-radius);
+  background: var(--hover);
+  box-shadow: 0 0 0 8px var(--hover);
+}
+
+/* 窄屏卡片按实际文字定高；图片继续按视口跳过绘制。 */
+@media (max-width: 760px) {
+  body .peach-react [data-media-card]:not([data-variant="next"]) [data-media-meta] {
+    min-height: 0;
+    content-visibility: visible;
+    contain-intrinsic-block-size: none;
+  }
+  body[data-density] .peach-react [data-media-card]:not([data-variant="next"]) [data-media-text],
+  body[data-surface="/trash"] .peach-react [data-media-text] {
+    display: flex; flex-direction: column; height: auto;
+  }
+  body[data-density] .peach-react [data-media-card]:not([data-variant="next"]) [data-media-title] {
+    display: -webkit-box; min-height: 0; white-space: normal; -webkit-line-clamp: 2;
+  }
+  body[data-density] .peach-react [data-media-card]:not([data-variant="next"]) [data-media-byline] {
+    flex-wrap: wrap; height: auto;
+  }
+  body[data-density] .peach-react [data-media-card]:not([data-variant="next"]) [data-media-tags] {
+    flex-wrap: wrap; height: auto;
+  }
+}
+.peach-react [data-load-more] {
+  min-height: 42px;
+  margin: 18px auto 0;
+  padding: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.peach-react [data-entity-more] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 124px;
+  height: 36px;
+  min-height: 36px;
+  margin: 20px auto 0;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.peach-react [data-entity-more]:hover { background: var(--hover); color: var(--ink); }
+.peach-react [data-entity-more][aria-busy] { cursor: wait; opacity: .5; }
+
+/* 占位换成真内容：骨架那一屏抬成盖在网格上的一层淡出，新内容同时从模糊里清晰起来。取值同
+ * `src/ui-kit/motion.css` 的 `.skelreveal`；动画名 `skel-reveal-in` 是那边的全局定义。 */
+.peach-react [data-grid-reveal] { position: relative; }
+.peach-react [data-grid-reveal] > [data-grid-fade] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  animation: grid-skeleton-out var(--motion-reveal) forwards;
+}
+.peach-react [data-grid-reveal] > :not([data-grid-fade]) { animation: skel-reveal-in var(--motion-reveal) backwards; }
+@keyframes grid-skeleton-out { from { opacity: 1; filter: blur(0); } to { opacity: 0; filter: blur(2px); } }

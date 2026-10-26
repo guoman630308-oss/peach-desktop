@@ -1,0 +1,5 @@
+/* `collapse.ts` 的高度过渡。展开着不动时那道裁边要摘掉：高度过渡需要它，展开完就只剩副作用——
+   里面最后一张卡片的落影正好落在下沿外，被切掉半条。`wireCollapse` 在过渡跑完时挂上
+   `.ui-fcollapse-settled`，收起那一下先摘掉。独立页面包的同一份在 `react/pages/pages.css`。 */
+.ui-fcollapse{overflow:hidden;transition:height .2s ease-in-out}
+.ui-fcollapse.ui-fcollapse-settled{overflow:visible}

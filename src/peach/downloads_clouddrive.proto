@@ -1,0 +1,149 @@
+// CloudDrive2 gRPC 接口的子集：只留云下载用到的八个方法和它们的消息。
+//
+// 字段号、类型与名字逐个照抄官方 https://www.clouddrive2.com/api/clouddrive.proto
+// （option version = "1.1.0"）。删掉的是用不到的字段，proto3 解码会跳过未知字段，
+// 服务端多给的那些照常读得进来。改动后重新生成 `downloads_clouddrive_pb2.py`：
+//
+//   uvx --from grpcio-tools==1.84.0 python -m grpc_tools.protoc -Isrc/peach
+//       --python_out=src/peach src/peach/downloads_clouddrive.proto
+syntax = "proto3";
+
+package clouddrive;
+
+import "google/protobuf/empty.proto";
+
+service CloudDriveFileSrv {
+  rpc GetSystemInfo(google.protobuf.Empty) returns (CloudDriveSystemInfo) {}
+  rpc GetApiTokenInfo(StringValue) returns (TokenInfo) {}
+  rpc FindFileByPath(FindFileByPathRequest) returns (CloudDriveFile) {}
+  rpc CreateFolder(CreateFolderRequest) returns (CreateFolderResult) {}
+  rpc AddOfflineFiles(AddOfflineFileRequest) returns (FileOperationResult) {}
+  rpc RemoveOfflineFiles(RemoveOfflineFilesRequest) returns (FileOperationResult) {}
+  rpc ListOfflineFilesByPath(FileRequest) returns (OfflineFileListResult) {}
+  rpc GetOfflineQuotaInfo(OfflineQuotaRequest) returns (OfflineQuotaInfo) {}
+}
+
+message CloudDriveSystemInfo {
+  bool IsLogin = 1;
+  string UserName = 2;
+  bool SystemReady = 3;
+}
+
+message StringValue { string value = 1; }
+
+message TokenInfo {
+  string token = 1;
+  string rootDir = 2;
+  TokenPermissions permissions = 3;
+  optional uint64 expires_in = 4;
+  string friendly_name = 5;
+}
+
+message TokenPermissions {
+  bool allow_list = 1;
+  bool allow_add_offline_download = 16;
+  bool allow_list_offline_downloads = 17;
+  bool allow_modify_offline_downloads = 18;
+}
+
+message FindFileByPathRequest {
+  string parentPath = 1;
+  string path = 2;
+}
+
+message CloudAPI {
+  string name = 1;
+  string userName = 2;
+  string nickName = 3;
+  optional string path = 10;
+}
+
+message CloudDriveFile {
+  string id = 1;
+  string name = 2;
+  string fullPathName = 3;
+  int64 size = 4;
+  CloudAPI CloudAPI = 9;
+  bool isDirectory = 30;
+  bool isCloudRoot = 32;
+  bool canOfflineDownload = 66;
+  bool supportOfflineDownloadManagement = 75;
+}
+
+message CreateFolderRequest {
+  string parentPath = 1;
+  string folderName = 2;
+}
+
+message CreateFolderResult {
+  CloudDriveFile folderCreated = 1;
+  FileOperationResult result = 2;
+}
+
+message AddOfflineFileRequest {
+  string urls = 1;
+  string toFolder = 2;
+  optional uint64 checkFolderAfterSecs = 3;
+}
+
+message FileOperationResult {
+  bool success = 1;
+  string errorMessage = 2;
+  repeated string resultFilePaths = 3;
+}
+
+message RemoveOfflineFilesRequest {
+  string cloudName = 1;
+  string cloudAccountId = 2;
+  bool deleteFiles = 3;
+  repeated string infoHashes = 4;
+  optional string path = 5;
+}
+
+message FileRequest {
+  string path = 1;
+  optional bool forceRefresh = 2;
+}
+
+enum OfflineFileStatus {
+  OFFLINE_INIT = 0;
+  OFFLINE_DOWNLOADING = 1;
+  OFFLINE_FINISHED = 2;
+  OFFLINE_ERROR = 3;
+  OFFLINE_UNKNOWN = 4;
+}
+
+message OfflineFile {
+  string name = 1;
+  uint64 size = 2;
+  string url = 3;
+  OfflineFileStatus status = 4;
+  string infoHash = 5;
+  string fileId = 6;
+  uint64 add_time = 7;
+  string parentId = 8;
+  double percendDone = 9;
+  uint64 peers = 10;
+}
+
+message OfflineStatus {
+  uint32 quota = 1;
+  uint32 total = 2;
+}
+
+message OfflineFileListResult {
+  repeated OfflineFile offlineFiles = 1;
+  OfflineStatus status = 2;
+}
+
+message OfflineQuotaRequest {
+  string cloudName = 1;
+  string cloudAccountId = 2;
+  optional string path = 3;
+}
+
+message OfflineQuotaInfo {
+  int32 total = 1;
+  int32 used = 2;
+  int32 left = 3;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "peach-web-vendor",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "vendor:web": "node scripts/vendor_web_dependencies.mjs",
+    "check:vendor": "node scripts/vendor_web_dependencies.mjs --check"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@videojs/cdn": "10.1.0",
+    "@phosphor-icons/core": "2.1.1",
+    "healthicons": "2.0.0",
+    "lucide-static": "1.57.0",
+    "remixicon": "4.9.1",
+    "swiper": "14.3.0"
+  }
+}

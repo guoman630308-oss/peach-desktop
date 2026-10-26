@@ -1,0 +1,118 @@
+/* 原地换态的一组动效：字形换字形、读数换读数、占位换内容、成功的那一下、计数弹出、标题揭示。
+   类名由同目录的 `motion.ts`（以及 `skeleton.ts`、`scroll.ts`、`react/toaster.tsx`）挂上。
+
+   共同的形态取自 transitions.dev 的免费配方（逐条的来源 URL、它那边的时长／模糊／
+   缩放取值和 Peach 落成的值记在 docs/reference-snapshots/transitions-dev-measured.md）。
+   借的是形态和参数，类名与 token 都是 Peach 自己的：时长与缓动一律读 board.css 的
+   `--motion-swap`／`--motion-reveal`／`--board-motion`／`--spring-*`，所以
+   `prefers-reduced-motion` 由那一份全局规则一次关掉，这里不再逐处补。
+
+   只动 opacity／transform／filter／stroke-dashoffset，不动 width、height、left 这类
+   会触发重排的属性——这几条都长在读数、按钮和整页占位上，一次重排就是一整棵子树。
+
+   同一组里还有几条留在 `web/css/25-motion.css`：一行字换一行字（`.textswap.leaving` 与旧表共用
+   `leaving`）、输入框报错的抖动、作品卡共演头像的抬起、搜索框清空时占位字的隐藏。 */
+
+/* ── 字形换字形 ──
+   两枚字形叠在同一个 grid 格里，换的只是容器上的 `data-icon-state`：innerHTML 重写会
+   把旧字形连同它的动画一起丢掉，看上去就是硬切。退场那一枚缩到 .25 并糊掉，
+   进场那一枚从同样的位置长回原大小。 */
+.iconswap{display:inline-grid;place-items:center;line-height:1;flex:none}
+.iconswap>[data-icon]{grid-area:1/1;display:grid;place-items:center;
+  transition:opacity var(--motion-swap),filter var(--motion-swap),transform var(--motion-swap)}
+.iconswap[data-icon-state="a"]>[data-icon="a"],
+.iconswap[data-icon-state="b"]>[data-icon="b"]{opacity:1;filter:blur(0);transform:scale(1)}
+/* 退场那一枚要收掉指针和读屏：它还占着同一个格子，不收的话按钮上有两个可点区域，
+   读屏也会把两枚字形的名称连着念出来。 */
+.iconswap[data-icon-state="a"]>[data-icon="b"],
+.iconswap[data-icon-state="b"]>[data-icon="a"]{opacity:0;filter:blur(2px);transform:scale(.25);
+  pointer-events:none}
+
+/* ── 读数按位错峰 ──
+   每一位从下方 8px 处带模糊长上来，相邻两位差一个 `--motion-stagger`。缓动那条超出
+   1 的控制点是数字自己要的：读数落位时轻轻过一点再收住，才读成「跳到了新值」而不是
+   「被推到了新值」。分隔符（千分位逗号、间隔点）跟着相邻那一位走，不单独占一档。 */
+@keyframes digit-pop-in{
+  from{opacity:0;filter:blur(2px);transform:translateY(8px)}
+  to{opacity:1;filter:blur(0);transform:none}}
+.digits{display:inline-flex;align-items:baseline}
+.digits>span{display:inline-block;white-space:pre}
+.digits.popping>span{animation:digit-pop-in var(--motion-count) both;
+  animation-delay:calc(var(--motion-stagger) * var(--digit-at,0))}
+
+/* ── 占位换成真内容 ──
+   骨架和内容在同一段时间里交叉：骨架淡出并糊掉，内容从模糊里清晰起来。两层必须叠在
+   同一处坐标，所以换的那一刻把旧的整块抬成绝对定位的一层盖在容器上，动画走完再摘掉；
+   容器本身的高度全程由新内容决定，不留一段空白，也不让下面的东西跳两次。 */
+/* `<dialog>` 自己已经是 fixed，它就是淡出层的包含块；再给它一条 relative 会把浮窗从
+   视口定位打回文档流里，整块详情会掉到页面底下。 */
+.skelreveal:not(dialog){position:relative}
+.skelreveal>.skelfade{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;
+  opacity:1;filter:blur(0);transition:opacity var(--motion-reveal),filter var(--motion-reveal)}
+.skelreveal.revealing>.skelfade{opacity:0;filter:blur(2px)}
+/* 用 `backwards` 不用 `both`：终点帧是内容本来的样子，留着它只多留下一个
+   `filter:blur(0)`，而非 none 的 filter 会另起一个 backdrop root，内容里任何
+   backdrop-filter 从此只采样得到它自己。 */
+.skelreveal>:not(.skelfade){animation:skel-reveal-in var(--motion-reveal) backwards}
+@keyframes skel-reveal-in{from{opacity:0;filter:blur(2px)}to{opacity:1;filter:blur(0)}}
+
+/* ── 成功的那一下 ──
+   勾从下方荡上来的同时转正、从模糊里清晰起来，笔画随后画出。荡那一下走
+   `--spring-press`：它冲过落点再收回来，正是一个「落定」的手感；其余三条走站内那条
+   通用缓动。笔画长度 24 是这枚字形的整条折线，dasharray 与 dashoffset 都是继承属性，
+   写在外层 svg 上就能穿过 `<use>` 落到里面那条 path。 */
+@keyframes check-settle{from{opacity:0;transform:rotate(80deg);filter:blur(10px)}
+  to{opacity:1;transform:rotate(0);filter:blur(0)}}
+@keyframes check-bob{from{translate:0 14px}to{translate:0 0}}
+@keyframes check-draw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+[data-toast-glyph=draw]>svg{stroke-dasharray:24;
+  animation:check-settle var(--board-motion) backwards,
+    check-bob calc(var(--spring-press-ms)*1ms) var(--spring-press) backwards,
+    check-draw var(--board-motion) var(--motion-stagger) backwards}
+
+/* ── 清空时输入的内容溶解掉 ──
+   输入框自己的 value 是一瞬间没的，没有动画可挂。所以清空前先照着输入框的位置和字体
+   摆一份同样的字，让它往上飘 12px、糊掉、淡出，真正的输入框当场就空了——光标和输入法
+   一刻也不等这段动画。这一层不可点、不读屏，走完自己摘掉。
+
+   上游还在同一条配方里给每个词铺一层 radial-gradient 做扫光，那部分要逐帧写背景才
+   画得出来，这里不做：搜索框每清一次就跑一段逐帧 JS，换来的是一道一眼看不出来的光。 */
+@keyframes clear-dissolve{to{opacity:0;filter:blur(2px);transform:translateY(-12px)}}
+.cleardissolve{position:absolute;z-index:2;display:flex;align-items:center;overflow:hidden;
+  white-space:nowrap;pointer-events:none;color:inherit;
+  animation:clear-dissolve var(--motion-reveal) forwards}
+.cleardissolve>[data-dissolve-value]{display:block;min-width:max-content;will-change:transform}
+
+/* ── 计数徽标弹出来 ──
+   从零长到原大小，同时从模糊里清晰起来。整枚一起弹，不按位拆：这一枚说的是「这里有
+   几条」，读的是有没有变多，不是变成了哪几个数字——按位拆是读数那一条的事。
+   `--motion-pop` 的缓动过一点再收住，落位才读成「弹出来的」。
+
+   `.popped` 是起点帧，摘掉就往原位走。它自己那一帧不带过渡：带的话，挂上去这一枚就
+   开始朝零缩，同一次调用里紧接着摘掉时它才走了零点几个像素，回程于是无处可走——屏幕上
+   什么也没发生。首屏那一批不挂这个类：整排计数一起弹是一屏烟花，而它要说的是
+   「这一枚刚变了」。 */
+.countbadge{display:inline-block;transition:transform var(--motion-pop),
+  opacity var(--motion-pop),filter var(--motion-pop)}
+.countbadge.popped{transform:scale(0);opacity:0;filter:blur(2px);transition:none}
+
+/* ── 标题从模糊里揭示出来 ──
+   每一行从下方 12px 处带模糊长上来，相邻两行差一个 `--motion-stagger`。按行不按词：
+   逐词要把整句拆成一串 `<span>`，复制出来的文字会跟着散架，而这几处标题（作品名、
+   页面名）正是最常被复制走的那几段字。
+
+   走完把类名一起摘掉。留着的话终点帧上还挂着一个 `filter:blur(0)`，非 none 的 filter
+   会另起一个 backdrop root，标题块里任何 backdrop-filter 从此只采样得到它自己。
+
+   起点那一帧不带过渡：这几处标题里有一半是一直在页面上的节点（页面标题、设置面板的
+   分区名），带过渡的话挂上去只是开始朝下淡，下一帧点亮时回程只剩零点几个像素。 */
+.revealline{opacity:0;transform:translateY(12px);filter:blur(3px);transition:none}
+.revealline.revealing{opacity:1;transform:none;filter:blur(0);
+  transition:opacity var(--motion-reveal),transform var(--motion-reveal),filter var(--motion-reveal);
+  transition-delay:calc(var(--motion-stagger) * var(--reveal-at,0))}
+
+/* 横排滚到头的回弹：`wireHorizontalScroller`（`scroll.ts`）在越界那一下给这一排挂 `.edgepull`，逐帧改
+   `--edge-pull`，子元素整排跟着平移。属性要注册成长度，Web Animations 才插得了值；
+   没注册的自定义属性只会在两端之间硬跳。 */
+@property --edge-pull{syntax:'<length>';inherits:true;initial-value:0px}
+.edgepull>*{translate:var(--edge-pull) 0}

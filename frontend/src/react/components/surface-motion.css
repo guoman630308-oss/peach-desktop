@@ -1,0 +1,50 @@
+/* 动效仅作用于装饰面；控件的命中范围、内容与焦点均保持原位。 */
+.peach-react [data-surface-host] { position: relative; isolation: isolate; }
+.peach-react [data-moving-surface] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  transform-origin: top left;
+  z-index: -1;
+}
+.peach-react [data-moving-surface="selection"] {
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary-default);
+  box-shadow: var(--shadow-card);
+}
+.dark .peach-react [data-moving-surface="selection"] {
+  background: var(--color-background-primary-hover);
+}
+.peach-react [data-surface-host="selection"][data-surface-ready] :is([data-selected], [aria-selected="true"]) {
+  background: transparent;
+  --tw-shadow: 0 0 transparent;
+}
+.peach-react [data-moving-surface="hover"] {
+  border-radius: var(--radius-2lg);
+  background: var(--color-dropdown-item-hover-background);
+}
+@media (hover: hover) and (pointer: fine) {
+  .peach-react [data-surface-host="hover"][data-surface-ready] button:is(:hover, :focus-visible) {
+    background: transparent;
+  }
+}
+
+.peach-react [data-modal-motion] {
+  transition: opacity 200ms var(--ease-out);
+}
+.peach-react [data-modal-surface] {
+  transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.peach-react [data-modal-motion]:is([data-entering], [data-exiting]) { opacity: 0; }
+.peach-react [data-modal-surface]:is([data-entering], [data-exiting]) {
+  transform: scale(.98);
+  opacity: 0;
+}
+.peach-react [data-modal-motion][data-exiting],
+.peach-react [data-modal-surface][data-exiting] { transition-duration: 120ms; }
+.peach-react [data-modal-motion][data-motion-instant],
+.peach-react [data-modal-motion][data-motion-instant] [data-modal-surface] { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .peach-react [data-modal-motion], .peach-react [data-modal-surface] { transition: none; }
+}

@@ -1,0 +1,567 @@
+/* 图片灯箱（`photo-lightbox-dialog.tsx`）。
+ *
+ * 选择器用 `data-*`：遗留样式表不分层、排在后面，写遗留类名会被接管。Swiper 的样式表按需加载、
+ * 排在所有样式表后面，`.swiper`、`.swiper-slide` 这类结构类名由它定默认值，这里的规则都比它多
+ * 一档特指度。信息面板由遗留层的 `wireContextCard` 接管：它挂上 `.context-card`，进场、退场的
+ * 动效归 `web/board.css` 那一条；面、线、字色与定位写在这里，特指度压过 `22-followmanage.css`
+ * 的 `.context-card`。
+ *
+ * 画布是黑底，工具条是压在图上的半透明黑片，颜色因此固定用白色系，不跟主题；翻页键与信息面板
+ * 是 Board 的控件面，跟主题。 */
+
+/* ── 画布 ──
+ * 灯箱本体只负责固定视口；主图、底部工具和缩略图条各自绝对定位。三行 grid 会和动态后载的
+ * Swiper 百分比高度形成循环，超宽视口下主图行收成 0。 */
+.peach-react [data-photo-lightbox] {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: block;
+  overflow: hidden;
+  background: #000;
+  /* 字随页面正文（`web/board.css` 的 `body`），不取 React 容器上那套上游基线：页码、缩放读数和
+     信息面板要和壳里其余的读数同一副字。 */
+  font: var(--board-body);
+  font-kerning: auto;
+  font-variant-ligatures: normal;
+  letter-spacing: 0;
+  /* 落影随主题换浓淡。不写 `light-dark()`：构建会把它改写成依赖 `color-scheme` 声明的变量，这份
+     样式表里没有那一条，落影就整条失效。主题标记是 `<html>` 上的 `.dark`，和 `color-scheme` 同进退。 */
+  --photo-card-drop: rgba(0, 0, 0, .16);
+  --photo-thumb-drop: #0000001a;
+}
+.dark .peach-react [data-photo-lightbox] {
+  --photo-card-drop: rgba(0, 0, 0, .6);
+  --photo-thumb-drop: #00000080;
+}
+.peach-react [data-photo-lightbox]:modal {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #fff;
+}
+
+/* 全站焦点环（`01-base.css`）把 React 子树排除在外，这里自己画同一副。 */
+.peach-react [data-photo-lightbox] :focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+
+/* 主画布始终占满视口，安全内边距为底部工具、左右翻页和缩略图条留位；单图没有缩略图条，
+ * 底部空间还给图片。Swiper 的 CSS 和脚本虽会一起等待，仍保留最小结构样式，避免缓存与首载的
+ * 竞态把所有 slide 当普通块元素同时画出来。只限定主画布的直接子级，不影响缩略图条。 */
+.peach-react [data-photo-main] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.peach-react [data-photo-main] > .swiper-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.peach-react [data-photo-main] > .swiper-wrapper > .swiper-slide {
+  flex: 0 0 100%;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.peach-react [data-photo-main] .swiper-zoom-container {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px 72px 76px;
+}
+.peach-react [data-photo-lightbox][data-has-strip] [data-photo-main] .swiper-zoom-container {
+  padding-bottom: 148px;
+}
+.peach-react [data-photo-main] img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+}
+
+/* ── 圆钮 ──
+ * 关闭与翻页同一副媒体圆钮的几何（沉浸岛 `immerse.css` 的 `[data-immerse-circle]`）：图标居中，玻璃压在图上。
+ * 翻页键再换成 Board 的控件面，36px 圆角方钮。控件面读 `web/board.css` 根上的别名（`--surface`、
+ * `--line`、`--ink-2`、`--hover`、`--inset`）：React 容器按 BoardUI 上游原文重新声明了同名的
+ * `--color-*`，直接读会拿到另一套值。 */
+.peach-react :is([data-photo-close], [data-photo-nav]) {
+  box-sizing: border-box;
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .6);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+}
+.peach-react [data-photo-close]:hover {
+  background: rgba(0, 0, 0, .78);
+}
+.peach-react [data-photo-lightbox] :is([data-photo-close], [data-photo-nav]):focus-visible {
+  outline-offset: 3px;
+}
+.peach-react :is([data-photo-close], [data-photo-nav]) svg {
+  display: block;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.peach-react [data-photo-close] {
+  top: 12px;
+  right: 14px;
+  z-index: 5;
+}
+.peach-react [data-photo-nav] {
+  top: 50%;
+  z-index: 4;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-2);
+  box-shadow: var(--elevation-xs);
+  transform: translateY(-50%);
+}
+.peach-react [data-photo-nav]:hover {
+  background: var(--hover);
+}
+.peach-react [data-photo-nav] svg {
+  width: 20px;
+  height: 20px;
+}
+.peach-react [data-photo-nav="back"] {
+  left: 14px;
+}
+.peach-react [data-photo-nav="fwd"] {
+  right: 14px;
+}
+.peach-react [data-photo-nav="fwd"] svg {
+  transform: rotate(180deg);
+}
+/* 到头的那一枚整个让开：留一枚半透明的键在那儿，点下去什么都不发生。 */
+.peach-react [data-photo-nav].swiper-button-disabled {
+  visibility: hidden;
+  opacity: .4;
+  pointer-events: none;
+}
+/* 只有一张时两枚都不画（Swiper 的 `.swiper-button-lock`，这里的圆钮规则比它高一档）。 */
+.peach-react [data-photo-nav].swiper-button-lock {
+  display: none;
+}
+
+/* ── 底部工具条 ──
+ * 详情、页码和缩放操作统一落在底部；多图时整体抬到缩略图条上方。 */
+/* 原图与缩略图都取不到时那一张的占位：一块暗面写一句话，字色同底栏。 */
+.peach-react [data-photo-missing] {
+  display: grid;
+  place-items: center;
+  width: min(480px, 80vw);
+  aspect-ratio: 4 / 3;
+  border-radius: var(--surface-radius);
+  background: rgba(255, 255, 255, .06);
+  color: rgba(255, 255, 255, .62);
+  font-size: var(--fs-sm);
+}
+.peach-react [data-photo-bar] {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 48px;
+  pointer-events: none;
+}
+.peach-react [data-photo-lightbox][data-has-strip] [data-photo-bar] {
+  bottom: 98px;
+}
+.peach-react [data-photo-bar] > * {
+  pointer-events: auto;
+}
+.peach-react [data-photo-count] {
+  justify-self: center;
+  padding: 7px 11px;
+  border-radius: var(--pill-radius);
+  background: rgba(0, 0, 0, .6);
+  color: rgba(255, 255, 255, .82);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  backdrop-filter: blur(16px);
+}
+
+/* 页码点：当前那一颗拉长成胶囊，前后各留几颗，由 Swiper 的 `dynamicBullets` 缩放。 */
+.peach-react [data-photo-pagination] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 160px;
+  height: 28px;
+  margin-inline: auto;
+  overflow: hidden;
+}
+.peach-react [data-photo-pagination] .swiper-pagination-bullet {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #a3a3a3;
+  opacity: 1;
+  transition: width .2s ease-out, background .2s ease-out;
+}
+.peach-react [data-photo-pagination] .swiper-pagination-bullet-active {
+  width: 16px;
+  background: #fafafa;
+}
+
+.peach-react [data-photo-detail-toggle] {
+  justify-self: start;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .6);
+  color: rgba(255, 255, 255, .82);
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+}
+.peach-react [data-photo-detail-toggle]:is(:hover, [aria-expanded="true"]) {
+  background: rgba(0, 0, 0, .78);
+  color: #fff;
+}
+.peach-react [data-photo-detail-toggle] svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.peach-react [data-photo-zoom] {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px;
+  border-radius: var(--pill-radius);
+  background: rgba(0, 0, 0, .6);
+  color: rgba(255, 255, 255, .82);
+  backdrop-filter: blur(16px);
+}
+.peach-react [data-photo-zoom] button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.peach-react [data-photo-zoom] button:hover {
+  background: rgba(255, 255, 255, .22);
+}
+.peach-react [data-photo-zoom] button svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.peach-react [data-photo-zoom] [data-photo-scale] {
+  width: 30px;
+}
+.peach-react [data-photo-zoom] [data-photo-scale="original"] {
+  width: 38px;
+  border-radius: var(--control-radius);
+}
+.peach-react [data-photo-zoom] :is([data-photo-scale="original"], [data-photo-zoom-readout]) {
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-photo-zoom-readout] {
+  width: 38px;
+  font-weight: 400;
+  text-align: right;
+}
+
+/* 缩放滑杆：Board 的 6px 细轨，已走过的那一段用强调色，手柄同侧栏时长滑块那一枚（侧栏的
+ * `sidebar.css`）。走过的比例由 `syncBoardRange` 写在 `--board-range-value` 上。 */
+.peach-react [data-photo-zoom] input {
+  width: 116px;
+  height: 20px;
+  margin: 2px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.peach-react [data-photo-zoom] input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-accent-400) var(--board-range-value, 0%), var(--inset) 0);
+  box-shadow: inset 0 1px 1px #0000000f;
+}
+.peach-react [data-photo-zoom] input::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-accent-400) var(--board-range-value, 0%), var(--inset) 0);
+}
+.peach-react [data-photo-zoom] input::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: -7px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #fff 3px, #e5e5e5 3.5px, #fff 4px);
+  box-shadow: 0 2px 4px var(--photo-thumb-drop), inset 0 1px 0 #ffffffcc;
+  cursor: grab;
+  transition: scale calc(var(--spring-press-ms) * 1ms) var(--spring-press), box-shadow .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.peach-react [data-photo-zoom] input::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #fff 3px, #e5e5e5 3.5px, #fff 4px);
+  box-shadow: 0 2px 4px var(--photo-thumb-drop);
+}
+.peach-react [data-photo-zoom] input:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .22);
+}
+/* 抓住的时候手柄涨一圈，松开按同一条弹簧收回去。位置不参与过渡：手柄要贴着指针走。 */
+.peach-react [data-photo-zoom] input:active::-webkit-slider-thumb {
+  scale: 1.18;
+  transition: scale .06s ease-out;
+}
+.peach-react [data-photo-lightbox] [data-photo-zoom] input:focus-visible {
+  outline: none;
+}
+.peach-react [data-photo-zoom] input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ── 信息面板 ──
+ * 补充信息卡（`.context-card`）的那一副面：跟主题的底与字，定位由 `wireAnchoredMenu` 按触发键
+ * 写在元素上。 */
+.peach-react [data-photo-detail] {
+  box-sizing: border-box;
+  position: fixed;
+  inset: auto;
+  z-index: var(--layer-popover);
+  display: grid;
+  align-items: start;
+  gap: 14px;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--floating-radius);
+  background: var(--ground);
+  color: var(--ink);
+  box-shadow: 0 8px 24px var(--photo-card-drop);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+}
+.peach-react [data-photo-detail][hidden] {
+  display: none;
+}
+.peach-react [data-photo-detail-copy] {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.peach-react [data-photo-detail-copy] h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.peach-react :is([data-photo-detail-meta], [data-photo-status]) {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.peach-react [data-photo-status] {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.peach-react [data-photo-status]:empty {
+  display: none;
+}
+.peach-react [data-photo-reveal] {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.peach-react [data-photo-reveal]:hover {
+  background: rgba(255, 255, 255, .12);
+}
+.peach-react [data-photo-reveal][hidden] {
+  display: none;
+}
+.peach-react [data-photo-reveal] svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+/* ── 缩略图条 ── */
+.peach-react [data-photo-strip] {
+  position: absolute;
+  right: 72px;
+  bottom: 14px;
+  left: 72px;
+  z-index: 3;
+  width: auto;
+  height: 72px;
+  padding: 0;
+}
+.peach-react [data-photo-lightbox]:not([data-has-strip]) [data-photo-strip] {
+  display: none;
+}
+.peach-react [data-photo-strip] .swiper-slide {
+  width: auto;
+  height: 72px;
+  overflow: hidden;
+  border-radius: var(--control-radius);
+  opacity: .5;
+  cursor: pointer;
+}
+.peach-react [data-photo-strip] .swiper-slide img {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+}
+.peach-react [data-photo-strip] .swiper-slide-thumb-active {
+  opacity: 1;
+  box-shadow: 0 0 0 2px #fff inset;
+}
+
+/* 窄屏断点写在这一段之后：和上面同优先级，写在前面会被原样盖掉。 */
+@media (max-width: 640px) {
+  .peach-react [data-photo-zoom] input {
+    width: 72px;
+  }
+  .peach-react [data-photo-zoom-readout] {
+    display: none;
+  }
+  .peach-react [data-photo-main] .swiper-zoom-container {
+    padding: 12px 12px 70px;
+  }
+  .peach-react [data-photo-lightbox][data-has-strip] [data-photo-main] .swiper-zoom-container {
+    padding-bottom: 136px;
+  }
+  .peach-react [data-photo-bar] {
+    right: 12px;
+    bottom: 10px;
+    left: 12px;
+    min-height: 44px;
+  }
+  .peach-react [data-photo-lightbox][data-has-strip] [data-photo-bar] {
+    bottom: 80px;
+  }
+  .peach-react [data-photo-reveal] {
+    min-height: 44px;
+  }
+  .peach-react [data-photo-strip] {
+    right: 56px;
+    bottom: 12px;
+    left: 56px;
+  }
+  .peach-react [data-photo-strip],
+  .peach-react [data-photo-strip] .swiper-slide {
+    height: 56px;
+  }
+  .peach-react [data-photo-close] {
+    top: 10px;
+    right: 10px;
+  }
+  .peach-react [data-photo-nav="back"] {
+    left: 8px;
+  }
+  .peach-react [data-photo-nav="fwd"] {
+    right: 8px;
+  }
+}
+/* 手机最窄那一档放不下「1286 / 1289」加整条缩放：滑条收起，缩放只剩加减键、适应与 1:1。 */
+@media (max-width: 400px) {
+  .peach-react [data-photo-zoom] input {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peach-react [data-photo-pagination] .swiper-pagination-bullet {
+    transition: none;
+  }
+}

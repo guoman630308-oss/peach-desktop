@@ -1,0 +1,10 @@
+/* 源文件管理：定位 + 目录对账。图标必须显式写 stroke/fill，Lucide 是描边路径，
+   缺了就被按默认 fill:black 画成黑块（灯箱 `photo-lightbox.css` 的圆钮图标同样显式写了）。 */
+.srctools{display:flex;align-items:center;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.srctools button{width:26px;height:26px;display:grid;place-items:center;flex:none;
+  border:1px solid var(--line);border-radius:var(--control-radius);background:transparent;color:var(--muted);
+  padding:0;cursor:pointer}
+.srctools button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.srctools button:hover{background:var(--hover);color:var(--ink)}
+.srctools button:disabled{background:var(--sunk);border-color:var(--line-soft);color:var(--muted);cursor:not-allowed}
+.srcstate{font-size:var(--fs-xs);color:var(--muted);min-width:0;flex:1 1 100%}

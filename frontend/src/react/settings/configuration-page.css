@@ -1,0 +1,18 @@
+/* 配置页（/settings/library）与诊断页的外壳：正文跟管理区页头钉在同一条中线上（web/board.css 里
+   `.scraping-page` 那一条的说明），配置骨架（`configuration-skeleton.ts`、`ui-kit/skeleton.ts`）也挂这一层。
+   分组小标题 `h2.ui-configgroup` 只在外壳里占位，字已经写在页签上，样式里不显示。 */
+.ui-configpage{width:100%;max-width:var(--board-content);margin:0 auto;display:grid;gap:20px}
+.ui-configgroup{margin:16px 0 0;font-size:var(--fs-2xl);line-height:1.3;font-weight:600}
+.ui-configgroup:first-child{margin-top:0}
+.ui-configpage>.ui-configgroup{display:none}
+/* 分类与正文共用一组页签语义；窄屏分类折行。 */
+.ui-configpage:has(>.ui-board-local-nav){grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:start}
+.ui-configpage>.ui-board-local-nav{grid-column:1;grid-row:1;position:sticky;top:calc(var(--topH) + 8px);align-self:start;z-index:1;display:flex;flex-direction:column;align-items:stretch;max-height:calc(100dvh - var(--topH) - 16px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding:0;border:0;border-radius:0}
+body #stats .ui-configpage>.ui-board-local-nav>button{text-align:left;justify-content:flex-start;white-space:normal}
+.ui-configpage:has(>.ui-board-local-nav)>:not(.ui-board-local-nav):not(.ui-configgroup){grid-column:2;grid-row:1;min-width:0}
+@media(max-width:900px){
+.ui-configpage:has(>.ui-board-local-nav){display:flex;flex-direction:column;align-items:stretch;gap:20px}
+body #stats .ui-configpage>.ui-board-local-nav{align-self:stretch;flex-direction:row;flex-wrap:wrap;max-height:none;overflow:visible;background:var(--page)}
+.ui-configpage:has(>.ui-board-local-nav)>:not(.ui-board-local-nav):not(.ui-configgroup){grid-column:1;grid-row:2}}
+/* 按页签切分组时只显示选中的那一组（`configuration-panel.ts` 的 `groupRoot`）。 */
+[data-board-group]:not(.ui-board-group-active){display:none!important}

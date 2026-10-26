@@ -1,0 +1,240 @@
+/* 顶栏搜索下拉栏里的内容（`search` 岛）。
+ *
+ * 下拉栏那块面（位置、滚动、边框、阴影与开合动效）和它的容器查询名 `searchmenu` 归宿主
+ * `#searchMenu`，输入框和它外面那一圈归顶栏，都在 `02-topbar.css`：窄屏展开、残影与失焦收起
+ * 都还是壳在做。这里只管栏里的行、组与页签，选择器一律走 `data-*`。 */
+
+/* 行高取顶栏那一格给的定值 20px：组标题、页签与各行都按它排，不跟字号走。 */
+.peach-react [data-search-root] { line-height: 20px; }
+
+/* 两组之间一道细线，同一组的行紧挨着。 */
+.peach-react [data-search-group] + [data-search-group],
+.peach-react [data-search-group] + [data-search-results],
+.peach-react [data-search-results] + [data-search-group],
+.peach-react [data-search-col] + [data-search-col] {
+  border-top: 1px solid var(--line-soft);
+  margin-top: 7px;
+  padding-top: 7px;
+}
+.peach-react [data-search-group] > h3 {
+  margin: 6px 10px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .14em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.peach-react [data-search-group] > h3 > a { flex: none; font-weight: 400; letter-spacing: normal; }
+.peach-react [data-search-person] { padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.peach-react [data-search-person]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+
+/* 这个词一条补全都没有时的那一行，排在搜索记录下面，字色同组标题。 */
+.peach-react [data-search-empty] { margin: 0; padding: 9px 10px; color: var(--muted); font-size: var(--fs-sm); }
+.peach-react [data-search-group] + [data-search-empty] { border-top: 1px solid var(--line-soft); margin-top: 7px; }
+
+.peach-react [data-search-option] {
+  width: 100%;
+  height: 38px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.peach-react [data-search-option]:is(:hover, [data-active]) { background: var(--hover); }
+.peach-react [data-search-option] svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; flex: none; }
+.peach-react [data-search-option="more"] { margin-top: 7px; justify-content: space-between; }
+.peach-react [data-search-option] span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peach-react [data-remove-history] {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 7px;
+  cursor: pointer;
+}
+/* 命中的别名跟在统称后面，作品数靠右。两个都是这一行的注脚，不与名字争分量。宽度不够时别名先让位
+ * （收缩权重比统称高）：系列的规范名本身就是一整句日文标题、别名是它的整句英文译名，平摊的话一行里
+ * 两段都收在省略号里，谁也读不出来。 */
+.peach-react [data-search-option] [data-search-matched] {
+  flex: 0 8 auto;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.peach-react [data-search-option] [data-search-n] {
+  margin-left: auto;
+  flex: none;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 两栏与否看下拉栏自己有多宽（宿主上的 `searchmenu`），不看窗口：宽屏里搜索框随侧栏开合变宽变窄，
+ * 窄屏它盖过返回键铺成一整条。一栏里摆不摆近作、视频排成格还是排成行，看的是那一栏自己的宽度。 */
+.peach-react [data-search-col] { container: searchcol / inline-size; min-width: 0; }
+
+/* 页签照复核分类那一排药丸：选中只有填充，未选中悬停只提字色；数用 Board 的计数徽标。 */
+.peach-react [data-search-tabs] {
+  display: flex;
+  gap: 4px;
+  padding: 2px 2px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.peach-react [data-search-tabs]::-webkit-scrollbar { display: none; }
+.peach-react [data-search-tabs] > button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-search-tabs] > button:hover { color: var(--ink); }
+.peach-react [data-search-tabs] > button[aria-selected="true"] { background: var(--picked); color: var(--ink); }
+
+/* 门面一律圆片，和顶栏头像、厂牌药丸同一个形状；人是 40，公司是 28。 */
+.peach-react [data-search-face] {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--hover);
+}
+.peach-react [data-search-option="person"] [data-search-face] { width: 40px; height: 40px; }
+.peach-react [data-search-face] img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* 首字母是壳（`avatarInner`）给的第一枚 span，门面图叠在它上面。 */
+.peach-react [data-search-face] > span:first-child {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.peach-react [data-search-option]:is([data-search-option="person"], [data-search-option="work"]) {
+  height: auto;
+  min-height: 52px;
+  padding-block: 6px;
+}
+.peach-react [data-search-meta] { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.peach-react [data-search-name] { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.peach-react [data-search-sub] { color: var(--muted); font-size: var(--fs-xs); }
+
+/* 小封面和卡片同一个 3:4 容器（壳给的 `.pic`，比例从这里继承），取景换算读的就是这个比例。
+ * 「无预览」在 36px 宽里按 10px、不加字距排，三个字两边各留一点边：封面那一格里只有它是 span，图都是 <img>。 */
+.peach-react [data-search-pic] { --card-ratio: .75; display: block; flex: none; border-radius: var(--badge-radius); }
+.peach-react [data-search-pic] > span > span { font-size: 10px; letter-spacing: 0; }
+.peach-react [data-search-option="work"] > [data-search-pic] { width: 36px; }
+.peach-react [data-search-recommendations] [data-search-option="work"] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+}
+.peach-react [data-search-recommendations] [data-search-option="work"] > [data-search-pic] { width: 100%; }
+.peach-react [data-search-recommendations] [data-search-col] > [data-search-group] [data-search-items]:has([data-search-option="work"]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(96px, calc(20% - 4px), 200px), 1fr));
+  gap: 4px;
+}
+.peach-react [data-search-option="work"]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: -2px; }
+/* 行里的 span 一律截断裁切，这一排要让出焦点环。 */
+.peach-react [data-search-option] [data-search-peeks] {
+  display: none;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
+  overflow: visible;
+}
+.peach-react [data-open-work] {
+  width: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--badge-radius);
+  background: none;
+  cursor: pointer;
+}
+.peach-react [data-open-work] [data-search-pic] { width: 100%; }
+.peach-react [data-open-work]:hover [data-search-pic] { outline: 1px solid var(--border-15); outline-offset: -1px; }
+.peach-react [data-open-work]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+@container searchcol (min-width: 420px) {
+  .peach-react [data-search-option] [data-search-peeks] { display: flex; }
+}
+/* 一栏够宽时视频排成封面格，番号在下、署名再下一行；窄了就是一行一部，封面缩成一枚小图。列宽按栏宽
+ * 均分：补全每组给五条、单看一类给二十条，所以五百到一千二的栏宽里正好一行五张、把栏铺满；更窄时
+ * 每格不小于 96，更宽时每格封顶两百出头，多出来的宽度另开一列。 */
+@container searchcol (min-width: 400px) {
+  .peach-react [data-search-group][data-kind="asset"] [data-search-items] {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(96px, calc(20% - 4px), 200px), 1fr));
+    gap: 4px;
+  }
+  .peach-react [data-search-option][data-search-option="work"] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px;
+  }
+  .peach-react [data-search-option="work"] > [data-search-pic] { width: 100%; }
+}
+/* 右栏钉在顶上：左栏人名一长串往下翻时，视频那一格不跟着滚走。钉住要求右栏不拉伸，它自己只有内容
+ * 那么高，所以两栏的分隔线画在两栏之间的缝上，从顶到底，不论哪一栏更长。 */
+@container searchmenu (min-width: 720px) {
+  .peach-react [data-search-recommendations] [data-search-results][data-split] {
+    grid-template-columns: minmax(0, .32fr) minmax(0, .68fr);
+  }
+  .peach-react [data-search-recommendations] [data-search-results][data-split]::before { left: calc(32% + 2.38px); }
+  .peach-react [data-search-results][data-split] {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 16px;
+    align-items: start;
+  }
+  .peach-react [data-search-results][data-split]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% - .5px);
+    width: 1px;
+    background: var(--line-soft);
+    pointer-events: none;
+  }
+  .peach-react [data-search-results][data-split] > [data-search-col] + [data-search-col] {
+    position: sticky;
+    top: 0;
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+}

@@ -1,0 +1,62 @@
+include = ["**/*.md", "**/*.markdown"]
+# 提交模板不是成稿；上游快照保持取证原文，相对链接属于原仓库。
+exclude = [
+  ".github/ISSUE_TEMPLATE/**",
+  ".github/PULL_REQUEST_TEMPLATE.md",
+  "docs/reference-snapshots/upstream/**",
+  "build/**",
+  "node_modules/**",
+  "frontend/node_modules/**",
+  ".venv/**",
+]
+preview = false
+
+# 文档职责见 docs/WRITING.md。更具体的映射放在后面。
+
+[[kinds]]
+path = "README*.md"
+kind = "readme"
+
+[[kinds]]
+path = "**/CHANGELOG.md"
+kind = "changelog"
+
+[[kinds]]
+path = "docs/adr/**"
+kind = "adr"
+
+[[kinds]]
+path = "CONTRIBUTING.md"
+kind = "howto"
+
+[[kinds]]
+path = "AGENTS.md"
+kind = "reference"
+
+[[kinds]]
+path = "CLAUDE.md"
+kind = "reference"
+
+[[kinds]]
+path = ".claude/skills/**/SKILL.md"
+kind = "howto"
+
+[[kinds]]
+path = "docs/*.md"
+kind = "reference"
+
+[[kinds]]
+path = "docs/{OPERATIONS,CLOUDDRIVE,FRONTEND,TESTING,TESTING_DESKTOP,README_MAINTENANCE}.md"
+kind = "howto"
+
+[[kinds]]
+path = "docs/reference-snapshots/*.md"
+kind = "reference"
+
+[[kinds]]
+path = "**/*ORIGIN.md"
+kind = "reference"
+
+[[kinds]]
+path = "SECURITY.md"
+kind = "howto"

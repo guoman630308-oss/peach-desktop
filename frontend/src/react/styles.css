@@ -1,0 +1,772 @@
+/* React 子树的样式入口（`web/dist/peach-app.css`）。
+ *
+ * 旧样式表仍在同一页面上，所以和上游 globals.css 的写法有四处不同，来源与原因见
+ * `boardui/ORIGIN.md`：
+ * - 工具类不进层叠层。旧样式表不分层，`button,input,textarea{color:inherit}` 这类标签规则
+ *   在层外，会压过层里的任何工具类；不分层时工具类凭类名的优先级胜出。
+ * - 只扫描 `src/react/`。Preact 与遗留层里的 `hidden`、`flex` 这类类名不生成工具类，
+ *   页面上生成出来的全局类名只来自 React 子树。
+ * - 生成的类名避开旧样式表的类选择器。旧样式表排在后面，同名时旧规则胜出；网格容器放在 flex
+ *   父元素里写 `inline-grid`（flex 子项块级化后按格布局计算），注释里扫到的 `ring` 与
+ *   `grid` 不生成工具类（`test/legacy-class-names.test.ts`）。
+ * - Preflight 与根元素基线限定在 `.peach-react` 容器里。 */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none);
+@import "./preflight-scoped.css";
+@import "./boardui/styles/theme.css";
+@import "./boardui/styles/typography.css";
+@import "./components/media-card.css";
+@import "./components/surface-motion.css";
+@import "./junk-queue/junk-queue.css";
+@import "./entity-hero/entity-hero.css";
+@import "./entity-filter/entity-filter.css";
+@import "./catalog-filter/catalog-filter.css";
+@import "./catalog-folders/catalog-folders.css";
+@import "./search/search.css";
+@import "./entity-body/entity-body.css";
+@import "./follow-feed/follow-feed.css";
+@import "./jav/jav.css";
+@import "./follow-detail/follow-detail.css";
+@import "./item-detail/item-detail.css";
+@import "./jav-detail/jav-detail.css";
+@import "./photo-lightbox/photo-lightbox.css";
+@import "./index/index-people.css";
+@import "../player/player.css";
+@import "../player/subtitles.css";
+@import "./stage/stage.css";
+@import "./settings-panel/settings-panel.css";
+@import "./immerse/immerse.css";
+@import "./sidebar/sidebar.css";
+@import "./base.css";
+@import "../ui-kit/motion.css";
+@import "../core/core.css";
+@import "../ui-kit/markup.css";
+@import "../ui-kit/controls.css";
+@import "../ui-kit/select-field.css";
+@import "../ui-kit/scroll.css";
+@import "../ui-kit/overlay-scrollbar.css";
+@import "../ui-kit/modal.css";
+@import "../board-skeleton.css";
+@import "../management.css";
+@import "../ui-kit/skeleton.css";
+@import "../entity-skeleton.css";
+@import "../ui-kit/collapse.css";
+@import "../card-art/card-art.css";
+@import "../configuration-skeleton.css";
+@import "../board-controls.css";
+@import "./settings/configuration-page.css";
+@import "./library-processing/processing-effort.css";
+@import "../jobs.css";
+@import "../pagination.css";
+
+@source "./";
+/* 独立页面包（`pages/`）有自己的产物 `peach-pages.css`，它用到的工具类不进这一份。 */
+@source not "./pages";
+@source "../management-skeletons.ts";
+@source "../catalog-filter-skeleton.ts";
+@source "../jav-skeleton.ts";
+@source "../island-skeleton.ts";
+@source "../index-skeleton.ts";
+/* 扫描不分代码与注释：这几个词各在注释里出现过，生成出来就和旧样式表的 `.ring`、`.grid`、
+ * `.sr-only` 同名。React 子树三个类都不用——只读屏的文字走 `VisuallyHidden`，它把样式写在
+ * 元素上。直接不生成。 */
+@source not inline("ring");
+@source not inline("grid");
+@source not inline("sr-only");
+
+/* 管理区正文的窄列。宽度由 `web/board.css` 的 `--board-content` 说了算，页面标题
+ * (`[data-manage-title]`) 也钉在同一个数上；这里只把它接成 `max-w-board`，不另写一个像素值。 */
+@theme {
+  --container-board: var(--board-content, 1120px);
+  /* 列表卡片左侧那块封面：宽度与 16/10 的比例在高清版、重复项、复核对照上是同一套几何，
+   * 所以取一个共用的名字，而不是每页各写一次像素值。 */
+  --container-card-cover: 150px;
+  --aspect-card-cover: 16 / 10;
+  /* 换头像那一屏：一排四张 3:4 的候选。头像源基本都是竖的，方格会把人裁成一条。
+   * 工具类里没有这两档，写成 token 而不是任意值。 */
+  --container-avatar-picker: 720px;
+  --aspect-avatar-choice: 3 / 4;
+  /* 框选那一屏：底图最高占半屏，剩下的高度留给圆头像预览和底下那排操作——框到一半
+   * 还要滚动才看得见确认键的话，人会以为这一步没做完。封面是横版封套，比换头像那
+   * 一屏宽一档才放得下整张图。圆预览与资料页那张头像同一档，框出来就是上线的样子。 */
+  --spacing-crop-frame: 50vh;
+  --spacing-crop-preview: 96px;
+  --container-cover-crop: 880px;
+  /* 顶栏高度。粘顶的工具条要停在顶栏下沿，而这个高度归遗留壳的 `--topH`
+   * （`web/board.css` 与 `web/css/01-base.css` 按屏各给一档），这里只把它接成 `top-topbar`。 */
+  --spacing-topbar: var(--topH, 64px);
+  /* 模态弹层的层级。顶栏、侧栏与遮罩的 z-index 归遗留壳的 `--layer-*`（`web/css/01-base.css`），
+   * 这里接成 `z-dialog`，不另写一个数字。 */
+  --z-index-dialog: var(--layer-dialog, 1000);
+  /* 人工复核那一屏的几何，取自 Board 给这一页的那组规则（`web/board.css` 的
+   * `body[data-surface="/review"]` 与 `web/css/04-manage.css`）：右边分类列 184px、
+   * 卡片列最窄 340px、一张卡 440px 高（身份回配那一类要放下证据，560px）、
+   * 来源图 220px、原视频封面 132px（窄屏 110px）、作品样本一格 92px。 */
+  --container-review-tabs: 184px;
+  --container-review-card: 340px;
+  --container-review-cover: 132px;
+  --container-review-cover-narrow: 110px;
+  --container-review-asset: 92px;
+  --spacing-review-card: 440px;
+  --spacing-review-card-tall: 560px;
+  --spacing-review-image: 220px;
+  /* Board 的两档圆角：不浮起的内嵌表面（缩略图、行卡片）14px，浮起来的那一层 20px。
+   * 名字与取值同 `web/board.css` 的 `--surface-radius`、`--floating-radius`。 */
+  --radius-surface: 14px;
+  --radius-floating: 20px;
+  /* 玻璃浮层下排那排按首字跳转的小键：比浮层上 8px 的药丸收一档。 */
+  --radius-glass-key: 7px;
+  /* 分类列并回正文上方的那一档，以及药丸缩一号的那一档。 */
+  --breakpoint-review-split: 900px;
+  --breakpoint-review-tight: 600px;
+  /* 模态弹层的遮罩。注册表里没有模态弹层，也就没有它的底色；取值同
+   * `ui-kit/modal.css` 里 `.ui-geist-modal::backdrop` 的黑 60%，深浅两档共用一个。 */
+  --color-scrim: color-mix(in srgb, var(--color-black) 60%, transparent);
+  /* 统计与口味两页的折行断点，旧 `05-insights.css` 的媒体查询统一钉在 1000px，
+   * 不落在 Tailwind 的 sm/md/lg 上。写成断点 token，`board:` 变体照常生成。 */
+  --breakpoint-board: 1000px;
+  /* 数据管理那一排五张读数卡的两档折行，遗留骨架的 `.ui-cleanupstats`（`management.css`）同样钉在 1119px 与 559px。 */
+  --breakpoint-plain-stat-pair: 1120px;
+  --breakpoint-plain-stat-single: 560px;
+  /* 数据管理页的卡片间距与整理卡内边距在 760px 以下收一档，旧 `board.css` 那条窄屏媒体查询。 */
+  --breakpoint-cleanup-tight: 761px;
+  /* 重复文件页一行的封面 112px，900px 以下 88px（旧 `board.css` 900px 那条窄屏媒体查询）。 */
+  --container-duplicate-cover: 112px;
+  --container-duplicate-cover-narrow: 88px;
+  --breakpoint-duplicate-narrow: 901px;
+  /* 旧 `board.css` 600px 那条窄屏媒体查询：列表页汇总块改上下两行，重复文件的组头与行距收一档。 */
+  --breakpoint-compact: 601px;
+  /* 旧 `board.css` 760px 那条窄屏媒体查询：下划线 Tabs 收紧，索引页头把开关另起一行。 */
+  --breakpoint-board-narrow: 761px;
+  /* 索引页的格宽：人格 150px，公司格放宽一档到 180px（给方标识换宽度），字母表一行一枚标签
+   * 最窄 200px。壳铺的骨架（`web/css/06-index.css` 的 `.igrid` 与 `ui-kit/skeleton.css` 的 `.ui-alphalist`）用同一组宽。 */
+  --container-index-person: 150px;
+  --container-index-company: 180px;
+  --container-index-tag: 200px;
+  /* 整页空态（`components/empty-state.tsx` 的 `page` 档）的三个值，同遗留层
+   * `ui-kit/markup.css` 的 `.ui-emptystate`：图标盒子 54px 见方，说明最宽 340px、行高 1.55。 */
+  --spacing-empty-glyph: 54px;
+  --container-empty-copy: 340px;
+  --leading-empty-copy: 1.55;
+  /* 填一份表的弹层（`components/modal-frame.tsx` 的 `form` 档），同 `ui-kit/modal.css` 里 `.ui-geist-modal` 的 540px。 */
+  --container-form-modal: 540px;
+  /* 封面格里「无预览」那一行的字距，同旧 `.nopic` 的 .12em。 */
+  --tracking-caps: 0.12em;
+}
+
+/* EvilCharts 源码写的是 shadcn 的语义色名（`bg-background`、`text-muted-foreground`、
+ * `fill-muted`、`border-border`）。这里只把名字接到 BoardUI 已有的 token 上，不另起一套颜色：
+ * 浮层面同菜单（`background-primary-default`），次要字与轴刻度取 `text-secondary`，
+ * 径向轨道与悬停底取 `chart-track`，分隔取 `separator-border`。`inline` 让工具类直接带出
+ * 右边那个变量，不在 `:root` 上多出一组同名的 `--color-*`。来源与差异见 `evilcharts/ORIGIN.md`。 */
+@theme inline {
+  --color-background: var(--color-background-primary-default);
+  --color-foreground: var(--color-text-primary);
+  --color-muted: var(--color-chart-track);
+  --color-muted-foreground: var(--color-text-secondary);
+  --color-border: var(--color-separator-border);
+}
+
+/* 复核队列的卡片网格与作品样本网格。两处都是「按可用宽度自动折行」，只有最窄那一列
+ * 不同：队列卡要放下一张候选表单，样本格只放一张 16/10 的缩略图。 */
+@utility review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--container-review-card)), 1fr));
+}
+@utility review-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--container-review-asset), 1fr));
+}
+
+/* 卡片网格：按可用宽度自动折行，一列放不下 360px 时自己退成一列。工具类里没有
+ * `auto-fill` 这一档，写成 utility，类名照常由 Tailwind 生成，也就不必写任意值。 */
+@utility card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+}
+
+/* 带封面的列表卡窄一档：封面 150px 加右边那一列文字，280px 就够排（高清版目标页）。 */
+@utility card-grid-cover {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+/* 左说明右按钮的那种卡（`components/fieldset.tsx` 的 `split`）：两列、竖向居中，1000px 以下
+ * 按钮落到说明下面一行。`grid` 这个名字与旧样式表同名不生成，写成 utility。 */
+@utility fieldset-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  @media (width < 1001px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 站外链接那几格读数：按可用宽度自动排，一格最窄 150px。 */
+@utility link-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* 索引页的名册网格：列宽不随版式变，大图只把圆框拉成竖幅，一屏人数不变而每张脸更大。
+ * 公司格放宽一档；760px 以下收回人格那一档，手机上仍是两列。 */
+@utility index-grid-person {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--container-index-person), 1fr));
+}
+@utility index-grid-company {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--container-index-company), 1fr));
+  @media (width < 761px) {
+    grid-template-columns: repeat(auto-fill, minmax(var(--container-index-person), 1fr));
+  }
+}
+/* 字母表一组里的标签：一行一枚，按可用宽度排成几列。 */
+@utility index-tag-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--container-index-tag), 1fr));
+}
+
+/* 重复文件的一行：封面、名字、所在库、大小、时长，路径另起一行跨过后四列。900px 以下
+ * 名字独占第一行，所在库、大小、时长挤进后面自适应的几格。 */
+@utility duplicate-row {
+  display: grid;
+  grid-template-columns: var(--container-duplicate-cover) minmax(0, 1fr) 84px 84px 84px;
+  @media (width < 901px) {
+    grid-template-columns: var(--container-duplicate-cover-narrow) minmax(0, 1fr) auto auto;
+  }
+}
+
+/* 后台任务仍在推进、又说不出总量时的 Loading Dots。工具类里没有 animation-delay 这一档，
+ * 三颗点的错相写成一个函数式 utility：类名照常由 Tailwind 生成，也就不必写任意值。
+ * 减少动效由 `web/css/01-base.css` 的全局规则统一关掉。 */
+@keyframes peach-dot-wave {
+  0%, 80%, 100% { opacity: .25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+@utility dot-wave-* {
+  animation: peach-dot-wave 1.2s ease-in-out infinite;
+  animation-delay: calc(--value(integer) * 150ms);
+}
+
+/* Skeleton 的微光，与遗留层 `web/css/09-skeleton.css` 同一套实测值（Geist Skeleton，
+ * `docs/reference-snapshots/vercel-geist-skeleton.md`）：宿主不改自己的不透明度，
+ * `::after` 铺一条三倍宽的渐变左右扫。全局的减少动效规则只选得中元素、选不中伪元素，
+ * 所以这里自己关。定位不归这里：宿主自己写 `relative` 或 `absolute`，两条定位类放在
+ * 同一个元素上时谁生效只看生成顺序。 */
+@keyframes peach-skeleton-sweep {
+  to { transform: translateX(-50%); }
+}
+@utility skeleton-sheen {
+  overflow: hidden;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    right: -200%;
+    border-radius: inherit;
+    background: linear-gradient(to right, var(--hover), var(--skeleton-sheen) 50%, var(--hover));
+    background-size: 50% 100%;
+    animation: peach-skeleton-sweep 1.5s ease-in-out infinite reverse;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after { animation: none; }
+  }
+}
+
+/* 占位换成真内容，与 `src/ui-kit/motion.css` 的 `.skelreveal` 同一形态：骨架淡出
+ * 并糊掉，内容从 2px 模糊里清晰起来，两层叠在同一处坐标。元素带上 `data-revealed`
+ * 就是揭开之后那一态。时长读 board.css 的 `--motion-reveal`，减少动效时它是 0s。 */
+@utility reveal-skeleton {
+  transition: opacity var(--motion-reveal), filter var(--motion-reveal);
+  &[data-revealed] { opacity: 0; filter: blur(2px); }
+}
+@utility reveal-content {
+  opacity: 0;
+  filter: blur(2px);
+  transition: opacity var(--motion-reveal), filter var(--motion-reveal);
+  &[data-revealed] { opacity: 1; filter: none; }
+}
+
+
+/* 两块玻璃的料由 `web/board.css` 的 `[data-glass-pane]` 一处给，两个元素都挂着那个属性。
+ * 留在这里的是各自的几何、`backdrop-filter` 的饱和度和文字色：首页 `.board-filter-frame`
+ * 与底部批量条（`[data-selection-dock]`）的饱和度本来就不同，不能拿同一个近似 utility 套。 */
+/* 重复文件页那条「批量保留」（`components/filter-glass.tsx`）和复核筛选条是同一块玻璃：
+ * 旧版两处都是首页 `.board-filter-frame` 那一副，几何与饱和度都一样。 */
+.peach-react :is([data-review-filter], [data-filter-glass]) {
+  top: calc(var(--topH) + 8px);
+  border-radius: 22px;
+  backdrop-filter: var(--glass-optic, blur(22px)) saturate(160%) var(--glass-lume);
+  -webkit-backdrop-filter: var(--glass-optic, blur(22px)) saturate(160%) var(--glass-lume);
+  isolation: isolate;
+  color: var(--glass-text);
+  overflow: visible;
+}
+
+/* 吸顶由 `components/use-stuck.ts` 标记；玻璃用 --glass-lift 和四条内嵌 rim 线。 */
+.peach-react [data-filter-glass][data-stuck] {
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 1px 0 0 var(--glass-low),
+    inset -1px 0 0 var(--glass-low), inset 0 -1px 0 var(--glass-low), var(--glass-lift);
+}
+
+.peach-react [data-selection-dock] {
+  position: fixed;
+  z-index: 180;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 9px 11px;
+  transform: translateX(-50%);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 22px;
+  backdrop-filter: var(--glass-optic, blur(22px)) saturate(145%);
+  -webkit-backdrop-filter: var(--glass-optic, blur(22px)) saturate(145%);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .peach-react :is([data-review-filter], [data-filter-glass], [data-selection-dock]) {
+    background: var(--ground);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peach-react :is([data-review-filter], [data-filter-glass], [data-selection-dock]) { animation: none; }
+}
+
+.peach-react:has([data-selection-dock]) {
+  padding-bottom: 96px;
+}
+
+/* 岛里的危险键（批量条的「移入回收站」「彻底删除」、回收站说明行的「清空回收站」）挂 `data-danger`，
+ * 红色只在这里定义一份，与壳的 `button.danger`（`web/board.css`）读同一组 `--board-red` 三档渐变：
+ * 静止 red-500→600、悬停 400→500 铺在 `::before` 上淡入、按下 600→700。尺寸归各自的岛。
+ * 不限定在 `.peach-react` 里：管理区页头的宿主在 Preflight 之外。 */
+[data-danger]:not(:disabled) {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  background: var(--board-red);
+  box-shadow: var(--elevation-xs);
+  color: #fff;
+  transition: box-shadow .15s ease, color .15s ease;
+}
+
+[data-danger]:not(:disabled)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--board-red-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+[data-danger]:not(:disabled):hover::before { opacity: 1; }
+[data-danger]:not(:disabled):active { background: var(--board-red-active); }
+[data-danger]:not(:disabled):active::before { opacity: 0; }
+
+/* 页面分区使用与遗留导航相同的中性填充。 */
+.peach-react [data-board-tab-list] > button[aria-selected="true"] { background: var(--hover); color: var(--ink); }
+
+/* 玻璃浮层上分段控件选中的那一格（`components/segmented.tsx` 的 `SEGMENT_GLASS`）：
+ * 白填充垫底、斜光一道、整圈 rim 描边，与浮层上其余「当前在哪儿」的那块同一副料。 */
+.peach-react [data-glass-segment][data-selected] {
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 62%), var(--glass-pick-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-rim), var(--glass-pick-shadow);
+}
+
+.peach-react [data-filter-glass] :is(button, a[aria-pressed], [data-glass-segment]) { height: 30px; min-height: 30px; }
+.peach-react button[data-filter-action] {
+  width: 30px; min-width: 30px; height: 30px; min-height: 30px; padding: 0; border: 0;
+  border-radius: var(--control-radius);
+  background: var(--board-blue);
+  box-shadow: var(--elevation-xs);
+  color: #fff;
+}
+.peach-react button[data-filter-action]:hover { background: var(--board-blue-hover); color: #fff; }
+.peach-react button[data-filter-action] svg { width: 16px; height: 16px; }
+.peach-react button[data-filter-action][aria-busy="true"] { cursor: wait; }
+
+/* 浮层上动作键（`components/filter-glass.tsx` 的 `GlassPill`）指上去的那一下：同一副料，
+ * 细线让给整圈 rim，落影把它从浮层上托起来，跟首页筛选条上滑到指针下的那块一样。那一档
+ * `backdrop-filter` 提亮写在 `web/board.css`：构建会把标准属性折成 Chromium 不认的前缀写法。 */
+.peach-react [data-glass-pill]:hover:not([aria-busy]) {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 62%), var(--glass-pick-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-rim), var(--glass-pick-shadow);
+}
+
+/* 索引页的过滤框与播放列表的新建框在窄屏把字号提到 16px：小于这一档，手机浏览器聚焦时
+ * 会把整页放大。 */
+@media (width < 761px) {
+  .peach-react :is([data-index-search], [data-playlist-create]) input { font-size: 16px; }
+}
+
+/* 一叠视频的卡片（`components/mix-card.tsx`），取值同遗留层 `web/css/12-cards.css` 的
+ * `.mixstack`、`.mixfaces`、`.mixbadge`、`.mavstack` 与 `web/css/25-motion.css` 的头像让位。
+ *
+ * 纸边：封面后面两层，和封面同一种表面、同一档圆角（继承容器），往上溢出到行间距里，
+ * 卡片盒不为它留白，同一行里叠层卡和普通卡的封面与文字才平齐。 */
+.peach-react [data-mix-stack]::before,
+.peach-react [data-mix-stack]::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: inherit;
+  border: 1px solid var(--border-15);
+  background: color-mix(in srgb, var(--surface) 84%, var(--video-glow, #15202a));
+}
+.peach-react [data-mix-stack]::before { inset: 0 12px 8px; transform: translateY(-7px); opacity: .54; }
+.peach-react [data-mix-stack]::after { inset: 0 6px 4px; transform: translateY(-4px); opacity: .78; }
+/* 封面格背后压着纸边，不能是空的：封面落地前整格是空的，纸边的线条会透进封面。 */
+.peach-react [data-mix-cover],
+.peach-react [data-mix-poster] { background: #000; }
+
+/* 悬停翻页：最上面那张向上抬起、轻转并淡出，下一张随即接管。面板垫黑，遮住静止封面：
+ * 不遮的话两张正在交接时它会从中间透出来。 */
+.peach-react [data-mix-faces] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: #000;
+}
+.peach-react [data-mix-face] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(.985);
+  transform-origin: 50% 88%;
+  transition: transform .46s cubic-bezier(.34, .02, .24, 1), opacity .4s ease;
+}
+.peach-react [data-mix-face="on"] { opacity: 1; z-index: 2; transform: none; transition: none; }
+.peach-react [data-mix-face="off"] { opacity: 0; z-index: 3; transform: translateY(-11%) rotate(-3.4deg) scale(.94); }
+.peach-react [data-mix-face] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* 条数徽标压在封面上，底色是一块半透明的深色玻璃，封面亮暗都读得出字。 */
+.peach-react [data-mix-badge] {
+  background: rgb(12 8 8 / .72);
+  backdrop-filter: blur(10px);
+}
+
+/* 署名行的叠放头像：最多五枚，常态紧叠；上、左、下三边给放大与焦点环留出空间，头像本身
+ * 仍与单人头像站在同一条左对齐线上。指到的一枚抬起并放大，右侧邻座逐枚朝标题方向让开，
+ * 全程只动 transform；`:has(:hover)` 让整组在同一时刻换缓动。 */
+.peach-react [data-mix-avatars] {
+  display: flex;
+  flex: none;
+  max-width: calc(100% - 48px);
+  margin: -4px -2px -2px;
+  padding: 6px 2px 2px 5px;
+  --lift-motion: calc(var(--spring-press-ms) * 1ms) var(--spring-press);
+}
+.peach-react [data-mix-avatars]:has(:is(:hover, :focus-visible)) { --lift-motion: var(--board-motion); }
+.peach-react [data-mix-avatars] > * {
+  box-shadow: 0 0 0 2px var(--ground);
+  transform: translate(var(--lift-x, 0), var(--lift-y, 0)) scale(var(--lift-scale, 1));
+  transition: transform var(--lift-motion, var(--board-motion));
+}
+.peach-react [data-mix-avatars] > * + * { margin-left: -22px; }
+/* 没有图的一枚只有居中的首字母，叠到 -22px 时字被左边那枚盖掉大半：这一枚只让出 8px，字整个露出来。 */
+.peach-react [data-mix-avatars] > * + :not(:has(img)) { margin-left: -8px; }
+.peach-react [data-mix-avatars] > :nth-child(1) { z-index: 5; }
+.peach-react [data-mix-avatars] > :nth-child(2) { z-index: 4; }
+.peach-react [data-mix-avatars] > :nth-child(3) { z-index: 3; }
+.peach-react [data-mix-avatars] > :nth-child(4) { z-index: 2; }
+.peach-react [data-mix-avatars] > :nth-child(5) { z-index: 1; }
+.peach-react [data-mix-avatars] > :is(:hover, :focus-visible) {
+  z-index: 6;
+  box-shadow: 0 0 0 2px var(--ink-2);
+  --lift-y: -4px;
+  --lift-scale: 1.05;
+}
+.peach-react [data-mix-avatars] > :is(:hover, :focus-visible) + * { --lift-y: -1.8px; --lift-x: 10px; }
+.peach-react [data-mix-avatars] > :is(:hover, :focus-visible) + * + * { --lift-y: -.81px; --lift-x: 20px; }
+.peach-react [data-mix-avatars] > :is(:hover, :focus-visible) + * + * + * { --lift-x: 30px; }
+.peach-react [data-mix-avatars] > :is(:hover, :focus-visible) + * + * + * + * { --lift-x: 40px; }
+
+/* 标签的类型色：本地九类取 ledger 的分类，在线那一套取上游 booru 的 tag_type（`r34-*`）。
+ * 标签云、字母表的色点和浮层上排的类型药丸读同一个 `--tag-color`，和卡片上标签的着色一致。
+ * 「全部」那一枚的色点是一段渐变，不落在任何一类上。 */
+.peach-react [data-tag-cat] { --tag-color: #7a91a8; }
+.peach-react [data-tag-cat="general"],
+.peach-react [data-tag-cat="r34-general"] { --tag-color: #55a7ff; }
+.peach-react [data-tag-cat="artist"] { --tag-color: #f1a454; }
+.peach-react [data-tag-cat="meta"] { --tag-color: #7f909e; }
+.peach-react [data-tag-cat="relationship"] { --tag-color: #f1a454; }
+.peach-react [data-tag-cat="role"] { --tag-color: #ed78af; }
+.peach-react [data-tag-cat="appearance"] { --tag-color: #a989f5; }
+.peach-react [data-tag-cat="scene"] { --tag-color: #53b8a4; }
+.peach-react [data-tag-cat="story"] { --tag-color: #e19a5b; }
+.peach-react [data-tag-cat="position"] { --tag-color: #d66e8d; }
+.peach-react [data-tag-cat="r34-artist"] { --tag-color: #e36c6c; }
+.peach-react [data-tag-cat="r34-character"] { --tag-color: #68c76f; }
+.peach-react [data-tag-cat="r34-copyright"] { --tag-color: #d675d6; }
+.peach-react [data-tag-cat="r34-metadata"] { --tag-color: #f5a24a; }
+.peach-react [data-tag-cat="r34-unknown"] { --tag-color: var(--muted); }
+/* 浮层上排的药丸没有「未分类」那一档：「全部」不带类型色，选中时退回主文字色。 */
+.peach-react [data-tag-pill][data-tag-cat="all"] { --tag-color: initial; }
+.peach-react [data-tag-dot] { background: var(--tag-color, var(--muted)); }
+.peach-react [data-tag-pill][data-tag-cat="all"] [data-tag-dot] {
+  background: linear-gradient(135deg, #55a7ff, #d783ff);
+}
+
+/* 标签云那一枚：线和底都取自己的类型色，悬停把底提一档、线不动。选中换成浮层选中那一档面。
+ * 类型色掺透明要按 sRGB 掺，与卡片上那枚同一副配色；工具类的透明度修饰按 oklab 掺，
+ * 同一个百分比在两个色彩空间里不是同一块颜色。 */
+.peach-react [data-tag-chip] {
+  border-color: color-mix(in srgb, var(--tag-color) 32%, transparent);
+  background: color-mix(in srgb, var(--tag-color) 7%, transparent);
+}
+.peach-react [data-tag-chip]:hover {
+  background: color-mix(in srgb, var(--tag-color) 13%, transparent);
+}
+.peach-react [data-tag-chip][aria-pressed="true"],
+.peach-react [data-alpha-tag][aria-pressed="true"] {
+  background: var(--picked);
+  color: var(--color-text-primary);
+}
+/* 类型药丸选中：线和填充取自己的类型色，「全部」取主文字色。 */
+.peach-react [data-tag-pill][aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--tag-color, var(--ink)) 45%, transparent);
+  border-style: solid;
+  background: color-mix(in srgb, var(--tag-color, var(--ink)) 12%, transparent);
+  color: var(--ink);
+}
+/* 字母表那一行悬停抬一层主文字色 6% 的薄底，取的是排名行那一档身量。 */
+.peach-react [data-alpha-tag]:not([aria-pressed="true"]):hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+/* 分组卡的上沿要让出吸顶的浮层：浮层下排那排跳转键滚过来时，卡顶正好落在浮层下面。 */
+.peach-react [data-alpha-group] {
+  scroll-margin-top: calc(var(--topH) + 124px);
+}
+
+.peach-react [data-source-divider] > * + * {
+  border-top: 1px solid var(--color-border-button-default);
+}
+
+.peach-react [data-follow-author-header][data-open] {
+  border-bottom: 1px solid var(--color-border-button-default);
+}
+
+/* 关注表格坐在关注列表的 secondary 外框里，自己的 primary 面负责浅色的白底与暗色的
+ * 实体卡面；选中行回到 BoardUI Data Table 的 secondary 反馈。这里的边线取 button border，
+ * 因为 Peach 暗色 primary 与 separator 同为 neutral-800，用 separator 会完全消失。 */
+.peach-react [data-board-data-table] {
+  /* 隐藏列标题的绝对定位由表格外框承接，滚动内容不扩大页面。 */
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border-button-default);
+  border-radius: var(--radius-surface);
+  background: var(--color-background-primary-default);
+}
+
+.peach-react [data-board-data-table] .bui-table th {
+  border-top: 0;
+}
+
+.peach-react [data-board-data-table] .bui-table th,
+.peach-react [data-board-data-table] .bui-table tbody tr:not(:last-child) {
+  border-color: var(--color-border-button-default);
+}
+
+/* 指着哪一行哪一行换底：整行都能点选之后，没有这层反馈就不知道点下去落在哪一行。
+ * 取 BoardUI primary 面的 hover 档，只给没选中的行；选中行的底色在下面，压过这一条。 */
+.peach-react [data-board-data-table] .bui-table tbody tr:hover,
+.peach-react [data-source-divider] > :hover {
+  background-color: var(--color-background-primary-hover);
+}
+
+.peach-react [data-board-data-table] .bui-table tbody tr[data-follow-selected],
+.peach-react [data-board-data-table] .bui-table tbody tr[data-board-selected] {
+  background-color: var(--color-background-secondary-default);
+}
+
+/* 卡片视图里勾上的来源行走同一档反馈：两种视图共用一个勾选集合，只有表格给底色的话，
+ * 换个视图同一批选中项就看不出来了。 */
+.peach-react [data-source-divider] > [data-selected] {
+  background-color: var(--color-background-secondary-default);
+}
+
+.peach-react [data-follow-table] [data-sort-indicator] {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-text-tertiary);
+  transition: transform 150ms ease, color 150ms ease;
+}
+
+.peach-react [data-follow-table] [data-sort-indicator][data-direction] {
+  color: var(--color-text-secondary);
+}
+
+.peach-react [data-follow-table] [data-sort-indicator][data-direction='ascending'] {
+  transform: rotate(180deg);
+}
+
+.peach-react [data-follow-table] [data-sort-indicator] svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* 排名保留迁移前的图标式展开：列表原地长开，箭头同步说明当前方向。 */
+.peach-react [data-expandable-ranking] {
+  position: relative;
+}
+
+/* 底部这 28px 是给展开键留的位置，渐隐同理：行数没超过预览档时那枚键根本不画，
+ * 只认 `[data-expandable-ranking]` 的话，短榜会凭空多出一段空白，最后一行还被抹掉。 */
+.peach-react [data-expandable-ranking][data-expandable] {
+  padding-bottom: 28px;
+}
+
+.peach-react [data-expandable-ranking-list] {
+  max-height: var(--ranking-collapsed-height, none);
+  overflow: hidden;
+}
+
+.peach-react [data-expandable-ranking][data-expanded] [data-expandable-ranking-list] {
+  max-height: var(--ranking-expanded-height, none);
+}
+
+.peach-react [data-expandable-ranking][data-animating] [data-expandable-ranking-list] {
+  transition: max-height 200ms var(--ease-in-out);
+}
+
+.peach-react [data-expandable-ranking][data-expandable]:not([data-expanded]) [data-expandable-ranking-list] {
+  mask-image: linear-gradient(#000 calc(100% - 44px), transparent);
+}
+
+.peach-react [data-ranking-toggle] {
+  position: absolute;
+  z-index: 1;
+  bottom: 4px;
+  left: 50%;
+  display: grid;
+  width: 40px;
+  height: 20px;
+  padding: 0;
+  transform: translateX(-50%);
+  place-items: center;
+  border: 1px solid var(--color-border-button-default);
+  border-radius: 999px;
+  background: var(--color-background-primary-default);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.peach-react [data-ranking-toggle]:hover {
+  background: var(--color-background-primary-hover);
+  color: var(--color-text-primary);
+}
+
+.peach-react [data-ranking-toggle]:focus-visible {
+  outline: 2px solid var(--color-border-focus-ring);
+  outline-offset: 2px;
+}
+
+.peach-react [data-ranking-toggle] svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 200ms var(--ease-in-out);
+}
+
+.peach-react [data-ranking-toggle][aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peach-react [data-expandable-ranking][data-animating] [data-expandable-ranking-list],
+  .peach-react [data-ranking-toggle] svg {
+    transition: none;
+  }
+}
+
+/* BoardUI 的 visually-hidden 原生 checkbox 会被旧样式表重新拉成 16px，获得浏览器自带的
+ * 黑色 focus outline；真正的焦点环已经由旁边的 CheckboxGlyph 负责。把原生控件收回 1px
+ * 并去掉 appearance，避免选中那一帧从裁切层里闪出黑框。 */
+.peach-react label[data-rac] input[type='checkbox'] {
+  width: 1px;
+  height: 1px;
+  appearance: none;
+  outline: none;
+}
+
+/* 构建器会把 SVG 的 unitless stroke-dashoffset 改写成 px，破坏 pathLength=1 的归一化，
+ * 勾会在浏览器重算路径长度时来回跳。改成只动 opacity/transform 的单次出现动画。 */
+@keyframes checkbox-mark-enter {
+  from {
+    opacity: 0;
+    transform: scale(.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-check-draw {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: checkbox-mark-enter 150ms var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-check-draw {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bui-table {
+  @apply w-full border-collapse text-left;
+}
+/* Header background + border-y live on the cells: with border-collapse the
+ * browser doesn't paint backgrounds/borders set on the <thead> row group.
+ * Backgrounds/borders are set with explicit CSS (theme vars) rather than
+ * @apply, which drops border-width/bg on these row-group cells. */
+.bui-table th {
+  @apply px-3 py-2.5 text-left align-middle text-body-medium text-text-tertiary whitespace-nowrap outline-none;
+  background-color: var(--color-background-secondary-default);
+  border-top: 1px solid var(--color-separator-border);
+  border-bottom: 1px solid var(--color-separator-border);
+  transition: padding 200ms ease, font-size 200ms ease;
+}
+.bui-table td {
+  @apply px-3 py-2.5 align-middle text-body-medium text-text-primary outline-none;
+  transition: padding 200ms ease, font-size 200ms ease;
+}
+/* Separators sit *between* rows only: the trailing row's boundary is drawn by
+ * whatever follows the table (the container's bottom edge, or the pagination
+ * footer's own border-top), so a filtered-down table never doubles up lines. */
+.bui-table tbody tr:not(:last-child) {
+  border-bottom: 1px solid var(--color-separator-border);
+}
+.bui-table tbody tr {
+  @apply transition-colors duration-150;
+}
+.bui-table tbody tr[data-focus-visible] {
+  @apply ring-2 ring-inset ring-border-focus-ring;
+}
+.bui-table.bui-table-sm th,
+.bui-table.bui-table-sm td {
+  @apply px-2.5 py-1.5 text-body-2-medium;
+}

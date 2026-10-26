@@ -1,0 +1,20 @@
+# amane 桥的独立清单（ADR-0043）。它不是 Peach 主 venv 的一部分：amane 要求 Python 3.14、
+# 依赖全用 `>=` 下限，直接并进 `pyproject.toml` 会撞上「精确固定版本」的门槛并把 Peach 的
+# 下限从 3.12 抬到 3.14。所以整棵树钉在这里的 `uv.lock`，venv 由 Peach 在数据目录里按锁重建。
+#
+# 唯一直接依赖是 amane 的一个 revision。升级是人做的事：改这里的 sha，跑
+# `uv lock --project tools/amane-bridge`，读上游 diff 确认站点解析器的字段语义没变，
+# 再同批更新 `docs/REUSE.md` 与 `src/peach/metadata_amane.py` 的复核记录。
+[project]
+name = "peach-amane-bridge"
+version = "0.1.0"
+description = "Peach 调用 amane 刮削站点的薄桥子进程"
+requires-python = ">=3.14"
+license = "AGPL-3.0-or-later"
+dependencies = [
+  "amane @ git+https://github.com/sqzw-x/amane@cc42cee6ecf290cf05af1caa347d2dc2d5aeffcd",
+]
+
+[tool.uv]
+# 桥不是一个包，只有一个脚本；uv 只管 venv 与锁。
+package = false

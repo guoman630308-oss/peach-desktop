@@ -1,0 +1,371 @@
+/* 实体资料页的交集条与筛选浮层（`entity-filter-page.tsx`）。
+ *
+ * 取值与首页那块浮层同一套：`web/board.css` 里 `.board-filter-frame` 的几排覆盖层，
+ * `web/css/03-filterbar.css` 的 `.pill`、`.sep`、`.combo`，`web/css/12-cards.css` 的 `.sorts`。
+ * 浮层的料与吸顶在 `../styles.css` 的 `[data-filter-glass]`，滑动玻璃的形状与材质在 `web/board.css`
+ * 的 `[data-view-glide]`。骨架（`entitySkeletonHtml`）与页面共用 `data-*` 容器和控件几何，
+ * 行高、内边距和横滚由这一份样式提供。
+ *
+ * 选择器全用 `data-*`：遗留样式表不分层、排在后面，写遗留类名会被接管。颜色读遗留层的 `--glass-text`、
+ * `--glass-low`、`--ink-2` 这组：它们在 `:root` 上算好再继承进来，和页面其余部分同一档。
+ *
+ * 首页那块浮层（`catalog-filter`，根上标 `[data-catalog-frame]`）的下排、交集条与这里是同一组组件，
+ * 浮层级的几条规则两边一起认。 */
+
+/* ── 宿主 ──
+ * 宿主（`[data-entity-filter]`）和 React 根那一层都不生成盒子：浮层要吸顶，吸住的范围是它父元素
+ * 的盒子，父元素只裹着它自己的话一格都走不动。两层让开之后它的父元素就是 `#index`，和骨架里
+ * 那块 `.board-filter-frame` 同一个。这两条写在 `web/css/07-entity.css`。 */
+
+.peach-react :is([data-entity-filter-glass], [data-catalog-frame]) {
+  z-index: 60;
+  font: var(--board-body);
+  letter-spacing: normal;
+}
+
+/* 全站焦点环（`01-base.css`）把 React 子树排除在外，这里自己画同一副。 */
+.peach-react :is([data-entity-filter-glass], [data-catalog-frame], [data-entity-combo]) :is(button, [role="radio"]):focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+
+/* 按住立刻缩到 96%，松开交给弹簧，同 `board.css` 里 `.pill`、`.sorts button` 那一条。 */
+.peach-react [data-entity-press] {
+  transition: scale calc(var(--spring-press-ms) * 1ms) var(--spring-press);
+}
+.peach-react [data-entity-press]:active {
+  scale: .96;
+  transition: scale .06s ease-out;
+}
+
+/* ── 上排 ──
+ * 最左端是这一页的视图键，住在滚动层外、任何宽度下都不滚；观看状态与标签住在里面。宽屏只有标签
+ * 那一格横滚，窄屏（760px 以下）换成里外整段一起滚，只有视图键还钉着。 */
+.peach-react [data-entity-sep] {
+  flex: none;
+  width: 1px;
+  height: 19px;
+  margin: 0 3px;
+  background: var(--field-ring-hover);
+}
+
+.peach-react [data-entity-media] {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 自己不铺底：选中那一枚的填充由那块圆的滑动玻璃给。字形压在玻璃上面，滑过去时才不被一路盖暗。 */
+.peach-react [data-media-view] {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 0 0 30px;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: color-mix(in srgb, var(--glass-text) 60%, transparent);
+  cursor: pointer;
+}
+.peach-react [data-media-view]:hover,
+.peach-react [data-media-view][aria-pressed="true"] {
+  color: var(--glass-text);
+}
+.peach-react [data-media-view] svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.peach-react [data-media-view][data-media-icon="image"] svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.peach-react [data-entity-scroll] {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.peach-react [data-entity-states] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 四枚观看状态同样不铺底，选中那一枚下面垫的是方的那块滑动玻璃。 */
+.peach-react [data-entity-state] {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--glass-text) 60%, transparent);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-entity-state]:hover,
+.peach-react [data-entity-state][aria-pressed="true"] {
+  color: var(--glass-text);
+}
+
+.peach-react [data-entity-tags] {
+  display: flex;
+  flex: 1;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.peach-react [data-entity-tags]::-webkit-scrollbar { display: none; }
+
+/* 标签 30px 高、13px 字，没加上去时一圈 `--glass-low` 实线，悬停线换 `--field-ring`、字提到
+ * `--ink`；加上去之后是浮层上「这一项已生效」那块料。计数是附注，11px 等宽、降一档字色。 */
+.peach-react [data-entity-tag] {
+  gap: 0;
+  border-style: solid;
+  color: var(--glass-text);
+}
+.peach-react [data-entity-tag][aria-pressed="false"]:hover {
+  border-color: var(--field-ring);
+  color: var(--ink);
+}
+.peach-react [data-entity-tag][aria-pressed="true"] {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 62%), var(--glass-pick-fill);
+  backdrop-filter: var(--glass-pick);
+  box-shadow: inset 0 0 0 1px var(--glass-rim), var(--glass-pick-shadow);
+}
+.peach-react [data-entity-tag] [data-count-badge] {
+  margin-left: 6px;
+  color: color-mix(in srgb, var(--glass-text) 55%, transparent);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: 11px;
+}
+.peach-react [data-entity-tag]:is(:hover, [aria-pressed="true"]) [data-count-badge] {
+  color: color-mix(in srgb, var(--glass-text) 80%, transparent);
+}
+
+@media (max-width: 760px) {
+  .peach-react [data-entity-scroll] {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .peach-react [data-entity-scroll]::-webkit-scrollbar { display: none; }
+  .peach-react [data-entity-scroll] > [data-entity-tags] {
+    flex: 0 0 auto;
+    min-width: auto;
+    overflow: visible;
+  }
+}
+
+/* ── 下排：内容区头 ──
+ * 读数照首页那条 `10,471 个符合` 写：12px、常规字重、比标签低一档。排序键 30px 高、12px 字、
+ * 7px 圆角；生效那枚回到满字色加半档字重，其余退到六成。换一批是动作不是参数，走蓝色强调档。 */
+.peach-react [data-entity-readout] {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+/* 资料页这一行的读数可以让位：右边那排排序键放不下时它截成省略号，不把页面撑宽。 */
+.peach-react [data-entity-filter-glass] [data-entity-readout] {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.peach-react [data-entity-sorts] {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: auto;
+  /* 横滚容器会把里面东西的落影从上下两边裁掉：分段器滑块最远那层影落在 14px 外。上下各留出
+     这 14px 再用负外边距收回，排在行里还是 30px 高。 */
+  margin-block: -14px;
+  padding: 14px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.peach-react [data-entity-sorts]::-webkit-scrollbar { display: none; }
+
+.peach-react [data-entity-sort] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: color-mix(in srgb, var(--glass-text) 62%, transparent);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-entity-sort]:hover { color: var(--glass-text); }
+.peach-react [data-entity-sort][aria-pressed="true"] {
+  color: var(--glass-text);
+  font-weight: 500;
+}
+.peach-react [data-entity-sort] svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 5px;
+}
+
+
+/* 分段器两侧各让 6px，跟换一批和排序键分开：它答的是「这批东西怎么摆」，不是同一排里的又一枚键。 */
+.peach-react [data-entity-layout] { flex: none; gap: 2px; margin: 0 6px; }
+.peach-react [data-entity-layout] svg { width: 16px; height: 16px; }
+.peach-react [data-entity-layout] [data-glass-segment][data-selected] {
+  backdrop-filter: var(--glass-pick);
+}
+
+
+/* 图集里的「全部照片」：高度跟同一排的排序键对齐，那圈线和字色跟着玻璃取。 */
+.peach-react [data-photo-back] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px 0 6px;
+  border: 1px solid var(--glass-low);
+  border-radius: var(--control-radius);
+  color: var(--glass-text);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-photo-back]:hover { background: var(--overlay-5); }
+.peach-react [data-photo-back] svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+/* 源文件那两枚键与状态行是遗留层拼的（`sourceTools`），这一排不换行：状态行不能像在详情里那样
+   独占一整行，否则右边的东西会被挤到看不见。 */
+.peach-react [data-entity-srctools] { display: contents; }
+.peach-react [data-entity-srctools] > * { flex: none; margin: 0; }
+.peach-react [data-entity-srctools] [aria-live] { flex: none; }
+
+/* 浮层下半在手机上仍是一横条：读数在左，控件跟在右边，装不下就整条往右滚。 */
+@media (max-width: 760px) {
+  .peach-react :is([data-entity-filter-glass], [data-catalog-frame]) > [data-filter-row="bottom"] {
+    flex-wrap: nowrap;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    touch-action: pan-x pan-y;
+  }
+  .peach-react :is([data-entity-filter-glass], [data-catalog-frame]) > [data-filter-row="bottom"]::-webkit-scrollbar { display: none; }
+  .peach-react [data-entity-sorts] {
+    flex: none;
+    width: max-content;
+    max-width: none;
+    overflow: visible;
+  }
+  /* 整条在横滚，读数不用让位：让位的话它会先被挤成 0 宽。 */
+  .peach-react [data-entity-filter-glass] [data-entity-readout] { flex: none; }
+}
+
+/* 窄屏往下滚时浮层让出顶栏下沿，往回滚再落下来；`--filter-free-top` 与标记由壳的
+   `updateMobileFilterScroll` 写。 */
+@media (max-width: 760px) {
+  .peach-react :is([data-entity-filter-glass], [data-catalog-frame])[data-filter-free] { top: var(--filter-free-top); }
+}
+
+/* ── 交集条 ──
+ * 每一颗都是一个已经加上去的筛选，照详情面板里的标签画：8px 圆角、一圈线、`--picked` 的面，
+ * 名字后面一颗撤掉它的键。从无到有时高度自己长出来，不把底下的浮层一下推走四十像素。 */
+.peach-react [data-entity-combo] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  height: auto;
+  margin: 0 0 24px;
+  overflow: hidden;
+  font: var(--board-body);
+  interpolate-size: allow-keywords;
+  transition: height .22s cubic-bezier(0, 0, .2, 1), margin-bottom .22s cubic-bezier(0, 0, .2, 1);
+}
+.peach-react [data-entity-combo]:empty {
+  height: 0;
+  margin-bottom: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .peach-react [data-entity-combo] { transition: none; }
+}
+.peach-react [data-combo-chip] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 0 0 11px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--tag-radius);
+  background: var(--picked);
+  color: var(--ink-2);
+  font-size: var(--fs-md);
+  line-height: 20px;
+}
+.peach-react [data-combo-chip] button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  cursor: pointer;
+}
+.peach-react [data-combo-chip] button:hover {
+  background: color-mix(in srgb, var(--drop) 12%, transparent);
+  color: var(--drop);
+}
+.peach-react [data-combo-clear] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}

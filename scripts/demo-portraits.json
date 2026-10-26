@@ -1,0 +1,385 @@
+{
+  "note": "演示素材清单。逐张看过画面后钉死：不露点，画面可放进公开文档。图库按来源优先级排出的第一张答的是「先试哪张」，不是「哪张能见人」，所以这里不按顺序自动取，只认这份清单。",
+  "provider": "gfriends",
+  "reviewed": "2026-09-16",
+  "entries": [
+    {
+      "name": "宇野栞菜",
+      "key": "えりか",
+      "category": "1-Diaz",
+      "filename": "宇野栞菜.jpg",
+      "sha256": "bdeb94a7ec9c25a666a8dee3d37e7ae4e45cc9b6a5d4cb02ee0798b1b15fa827",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "涼宮琴音",
+      "key": "あおい",
+      "category": "1-Diaz",
+      "filename": "涼宮琴音.jpg",
+      "sha256": "5b8b2556184238e38ca83e22f8e5cbc0d0d81183c4114fbc828faa7909320c82",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "白浜果歩",
+      "key": "白浜果歩",
+      "category": "1-Diaz",
+      "filename": "白浜果歩.jpg",
+      "sha256": "a04e105f5df710d80739cafdf9249cc3afd5cbc9cc63fa618c9f34d71e36b7f0",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "石田佳蓮",
+      "key": "石田 佳蓮",
+      "category": "1-Diaz",
+      "filename": "石田 佳蓮.jpg",
+      "sha256": "b9a99c1580e35404f7c1fe33eafed9f108851ba352ab6585d5b1879df48d7476",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "篠倉珠生",
+      "key": "篠倉珠生",
+      "category": "1-Diaz",
+      "filename": "篠倉珠生.jpg",
+      "sha256": "99621b46d1d9648d069164cdf5429d8d947825b85e57a5b3ea8d89670ae67248",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "若月まりあ",
+      "key": "二ノ宮麗華",
+      "category": "1-Diaz",
+      "filename": "若月まりあ.jpg",
+      "sha256": "4849d190ab3a09fa7db78dbcda664cf041a71a9997e8acf8779ef32fa391030c",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "蒼山愛奈",
+      "key": "蒼山愛奈",
+      "category": "1-Diaz",
+      "filename": "蒼山愛奈.jpg",
+      "sha256": "d59b3e2a0fe69d90a025ba9a387335a59f4937d1db5751e15e813f19d2939042",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "長瀬麻美",
+      "key": "水谷彩也加",
+      "category": "1-Diaz",
+      "filename": "長瀬麻美.jpg",
+      "sha256": "360e6b945f6ae3b85e4007848b03a86b2ab8c6a35933c0d3fd76f5af21a7e716",
+      "width": 2880,
+      "height": 1800
+    },
+    {
+      "name": "浅野心愛",
+      "key": "浅野心愛",
+      "category": "1-FALENO",
+      "filename": "浅野心愛.jpg",
+      "sha256": "48fc44c56ee28c983065aac46cd763e5f4f35d2b88dd2d8ea5e0c0d33bddf59f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "浜辺やよい",
+      "key": "浜辺やよい",
+      "category": "1-FALENO",
+      "filename": "浜辺やよい.jpg",
+      "sha256": "e7de85b55ecdc7b5d813ae9022803b09f7adfd964cc72d7eb5cb36b60524cfee",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "澪奈あすみ",
+      "key": "澪奈あすみ",
+      "category": "1-FALENO",
+      "filename": "澪奈あすみ.jpg",
+      "sha256": "b7ee6d20301a56e6e85fbc30852032ed8e4e5e44fe3b7965a16290d0b7b2ab9b",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "瀧本くるみ",
+      "key": "瀧本くるみ",
+      "category": "1-FALENO",
+      "filename": "瀧本くるみ.jpg",
+      "sha256": "ef9d5aceb881d034d89672ecff2a5024b99933e5f748ec98b00c7ccd2348591f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "瀬戸ひなこ",
+      "key": "瀬戸ひなこ",
+      "category": "1-FALENO",
+      "filename": "瀬戸ひなこ.jpg",
+      "sha256": "c92102f1a274f75be41a19c8ce2a22ed34560d25363b7faad3e43eb91800a70f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "甘夏唯",
+      "key": "甘夏唯",
+      "category": "1-FALENO",
+      "filename": "甘夏唯.jpg",
+      "sha256": "e0061d620e555e837d45328ba55b49e96b3d0fd6f64a7445afd246816a385237",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "生田さな",
+      "key": "生田さな",
+      "category": "1-FALENO",
+      "filename": "生田さな.jpg",
+      "sha256": "e30c8f1d68769579632b576780713d3ebeff12218c4958b0bf7a4fb9f20bd764",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "生田みなみ",
+      "key": "生田みなみ",
+      "category": "1-FALENO",
+      "filename": "生田みなみ.jpg",
+      "sha256": "edfe42dacdb3f1cddeea3ab7dceb1870cc73042f594acc3b127d7497f2f1225f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "田中レモン",
+      "key": "田中レモン",
+      "category": "1-FALENO",
+      "filename": "田中レモン.jpg",
+      "sha256": "cc636011dffab76071e6ed779e158f642211badd2785e31a277284163cf798c6",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "田井虹TINY",
+      "key": "田井虹 TINY",
+      "category": "1-FALENO",
+      "filename": "田井虹 TINY.jpg",
+      "sha256": "852430de8feef47b00ffac3641aec02c0580de23d3486023e504ee11ba08a97a",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "由衣陽菜",
+      "key": "由衣陽菜",
+      "category": "1-FALENO",
+      "filename": "由衣陽菜.jpg",
+      "sha256": "27e404d944dd356f93290a2bde592a6aef0225e658c3aa017d293f9ae0a53049",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "白坂有以",
+      "key": "白坂有以",
+      "category": "1-FALENO",
+      "filename": "白坂有以.jpg",
+      "sha256": "3f1614c3b0923092b7847c5e3a962548f0bd39ba02be6f9c46bb9ea22ee93399",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "百崎きっか",
+      "key": "百崎きっか",
+      "category": "1-FALENO",
+      "filename": "百崎きっか.jpg",
+      "sha256": "1e4e0ec27685edbfb5c12a716d1b7459c40df7ff170e6a6c0e5635c92ad48f18",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "神代にな",
+      "key": "神代にな",
+      "category": "1-FALENO",
+      "filename": "神代にな.jpg",
+      "sha256": "a2c1d8b295c1f733bfbace7a6a84fd883bbe63962487b4867eef15b379251b49",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "神喜ミア",
+      "key": "神喜ミア",
+      "category": "1-FALENO",
+      "filename": "神喜ミア.jpg",
+      "sha256": "ccb252f9f86dd35ab564a17938904d1362c68f85f9c7ca5c0d694ed45dd0e5e6",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "神木サラ",
+      "key": "神木サラ",
+      "category": "1-FALENO",
+      "filename": "神木サラ.jpg",
+      "sha256": "60468196a7d26679b8c79ab4df48cdfc80a9a0c1fca8de2d8e53a87c0d50a14c",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "神木蘭",
+      "key": "神木蘭",
+      "category": "1-FALENO",
+      "filename": "神木蘭.jpg",
+      "sha256": "ea3b3e20bf6118fb102a3f5b17b5faee3e29ce0e1335a7ad84fda12412ff566f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "篠宮るい",
+      "key": "篠宮るい",
+      "category": "1-FALENO",
+      "filename": "篠宮るい.jpg",
+      "sha256": "de41ce82750c219ee9c9e71f655769d6233640b69d401ae3cf33931be93e987a",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "紺野るり",
+      "key": "紺野るり",
+      "category": "1-FALENO",
+      "filename": "紺野るり.jpg",
+      "sha256": "438cf86eca93af001ff301ad51cb0a2d4840eac6bcb86af7f5e08204a2cdae6f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "絵恋空",
+      "key": "絵恋空",
+      "category": "1-FALENO",
+      "filename": "絵恋空.jpg",
+      "sha256": "b07e82cb908535f0091891f98b13d311b6e47072652607b6997d6d849bb68617",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "絵麗奈",
+      "key": "絵麗奈",
+      "category": "1-FALENO",
+      "filename": "絵麗奈.jpg",
+      "sha256": "ba360ffe228e1d529d541544a5374b005408d2ce82a8ead1923fa0bf90faf2d3",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "綿貫こよみ",
+      "key": "綿貫こよみ",
+      "category": "1-FALENO",
+      "filename": "綿貫こよみ.jpg",
+      "sha256": "a07d5d26e6c7e13b21df7ed02394c972626a17c72f403a4a26329baed2799849",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "美乃すずめ",
+      "key": "美乃すずめ",
+      "category": "1-FALENO",
+      "filename": "美乃すずめ.jpg",
+      "sha256": "cdba7dae1c812be1386d1e8460b2dd05bb1504841caa5b7a17a293336f034063",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "美咲そのか",
+      "key": "美咲そのか",
+      "category": "1-FALENO",
+      "filename": "美咲そのか.jpg",
+      "sha256": "3c9ecfe032f8a5a0e43849fe8d412701cef5b4b40a115b7afed699b70434dc23",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "臼井リカ",
+      "key": "臼井リカ",
+      "category": "1-FALENO",
+      "filename": "臼井リカ.jpg",
+      "sha256": "d09a49b9f443836d3a9090308336f5d787c1a6ee453519a295855c1a2e62c207",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "茉城まみ",
+      "key": "茉城まみ",
+      "category": "1-FALENO",
+      "filename": "茉城まみ.jpg",
+      "sha256": "bff969443186f73038be12dd21ecb0ad9e9fe9a01bf8aab3d56a452a0c93cf30",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "菜月ひかる",
+      "key": "菜月ひかる",
+      "category": "1-FALENO",
+      "filename": "菜月ひかる.jpg",
+      "sha256": "b27a57abcd130e1dd58d5067d7ee3ccdc159f7829688f872801d7ddbc0a9a693",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "藤井蘭々",
+      "key": "藤井蘭々",
+      "category": "1-FALENO",
+      "filename": "藤井蘭々.jpg",
+      "sha256": "d2278f159af8f0e898913bc8c8b175a1b1f219ddc01e22c8454fc9b52855df83",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "逢月ひまり",
+      "key": "逢月ひまり",
+      "category": "1-FALENO",
+      "filename": "逢月ひまり.jpg",
+      "sha256": "53eae493e020d1d8ef165514d59bcef5ad44e53684656ebf491f8452280613e2",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "降矢あすか",
+      "key": "降矢あすか",
+      "category": "1-FALENO",
+      "filename": "降矢あすか.jpg",
+      "sha256": "f3031d0777d8b4aeedc5c1f4ac661acabcfbbe2c77f2f2acd268b57a7299b10f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "雛乃ゆな",
+      "key": "雛乃ゆな",
+      "category": "1-FALENO",
+      "filename": "雛乃ゆな.jpg",
+      "sha256": "4cd91e6c4a5aa791ec2433ace57a40f02d9a9628ac4a4ec037eb1375826e40a6",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "青嶋なづき",
+      "key": "青嶋なづき",
+      "category": "1-FALENO",
+      "filename": "青嶋なづき.jpg",
+      "sha256": "ad27a79ac6d0e4b7f5e5ca90e5f777356b8f9c4bce5842587d86140b1cc5e19f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "高嶋めいみ",
+      "key": "高嶋めいみ",
+      "category": "1-FALENO",
+      "filename": "高嶋めいみ.jpg",
+      "sha256": "70a80d1afcb5e6c37909a4b8517f05eb89a937a0b581281e4e79b23d9b5f536f",
+      "width": 1500,
+      "height": 2125
+    },
+    {
+      "name": "黒澤ななみ",
+      "key": "黒澤ななみ",
+      "category": "1-FALENO",
+      "filename": "黒澤ななみ.jpg",
+      "sha256": "5b564d9abd7a7c1b4209123dacc9fefb2ff5d8c52e042795d23f683957a7ba5c",
+      "width": 1500,
+      "height": 2125
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+/* 关注详情（`follow-detail-page.tsx`）。
+ *
+ * 舞台里的格子（`[data-stage-grid]` / `[data-stage-media]` / `[data-stage-side]` /
+ * `[data-stage-side-content]`）、队列（`[data-mix-queue]` 一族）与操作键条（`[data-stage-actions]`）是和
+ * 作品详情共用的，几何归 `../stage/stage.css` 与 `../../player/player.css`；外链的显示方式、内距与
+ * 字色归 `board.css` 的全站外链规则（`a[target=_blank]`）。这里只写关注详情自己多出来的几块，标签、
+ * 创作者身份格共用作品详情的身份样式。
+ *
+ * 选择器全用 `data-*`，前面挂 `[data-follow-detail]`：舞台样式表与遗留样式表都排在后面，同权重时
+ * 它们赢，多一层属性才压得住 `[data-stage-title]`、`[data-stage-actions] button` 这类通用规则。 */
+
+/* ── 媒体区 ──
+   媒体框不设视口高度的地板：里面的播放器高度由 16:9 和自己的宽度推出来，地板挂在 vh 上，两个量朝
+   相反方向走（414×913 的视口给出 566px 的框装 208px 的画面）。播放器未初始化时 `[data-stage-media]>.video-js`
+   那条 16:9 已经把高度定住了，不会塌。 */
+.peach-react [data-follow-detail] [data-follow-detail-media="image"] {
+  background: color-mix(in srgb, var(--video-glow, #15202a) 12%, var(--surface) 88%);
+}
+.peach-react [data-follow-detail] [data-follow-detail-poster] {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 76vh;
+  object-fit: contain;
+  background: transparent;
+}
+.peach-react [data-follow-detail] [data-follow-detail-poster][data-zoomable] { cursor: zoom-in; }
+.peach-react [data-follow-detail] [data-follow-detail-media]:has(>[data-carousel-below]) { flex-direction: column; }
+.peach-react [data-follow-detail] [data-follow-detail-media]:has(>[data-carousel-below]) [data-follow-detail-poster] { min-height: 0; max-height: calc(76dvh - 116px); }
+.peach-react [data-follow-detail] [data-carousel-below] { flex: none; }
+.peach-react [data-follow-detail] [data-framed] [data-follow-detail-poster] {
+  width: 100%;
+  aspect-ratio: var(--follow-frame-ratio);
+}
+/* 什么都没有的那一格占同一个 16:9 框：它顶替的就是画面本身，缩成一条窄带看着像没加载完。 */
+.peach-react [data-follow-detail] [data-follow-detail-placeholder] {
+  width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  place-content: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.peach-react [data-follow-detail] [data-follow-detail-placeholder] img { width: 34px; height: 34px; margin: 0; }
+
+/* ── 队列 ──
+   合集队列卡的出处与时间：标记、站点图标和时间按盒子居中成一行，不靠基线偏移去凑。标记可收窄
+   （自带尾部省略），时间不收。 */
+.peach-react [data-follow-queue] [data-follow-queue-meta] { display: flex; align-items: center; gap: 6px; }
+/* 包图标的那层不占盒子，图标本身是这一行的弹性子项；不用 `contents` 工具类，队列行里的
+   `[data-mix-item-text] span{display:block}`（`../stage/stage.css`）比它权重高。 */
+.peach-react [data-follow-queue] [data-follow-queue-meta] > [data-follow-queue-source] { display: contents; }
+.peach-react [data-follow-queue] [data-follow-queue-meta] img { flex: none; margin: 0; }
+.peach-react [data-follow-queue] [data-follow-queue-meta] time { flex: none; white-space: nowrap; }
+.peach-react [data-follow-detail] [data-follow-variant] {
+  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 120px;
+  margin: 0;
+  padding: 1px 7px;
+  border-radius: var(--badge-radius);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: -2px;
+  background: var(--overlay-5);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-style: normal;
+}
+.peach-react [data-follow-detail] [data-follow-variant="wip"] { color: var(--meter); }
+.peach-react [data-follow-detail] [data-follow-variant="alt"] { color: var(--ink-2); }
+/* 队列里没有画面的那一格：中性图形铺满缩略图格。 */
+.peach-react [data-follow-detail] [data-follow-nothumb] {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.peach-react [data-follow-detail] [data-follow-nothumb] svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+/* ── 侧栏 ── */
+.peach-react [data-follow-detail] [data-follow-detail-title] {
+  display: flex;
+  gap: 5px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.peach-react [data-follow-detail] [data-follow-detail-title] > [data-follow-detail-name] { width: auto; max-width: calc(100% - 35px); margin: 0; }
+/* 来源外链与下面的资源链接：显示方式、内距、边框、字色与悬停归 `board.css` 的全站外链规则，
+   这里只给尺寸与那枚外链标。30px 的命中区比标题一行（`stage.css` 里 `[data-stage-title]` 的
+   1.5 倍行高）高，上下各让出一半差值，外链标就和标题第一行同心；标题折成几行都贴着第一行。 */
+.peach-react [data-follow-detail] [data-follow-origin] {
+  flex: none; width: 30px; height: 30px; min-width: 0;
+  margin: calc((var(--fs-lg) * 1.5 - 30px) / 2) 0;
+}
+.peach-react [data-follow-detail] :is([data-follow-origin], [data-follow-resources] a) svg { flex: none; width: 18px; height: 18px; }
+.peach-react [data-follow-detail] [data-follow-detail-credit] {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.peach-react [data-follow-detail] [data-follow-detail-credit] > span { display: block; }
+.peach-react [data-follow-detail] [data-follow-badges] {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+.peach-react [data-follow-detail] [data-follow-detail-summary] {
+  margin: 0 0 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* 摘要默认收在八行内，操作键留在首屏；量出来确实超出时才在下面给一枚「展开」。
+   侧栏内容区是定高的纵向 flex，裁切后的摘要最小高度归零，不禁止收缩就会被压没。 */
+.peach-react [data-follow-detail] [data-follow-detail-summary][data-clamped] {
+  flex-shrink: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  overflow: hidden;
+}
+.peach-react [data-follow-detail] [data-follow-detail-summary]:has(+ [data-follow-summary-toggle]) { margin-bottom: 4px; }
+.peach-react [data-follow-detail] [data-follow-summary-toggle] { flex-shrink: 0; align-self: flex-start; margin: 0 0 16px -8px; }
+/* 「媒体未取得」与两句取回失败的提示：小一档正文字号（`--fs-sm`）、1.7 行高，警示色。 */
+.peach-react [data-follow-detail] [data-follow-media-issue] {
+  margin: 18px 0 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--drop);
+  overflow-wrap: anywhere;
+}
+.peach-react [data-follow-detail] [data-follow-media-issue][hidden] { display: none; }
+.peach-react [data-follow-detail] [data-follow-resources] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.peach-react [data-follow-detail] [data-follow-resources] a { height: 34px; min-width: 0; }
+
+/* 操作键条：几何取 `[data-stage-actions]`（`../stage/stage.css`）。下载是 `<a download>`，
+   不是按钮：让浏览器自己落盘，不经过 JS，几何与同排按钮一致。 */
+/* 想要过的那一条，星是填实的；色调借保存那一档（`later`）。 */
+.peach-react [data-follow-detail] [data-follow-detail-want][aria-pressed="true"] svg { fill: currentColor; }
+
+/* 被隐藏的图退到这条恢复带：一行小缩略图，各带一枚撤销角标。整带保持安静（灰调、小尺寸），
+   它们是「不在看」的那部分，不能和正片抢视线。 */
+.peach-react [data-follow-detail] [data-follow-hidden-media] { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.peach-react [data-follow-detail] [data-follow-hidden-label] { color: var(--muted); white-space: nowrap; }
+.peach-react [data-follow-detail] [data-follow-hidden-thumbs] { display: flex; flex-wrap: wrap; gap: 6px; }
+.peach-react [data-follow-detail] [data-follow-hidden-thumbs] button {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border-15);
+  border-radius: var(--control-radius);
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+.peach-react [data-follow-detail] [data-follow-hidden-thumbs] button:hover { border-color: var(--ink-3); }
+.peach-react [data-follow-detail] [data-follow-hidden-thumbs] img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: .55;
+}
+.peach-react [data-follow-detail] [data-follow-hidden-thumbs] i {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--hover);
+  color: var(--ink-2);
+}
+.peach-react [data-follow-detail] [data-follow-hidden-thumbs] svg { width: 11px; height: 11px; stroke: currentColor; fill: none; }
+
+/* 写失败的那一句。侧栏是纵向 flex：按内容高，不把整栏剩余高度都算给它（标签会被推到栏底）。 */
+.peach-react [data-follow-detail] [data-follow-state] { flex: none; font-size: var(--fs-xs); color: var(--drop); }
+
+/* 标签沉到侧栏最后：来源站的标签动辄几十个，夹在正文和操作之间就得先滚过整片标签云才够得着
+   「已看／忽略」。盒子是全站标签那一副（`--tag-pad-*`、`--tag-radius`、1px 线），线与底按来源记下的
+   类型着色（`--tag-color`，色板在 `../styles.css` 的 `r34-*`）；长标签就地换行，不截断。 */
+.peach-react [data-follow-detail] [data-follow-detail-tags] { margin: 16px 0 0; }
+.peach-react [data-follow-detail] [data-follow-detail-tags] [data-follow-tag] {
+  max-width: none;
+  padding: var(--tag-pad-y) var(--tag-pad-x);
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 42%, transparent);
+  border-radius: var(--tag-radius);
+  background: color-mix(in srgb, var(--tag-color) 10%, transparent);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  text-align: left;
+  text-overflow: clip;
+  white-space: normal;
+  cursor: pointer;
+}
+/* 悬停按标签自己那个类型色加深，不回到中性的 `--hover`。 */
+.peach-react [data-follow-detail] [data-follow-detail-tags] [data-follow-tag]:hover {
+  border-color: color-mix(in srgb, var(--tag-color) 68%, transparent);
+  background: color-mix(in srgb, var(--tag-color) 18%, transparent);
+  color: var(--ink);
+}

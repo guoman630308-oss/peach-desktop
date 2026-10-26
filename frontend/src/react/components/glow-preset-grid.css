@@ -1,0 +1,25 @@
+/* 配色球与它们那一格（`glow-preset-grid.tsx`、侧栏配色卡的强调色那一排）。侧栏配色卡是六列；设置面板
+ * 那一格的列数在 `../settings-panel/settings-panel.css` 里改成跟着可用宽度走。
+ *
+ * 侧栏配色卡不包 `.peach-react`，Preflight 碰不到那一张卡里的 `<button>`。选择器全写属性，特指度和
+ * 旧样式表的类选择器同档；设置面板那一格在 `.peach-react` 里，Preflight 的标签规则特指度更低，压不过这里。 */
+:is([data-glow-grid],[data-accent-grid]){display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:0 4px}
+/* 写死的 `display` 压得过 `[hidden]` 那条 UA 规则，收起光晕那一组要自己说一遍。 */
+[data-glow-grid][hidden]{display:none}
+[data-glow-chip]{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer}
+[data-glow-chip]:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+/* 球面那三层白高光是 BoardUI 自己叠出来的，不是一个 radial 就完事：顶上一片大椭圆、
+   里面一小片、底下一道反光，缺了底下那道，球看上去是贴纸不是球。 */
+[data-glow-ball]{position:relative;width:28px;height:28px;border-radius:50%;background:var(--glow-chip);
+  box-shadow:inset 0 1px 1px #ffffff6b,inset 0 -1px 2px #0000002e,0 0 0 1px #ffffff29;
+  transition:transform .15s ease}
+[data-glow-ball]::after{content:'';position:absolute;left:14%;right:14%;top:6%;height:38.5%;border-radius:50%;
+  background:linear-gradient(#ffffff8a,#ffffff00)}
+/* 强调色那一排球按 BoardUI 自己的画法：`radial-gradient(circle closest-side, 亮, 暗)`，
+   取的就是这一档真会被换上去的 400 与 600 两级，所以球色不可能和按钮对不上。
+   「玻璃原色」那一格画的是这块玻璃自带的两团反光色，一半一半：那一档没有三枚光晕可画，
+   拿别的颜色顶上去会让人以为选中它之后侧栏是那个颜色。深色两团同色，球于是是一整颗。 */
+[data-glow-ball][data-accent-ball]{--glow-chip:radial-gradient(circle closest-side,var(--color-accent-400),var(--color-accent-600))}
+[data-glow-ball][data-glow-native]{--glow-chip:conic-gradient(from -90deg,var(--glass-native-a) 0 50%,var(--glass-native-b) 50% 100%)}
+[data-glow-chip]:hover [data-glow-ball]{transform:scale(1.1)}
+[data-glow-chip][aria-pressed=true] [data-glow-ball]{box-shadow:inset 0 1px 1px #ffffff6b,0 0 0 1.5px var(--ground),0 0 0 2.5px color-mix(in srgb,var(--ink) 32%,transparent)}

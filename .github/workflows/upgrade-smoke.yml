@@ -1,0 +1,63 @@
+name: Windows 覆盖升级验收
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_version:
+        description: 已发布的起始版本
+        required: true
+        default: '0.39.0'
+      to_version:
+        description: 已发布的目标版本
+        required: true
+      to_commit:
+        description: 目标制品的完整构建提交
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.from_version }}-${{ inputs.to_version }}-${{ inputs.to_commit }}
+  cancel-in-progress: false
+
+jobs:
+  overlay:
+    name: ${{ matrix.kind }} / ${{ matrix.data_location }} 原位覆盖
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [zip, installer]
+        data_location: [default, explicit]
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: 下载正式制品并验证覆盖升级
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FROM_VERSION: ${{ inputs.from_version }}
+          TO_VERSION: ${{ inputs.to_version }}
+          TO_COMMIT: ${{ inputs.to_commit }}
+          PACKAGE_KIND: ${{ matrix.kind }}
+          DATA_LOCATION: ${{ matrix.data_location }}
+        shell: pwsh
+        run: |
+          python -X utf8 scripts/smoke_overlay_upgrade.py --from-version "$env:FROM_VERSION" --to-version "$env:TO_VERSION" --to-commit "$env:TO_COMMIT" --kind "$env:PACKAGE_KIND" --data-location "$env:DATA_LOCATION" --apply 2>&1 | Tee-Object -FilePath overlay.log
+          if ($LASTEXITCODE -ne 0) { throw '覆盖升级验收失败' }
+      - name: 保留验收结果与失败日志
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: overlay-${{ matrix.kind }}-${{ matrix.data_location }}
+          path: |
+            overlay.log
+            smoke-evidence/
+          if-no-files-found: error
+          retention-days: 14

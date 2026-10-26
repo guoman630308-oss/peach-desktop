@@ -1,0 +1,13 @@
+/* 统计页与口味页的等待态版式：指标带、主详情、同层数据面板。
+   两页的正文都归 React（ADR-0031），这里留下的是遗留壳铺的那张骨架读到的层级；
+   两页骨架的数据面板与口味页的页头、主详情在 frontend/src/board-skeleton.css。 */
+.insightswitch{display:inline-flex;padding:3px;border:1px solid var(--line-soft);border-radius:var(--surface-radius);background:var(--ground)}.insightswitch label{cursor:pointer}.insightswitch input{position:absolute;opacity:0;pointer-events:none}.insightswitch span{height:30px;display:grid;place-items:center;padding:0 12px;border-radius:var(--control-radius);color:var(--muted);font-size:var(--fs-sm)}.insightswitch input:checked+span{background:var(--picked);color:var(--ink);font-weight:500}.insightswitch input:focus-visible+span{outline:2px solid var(--tungsten);outline-offset:-2px}
+/* 下限按内容实测取：一格里最宽的是 24px 的数字和那行 12px 的补充说明，加左右
+   各 16px 内边距是 140px。四格因此到 645px 视口仍是一整条，再窄由下面的手机
+   规则接手改成露边滚动。写 190px 时窗口一收窄就先滚起来，横向滚动条压在一条
+   本来能压扁的带子下面。 */
+.metricstrip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--line-soft);border-radius:var(--floating-radius);background:var(--ground)}
+.tastesummary{position:relative;box-sizing:border-box;min-height:96px;min-width:0;display:grid;align-content:center;gap:4px;padding:14px 16px;border:0;border-right:1px solid var(--line-soft);border-radius:0;background:transparent;color:var(--ink);text-align:left}.tastesummary:last-child{border-right:0}
+.tastesummary>span{color:var(--muted);font-size:var(--fs-xs)}.tastesummary>b{font-size:var(--fs-2xl);line-height:1.15;font-variant-numeric:tabular-nums}.tastesummary>small{color:var(--ink-2);font-size:var(--fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.insightcopy{padding:28px 24px;border-right:1px solid var(--line-soft);display:flex;flex-direction:column;align-items:flex-start}.insightcopy>span{color:var(--muted);font-size:var(--fs-xs)}
+@media(max-width:640px){.insightswitch{align-self:flex-start}.metricstrip{grid-auto-columns:minmax(168px,82%)}.insightcopy{border-right:0;border-bottom:1px solid var(--line-soft);padding:22px 18px}.tastesummary>b{font-size:var(--fs-xl)}}

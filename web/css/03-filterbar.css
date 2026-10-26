@@ -1,0 +1,19 @@
+/* ── 常驻筛选层：原位保持透明，只在真正吸顶后加磨砂黑底 ── */
+.tagbar{position:sticky;top:var(--topH);z-index:61;height:var(--filterH);padding:9px 16px;
+  border-bottom:1px solid transparent;background:transparent;
+  display:flex;gap:7px;overflow:hidden;align-items:center}
+/* 选中药丸和生效筛选共用高亮填充。 */
+.pill{flex:none;height:var(--filterItemH);padding:0 20px;border:1px solid var(--field-ring);
+  border-radius:var(--pill-radius);background:transparent;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--muted);cursor:pointer;font-size:var(--fs-lg);white-space:nowrap;text-decoration:none}
+.pill:hover{border-color:var(--field-ring-hover);color:var(--ink)}
+.pill[aria-pressed="true"]{border-color:var(--field-ring);background:var(--picked);color:var(--ink)}
+
+/* flat 层的药丸一律实线。虚线只画在「可加可不加、此刻还没加上去」的筛选药丸上：首页筛选条的标签归
+   `catalog-filter` 岛，判据与 Vercel 筛选令牌的实测出处写在 `catalog-filter.css`；关注页、资料页与
+   标签页那几排住在 Board 的玻璃浮层里，同一判据由各自的岛与 board.css 写。 */
+
+/* 首页筛选条（`catalog-filter` 岛）的宿主与 React 根都不生成盒子：两排头像与那块浮层要直接当
+   body 的孩子排，浮层吸顶的范围才是整页。实体页与索引页不显示它。 */
+[data-catalog-filter],[data-catalog-filter]>.peach-react{display:contents}
+body.entity-open [data-catalog-filter],body.index-open [data-catalog-filter]{display:none}

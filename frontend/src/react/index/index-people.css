@@ -1,0 +1,24 @@
+/* 名册格（索引页与资料页名册同一格）的配色取遗留层 token：格底 `--ground`、头像框 `--sunk`、
+ * 首字与读数 `--muted`，首字用 Bahnschrift。这几个 token 在 `:root` 上解析，明暗两档都落在
+ * 页面其余卡面那一套值上：暗色下格底比头像框亮一档，框的轮廓看得出来，格子也不贴着页面底色。
+ * BoardUI 的卡面档（`bg-background-secondary-default`）在暗色下和头像框同色，这里压过它。
+ * 悬停照同一套：主文字色掺 6% 进格底，暗色下比格底亮出十多个色阶。 */
+.peach-react [data-index-grid] [data-index-cell] {
+  background: var(--ground);
+}
+.peach-react [data-index-grid] [data-index-cell]:hover {
+  background: color-mix(in srgb, var(--ink) 6%, var(--ground));
+}
+/* 字体写在头像框上、首字继承：首字那枚 span 的类名由 `card-art` 的 `avatarInner` 给，React 产物不点名旧类。 */
+.peach-react [data-index-grid] [data-person-ring] {
+  background: var(--sunk);
+  color: var(--muted);
+  font-family: Bahnschrift, "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+/* 超扁、超高的标识：`fitNativeImage` 已把短边撑到下限，这里 cover 把长边两头裁掉。 */
+.peach-react [data-index-grid] [data-person-ring][data-native-clamp="true"] img {
+  object-fit: cover;
+}
+.peach-react [data-index-grid] [data-index-readout] {
+  color: var(--muted);
+}

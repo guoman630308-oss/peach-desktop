@@ -1,0 +1,12 @@
+/* Geist Scroller（`scroll.ts`）：内容只沿指定轴滚动，边缘渐隐负责提示仍有内容。
+   里面挂了覆盖滚动条时，边缘提示归覆盖滚动条自己（`overlay-scrollbar.css`），这一层的渐隐让位。 */
+.ui-geist-scroller{position:relative;min-width:0;min-height:0;overflow:hidden}
+.ui-geist-scroller-container{box-sizing:border-box;width:100%;height:100%;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ui-geist-scroller-container::-webkit-scrollbar{display:none}
+.ui-geist-scroller-container[data-overflow="y"]{overflow:hidden auto}.ui-geist-scroller-container[data-overflow="x"]{overflow:auto hidden}.ui-geist-scroller-container[data-overflow="both"]{overflow:auto}
+.ui-geist-scroller-overlay{position:absolute;z-index:2;inset:0;pointer-events:none}
+.ui-geist-scroller-overlay::before,.ui-geist-scroller-overlay::after{content:'';position:absolute;left:0;right:0;height:40px;opacity:0;transition:opacity .18s ease}
+.ui-geist-scroller-overlay::before{top:0;background:linear-gradient(to bottom,var(--surface),transparent)}
+.ui-geist-scroller-overlay::after{bottom:0;background:linear-gradient(to top,var(--surface),transparent)}
+.ui-geist-scroller-overlay.ui-can-scroll-top::before,.ui-geist-scroller-overlay.ui-can-scroll-bottom::after{opacity:1}
+.ui-geist-scroller:has(>[data-overlay-scrollbar])>.ui-geist-scroller-overlay{display:none}

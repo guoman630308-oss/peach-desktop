@@ -1,0 +1,2 @@
+/* Geist Select（`select-field.ts`）的外壳；触发器 `.gselectfield` 与菜单在 web/css/01-base.css。 */
+.ui-gselect{position:relative;display:inline-flex;min-width:0}

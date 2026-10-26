@@ -1,0 +1,7 @@
+/* 离线状态在 Peach 组合层复用错误色，BoardUI 的圆点结构保持原样。 */
+[data-mount="offline"] > [aria-hidden] {
+  background-color: var(--color-notification-error-background);
+}
+[data-mount="offline"] > [aria-hidden] > span {
+  background-color: var(--color-text-error-primary);
+}

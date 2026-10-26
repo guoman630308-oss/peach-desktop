@@ -1,0 +1,582 @@
+/* 关注页（`follow-feed-page.tsx`、`follow-card.tsx`）。
+ *
+ * 取值同遗留层：页头与两排取 `web/css/21-online.css` 的 `.follow`／`.followauthors`／
+ * `.followworks` 与 `web/board.css` 对 `.av`、`.brandpill` 的覆盖；卡片在作品卡（`../components/
+ * media-card.css`）之上补关注卡自己多出来的几格，取 `21-online.css` 的 `.followitem` 一族。筛选浮层、
+ * 状态药丸、读数与排序键、交集条与资料页那一块同一套（`../entity-filter/entity-filter.css`），这里只补
+ * 来源图标键、类型色标签、「仅显示图片」键与页脚那一行。
+ *
+ * 进页整块骨架由壳的 `followSkeletonHtml` 画，用的是遗留类名（`.follow`、`.tier`、`.board-filter-frame`），
+ * 页头几何共用本文件的 `data-follow-head`、`data-follow-title`；其余骨架由共享布局样式占位。
+ *
+ * 选择器全用 `data-*`：遗留样式表不分层、排在后面，写遗留类名会被接管。 */
+
+/* ── 页 ── */
+.peach-react [data-follow-feed] { padding: 4px 0 42px; font: var(--board-body); }
+.peach-react [data-follow-head] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+/* 页头复用全站页面标题的字号与行高。 */
+.peach-react [data-follow-title] { margin: 0; font: var(--board-title); letter-spacing: 0; }
+@media (max-width: 760px) {
+  .peach-react [data-follow-title] { font: var(--board-figure); }
+}
+.peach-react [data-follow-head-actions] { display: inline-flex; flex: none; align-items: center; gap: 8px; }
+/* 「管理关注」「抓更早的一页」同遗留层 `.fbtn`：左边留 12px，图标 14px，与文字隔 4px（文字自带的内边距）。 */
+.peach-react button:is([data-follow-manage], [data-follow-older]):has(> svg) { gap: 0; padding-left: 12px; }
+.peach-react button:is([data-follow-manage], [data-follow-older]) > svg { width: 14px; height: 14px; }
+
+/* ── 创作者行与题材行 ──
+ * 同首页那两排（`catalog-filter.css` 的 `[data-tier-performer]`、`[data-tier-studio]`）：圆头像 48px、名字一行 Caption；题材是 40px 高的
+ * 药丸，左端 28px 圆标。按下铺 tertiary 面，不描边。 */
+.peach-react :is([data-follow-authors], [data-follow-works]) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.peach-react :is([data-follow-authors], [data-follow-works])::-webkit-scrollbar { display: none; }
+.peach-react [data-follow-authors] { padding: 3px 0 10px; margin: 0 0 2px; }
+.peach-react [data-follow-works] { padding: 0 0 10px; margin: 0 0 2px; }
+@media (max-width: 640px) {
+  .peach-react [data-follow-authors] { margin-right: -12px; }
+}
+.peach-react :is([data-follow-authors], [data-follow-works]) > :is(button, a) {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--board-body-medium);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--lift-motion, var(--board-motion)), scale calc(var(--spring-press-ms) * 1ms) var(--spring-press),
+    background-color .2s ease-out, color .2s ease-out;
+}
+.peach-react :is([data-follow-authors], [data-follow-works]) > :is(button, a):active { scale: .96; transition: scale .06s ease-out; }
+.peach-react :is([data-follow-authors], [data-follow-works]) > :is(button, a):hover {
+  background: var(--color-background-primary-hover);
+  color: var(--color-text-primary);
+}
+.peach-react :is([data-follow-authors], [data-follow-works]) > button[aria-pressed="true"] {
+  background: var(--color-background-tertiary-default);
+  color: var(--color-text-primary);
+}
+.peach-react :is([data-follow-authors], [data-follow-works]) > :is(button, a):focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+.peach-react [data-follow-authors] > [data-follow-author] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 76px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  text-align: center;
+}
+.peach-react [data-follow-works] > button[data-follow-work] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 12px;
+  text-align: left;
+}
+.peach-react :is([data-follow-ring], [data-follow-mark]) {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-text-primary) 10%, var(--color-background-primary-default));
+  color: var(--color-text-secondary);
+}
+.peach-react [data-follow-ring] { width: 48px; height: 48px; font: 600 18px/24px var(--board-font); }
+.peach-react [data-follow-mark] { width: 28px; height: 28px; font: 600 12px/16px var(--board-font); }
+/* 圆里是外站头像或首字母，遗留层 `followAuthorAvatar` 拼的那一段。图铺满圆框。 */
+.peach-react [data-follow-ring] > img,
+.peach-react [data-follow-mark] > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+}
+/* 题材圆标是一整张作品图：没检出脸的按上四分之一取景，检出了的由服务端写进 img 自己的 style。 */
+.peach-react [data-follow-mark] > img { object-position: 50% 25%; }
+.peach-react [data-follow-ring] > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  color: inherit;
+}
+.peach-react [data-follow-name] {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font: var(--board-caption);
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+/* ── 筛选浮层 ── */
+.peach-react [data-follow-filter-glass] { z-index: 60; font: var(--board-body); letter-spacing: normal; }
+.peach-react [data-follow-filter-glass] :is(button, [role="radio"]):focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+/* 图片视图的下排多出布局与「仅显示图片」几枚键，窄屏放不下时整排横滚，同遗留层 `.followcount`，
+   不把页面撑宽。 */
+.peach-react [data-follow-filter-glass] > [data-filter-row="bottom"] {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.peach-react [data-follow-filter-glass] > [data-filter-row="bottom"]::-webkit-scrollbar { display: none; }
+/* 窄屏里横滚的是整排，排序键那格不再裁落影，左边那 2px 留边收掉，换一批键贴着读数排。 */
+@media (max-width: 760px) {
+  .peach-react [data-follow-filter-glass] [data-entity-sorts] { padding-left: 0; }
+}
+/* 关注页这块浮层的药丸间距同首页（`03-filterbar.css` 的 `.viewpills`、`.tagscroll`）是 7px，资料页收到 6px。 */
+.peach-react [data-follow-filter-glass] :is([data-entity-scroll], [data-entity-states], [data-entity-tags]) { gap: 7px; }
+/* 来源键与视图控件使用同一尺寸。 */
+.peach-react button[data-follow-provider] {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px dashed var(--glass-low);
+  border-radius: var(--tag-radius);
+  background: transparent;
+  cursor: pointer;
+}
+.peach-react button[data-follow-provider]:hover { border-style: solid; border-color: var(--field-ring); }
+.peach-react button[data-follow-provider][aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--field-ring);
+  background: var(--picked);
+}
+.peach-react [data-follow-provider] > img { width: 18px; height: 18px; margin: 0; border-radius: var(--badge-radius); object-fit: contain; }
+/* 标签药丸按来源的类型着色，没记类型的按 general 那一档蓝。 */
+/* 名字与计数之间 6px，同遗留层 `.pill .n` 的左外边距。 */
+.peach-react [data-follow-filter-glass] [data-follow-tag] { --tag-color: #55a7ff; gap: 6px; color: var(--glass-text); }
+.peach-react [data-follow-filter-glass] [data-follow-tag]:is([data-tag-cat="r34-artist"]) { --tag-color: #e36c6c; }
+.peach-react [data-follow-filter-glass] [data-follow-tag]:is([data-tag-cat="r34-character"]) { --tag-color: #68c76f; }
+.peach-react [data-follow-filter-glass] [data-follow-tag]:is([data-tag-cat="r34-copyright"]) { --tag-color: #d675d6; }
+.peach-react [data-follow-filter-glass] [data-follow-tag]:is([data-tag-cat="r34-metadata"]) { --tag-color: #f5a24a; }
+.peach-react [data-follow-filter-glass] [data-follow-tag]:hover { border-color: var(--field-ring); }
+.peach-react [data-follow-filter-glass] [data-follow-tag][aria-pressed="true"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--tag-color) 72%, transparent);
+  background: color-mix(in srgb, var(--tag-color) 22%, transparent);
+  color: var(--glass-text, var(--ink));
+}
+.peach-react [data-follow-filter-glass] [data-follow-tag] [data-count-badge] {
+  color: color-mix(in srgb, var(--glass-text) 55%, transparent);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: 11px;
+}
+/* 「仅显示图片」：一枚 30px 的方键，按下时垫一块滑动玻璃那种料。 */
+.peach-react button[data-follow-images-only] {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: color-mix(in srgb, var(--glass-text) 60%, transparent);
+  cursor: pointer;
+}
+.peach-react button[data-follow-images-only]:is(:hover, [aria-pressed="true"]) { color: var(--glass-text); }
+.peach-react button[data-follow-images-only] > [data-view-glide] { inset: 0; }
+.peach-react button[data-follow-images-only] svg {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+/* 读数是等宽字，同遗留层 `.followcount .mono`。 */
+.peach-react [data-follow-readout] {
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+}
+
+/* ── 提示与页脚 ── */
+.peach-react [data-follow-broken] > [role="alert"] { margin: 10px 0 14px; }
+.peach-react [data-follow-broken] [data-follow-manage] {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tungsten);
+  font: inherit;
+  cursor: pointer;
+}
+.peach-react [data-follow-pagination] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  overflow-x: auto;
+}
+.peach-react [data-follow-page-action] { display: inline-flex; align-items: center; gap: 12px; }
+.peach-react [data-follow-pagination] [data-entity-more] { gap: 4px; min-width: 0; margin: 0; }
+/* 忙态里转圈与「抓取中…」隔开 4px，同遗留层 `.fbtn` 的间距。 */
+.peach-react :is([data-follow-older], [data-follow-recheck]) > span { gap: 4px; }
+/* 任务在跑时两枚键只标 `aria-busy`，重复点击由 `start` 拦住：「检查更新」保持主键那块蓝，
+   「抓更早的一页」铺遗留层次级键的忙态面（`--ground` 底、`--line` 边、`--muted` 字、不带影），悬停也不变。 */
+.peach-react button[data-follow-older][aria-busy] {
+  border-color: var(--line);
+  background: var(--ground);
+  color: var(--muted);
+  box-shadow: none;
+}
+.peach-react [data-follow-backfill] { color: var(--muted); font: var(--board-compact); }
+
+/* ── 列表 ── */
+.peach-react [data-follow-list] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile)), 1fr));
+  gap: 24px 16px;
+}
+.peach-react [data-follow-list]:not([data-follow-wall]) > [data-media-card] { align-self: stretch; }
+.peach-react [data-follow-list] > [data-follow-empty] { grid-column: 1 / -1; }
+
+/* 图片墙：列数同资料页照片墙那一套，小图 5 列、大图 3 列，逐档收窄。 */
+.peach-react [data-follow-wall] {
+  --photo-columns: 5;
+  grid-template-columns: repeat(var(--photo-columns), minmax(0, 1fr));
+  gap: 14px 10px;
+  align-items: start;
+}
+.peach-react [data-follow-wall][data-size="big"] { --photo-columns: 3; }
+@media (max-width: 1400px) {
+  .peach-react [data-follow-wall] { --photo-columns: 4; }
+  .peach-react [data-follow-wall][data-size="big"] { --photo-columns: 2; }
+}
+@media (max-width: 1000px) {
+  .peach-react [data-follow-wall] { --photo-columns: 3; }
+  .peach-react [data-follow-wall][data-size="big"] { --photo-columns: 1; }
+}
+@media (max-width: 640px) {
+  .peach-react [data-follow-wall] { --photo-columns: 2; gap: 12px 8px; }
+  .peach-react [data-follow-wall][data-size="big"] { --photo-columns: 1; }
+}
+.peach-react [data-follow-wall][data-layout="masonry"]:has(> [data-media-card]) {
+  row-gap: 0;
+}
+.peach-react [data-follow-wall][data-images-only="true"] [data-follow-item] :is([data-media-meta], [data-media-badge], [data-follow-collection], [data-follow-state]) { display: none; }
+
+/* ── 卡片 ──
+ * 图片墙的封面没有固定比例，高度取自图片本身，不跳过渲染：跳过时会按零高排版。 */
+.peach-react [data-follow-wall] [data-media-card] :is([data-media-pic], [data-media-meta]) { content-visibility: visible; }
+.peach-react [data-follow-wall] [data-media-card] [data-media-meta] { margin: 0; padding: 0; pointer-events: auto; contain-intrinsic-block-size: none; }
+.peach-react [data-follow-item] [data-media-meta] {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px 10px;
+  grid-template-rows: auto auto;
+  align-content: start;
+  align-items: start;
+  --card-meta-byline: max(1lh, 21px);
+  --card-meta-tags: calc(var(--fs-xs) * 1.45 + var(--tag-pad-y) * 2 + 2px + 12px);
+}
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-follow-item] [data-media-meta] {
+  --card-meta-block: calc(var(--fs-md) * 1.35 + 6px + var(--card-meta-byline) + var(--card-meta-tags));
+}
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-follow-item] [data-media-text] {
+  display: flex; flex-direction: column; height: auto; margin: 0; padding: 0; gap: 6px;
+}
+body[data-density="dense"]:not([data-surface="/trash"]) .peach-react [data-follow-item] [data-follow-labels] {
+  height: calc(var(--fs-xs) * 1.45 + var(--tag-pad-y) * 2 + 2px + 8px);
+}
+.peach-react [data-follow-labels] { grid-column: 1 / -1; }
+.peach-react [data-follow-item] [data-media-meta] > [data-follow-labels] { pointer-events: none; }
+.peach-react [data-follow-list]:not([data-follow-wall]) [data-follow-item] [data-media-meta] {
+  min-height: calc(var(--card-meta-block) + 16px);
+  contain-intrinsic-block-size: auto var(--card-meta-block);
+}
+/* 已看的卡片保持原样：看过不等于不想再看，只有忽略的才淡下去。 */
+.peach-react [data-follow-item][data-status="ignored"] { opacity: .62; }
+.peach-react [data-follow-visual] { position: relative; isolation: isolate; border-radius: var(--surface-radius); }
+/* 封面层整体放行指针，点到哪里都落在下面那颗「打开详情」键上；勾选框与来源角标自己接指针：
+   前者要点，后者的 `title` 要悬停才出得来。 */
+.peach-react [data-follow-visual] > [data-media-pic] { z-index: 1; pointer-events: none; }
+.peach-react [data-follow-visual] :is([data-media-check], [data-media-badge]) { pointer-events: auto; }
+.peach-react [data-follow-open] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.peach-react [data-follow-open]:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-select-mode] :is([data-follow-open], [data-follow-actions], [data-follow-collection]) { pointer-events: none !important; }
+.peach-react [data-follow-nothumb] {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.peach-react :is([data-media-badge], [data-follow-nothumb]) > img { width: 18px; height: 18px; margin: 0; border-radius: var(--badge-radius); object-fit: contain; }
+/* 站标取不到或没登记时那枚站名首字（`sourceMark`）：和图标同一个 18px 方块，筛选键、卡角与空卡面通用。
+   图坏了时回落脚本换上的 span 只带这个类名，接不住 `data-*`。 */
+.peach-react .follow-site-initial {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--badge-radius);
+  background: var(--overlay-5);
+  color: var(--muted);
+  font: 600 11px/1 var(--board-font);
+}
+.peach-react [data-follow-image] [data-media-pic] { aspect-ratio: 4 / 3; min-height: 0; background: var(--sunk); }
+.peach-react [data-follow-image] [data-media-pic] > img { background: var(--sunk); object-fit: cover; }
+.peach-react [data-follow-image] :is([data-mix-faces], [data-mix-face] img) { background: var(--sunk); }
+.peach-react [data-follow-image] [data-mix-face] img { object-fit: cover; }
+.peach-react [data-follow-wall][data-layout="masonry"] [data-follow-image] [data-media-pic] { aspect-ratio: 1; }
+/* 带 width/height 属性的图按固有比例占位，没有尺寸的使用 1:1 框，加载后立即使用固有尺寸。
+ * 图上不写 `aspect-ratio`：比例来自浏览器按这两个属性映射的 `auto w / h`，作者样式里任何一句
+ * `aspect-ratio` 都会盖掉它。固有尺寸决定图片高度，网格只调整所在列的后续卡片。 */
+.peach-react [data-follow-wall][data-layout="masonry"] [data-follow-image] [data-media-pic]:has(> img[width][height]) { aspect-ratio: auto; }
+.peach-react [data-follow-wall][data-layout="masonry"] [data-follow-image] [data-media-pic] > img[width][height] {
+  position: static;
+  height: auto;
+}
+/* 极端竖长的图（长条漫画、200×4000 那种）最高到列宽的 2.5 倍，多出来的裁掉：按固有比例摆的话
+   一张就占满一整列，瀑布流的分列全被它打乱。量的是列宽，所以封面格自己当尺寸容器。 */
+.peach-react [data-follow-wall][data-layout="masonry"] [data-follow-image] [data-media-pic]:has(> img[width][height]) { container-type: inline-size; }
+.peach-react [data-follow-wall][data-layout="masonry"] [data-follow-image] [data-media-pic] > img[width][height] {
+  max-height: 250cqi;
+  object-fit: cover;
+}
+
+/* 右上角：合并计数与主页卡片的版本角标同一个位置，右下角只留给时长。
+ * 能悬停的设备上计数和操作键叠在同一格：悬停或键盘聚焦时计数淡出、退出命中与 Tab 序，操作键
+ * 淡入，写法与时长同作品卡的分卷／版本计数（`../components/media-card.css`）。触屏上操作键常驻，
+ * 排在计数下面。 */
+.peach-react [data-follow-corner] {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.peach-react [data-follow-collection] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: var(--control-radius);
+  background: rgb(12 8 8 / .72);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: opacity .15s ease;
+}
+.peach-react [data-follow-collection] svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
+.peach-react [data-follow-actions] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+.peach-react [data-follow-actions] button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / .16);
+  border-radius: 50%;
+  background: rgb(0 0 0 / .48);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.peach-react [data-follow-actions] button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+.peach-react [data-follow-actions] button:hover:not(:disabled) { background: rgb(255 255 255 / .18); }
+.peach-react [data-follow-actions] button:disabled { opacity: .42; cursor: not-allowed; }
+.peach-react [data-follow-actions] button[aria-busy] { cursor: wait; opacity: .72; }
+@media (hover: hover) and (pointer: fine) {
+  .peach-react [data-follow-corner] { display: grid; align-items: start; justify-items: end; }
+  .peach-react [data-follow-corner] > * { grid-area: 1 / 1; }
+  .peach-react [data-follow-item]:is(:hover, :has(:focus-visible)) [data-follow-actions] { opacity: 1; pointer-events: auto; }
+  .peach-react [data-follow-item]:is(:hover, :has(:focus-visible)) [data-follow-collection] {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .15s ease, visibility 0s .15s;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .peach-react [data-follow-item] [data-follow-actions] { opacity: 1; pointer-events: auto; }
+  /* 触屏上没有悬停，键是常驻的；图片墙的格子小，三枚圆键会盖住大半张图，只留「保存到账本」，
+     已看与忽略到详情里点。 */
+  .peach-react [data-follow-wall] [data-follow-item] [data-follow-actions] > :not([data-follow-save]) { display: none; }
+}
+
+/* 元信息区：作者、时间和署名补充同行，标签从卡片左沿开始。 */
+.peach-react [data-follow-avatar] { display: grid; place-items: center; cursor: default; }
+.peach-react [data-follow-avatar] > img { border-radius: 50%; }
+.peach-react a[data-follow-avatar] { cursor: pointer; }
+.peach-react a[data-follow-author] { color: inherit; text-decoration: none; }
+.peach-react a:is([data-follow-avatar], [data-follow-author]):focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+.peach-react [data-follow-byline] a[data-follow-author]:hover { text-decoration: underline; }
+/* 作品卡的首字母用 Bahnschrift，关注卡同遗留层 `.fsourceavatar .favatar.none` 走正文字体。 */
+.peach-react [data-follow-avatar] > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--muted);
+  font-family: var(--board-font);
+  font-size: var(--fs-sm);
+}
+.peach-react [data-follow-byline] {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 21px;
+  overflow: hidden;
+  color: var(--muted);
+}
+.peach-react [data-follow-byline] > [data-follow-author] {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.peach-react [data-follow-byline] > time {
+  flex: none;
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.peach-react [data-follow-credit] {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 8px;
+  border-left: 1px solid var(--border-15);
+  font-style: italic;
+}
+.peach-react [data-follow-badges] { display: flex; flex: none; flex-wrap: nowrap; gap: 5px; min-width: 0; overflow: hidden; }
+/* 卡片、两排与详情共用的几处字样，HTML 由 `follow-marks.ts` 拼。站点图标在角标、来源条那几格里
+   另有尺寸，这里是行内默认的那一档。SFW 模式下它不跟着内容图一起糊，豁免写在 `17-overlay.css`。 */
+.peach-react [data-follow-site-icon] {
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
+  border-radius: 0;
+  object-fit: contain;
+  vertical-align: -2px;
+}
+/* 标题前的版本字样，盒子是版次字样那一枚（`.javedition`）。「含 WIP」说的是同组还有一条半成品，
+   这一条本身不是，配色弱于 WIP 本体。配音版着色带底，无声版弱化加虚线框。 */
+.peach-react [data-follow-edition] { margin-right: 6px; color: var(--ink-2); }
+.peach-react [data-follow-edition="wip"] { color: var(--meter); }
+.peach-react [data-follow-edition="has-wip"] { color: var(--muted); }
+.peach-react [data-follow-edition="voiced"] { color: var(--keep); background: color-mix(in srgb, var(--keep) 16%, transparent); }
+.peach-react [data-follow-edition="silent"] { color: var(--muted); border-style: dashed; }
+/* 来源与另见共用左上角的玻璃标记。 */
+.peach-react [data-follow-sources] { position: absolute; top: 6px; left: 6px; z-index: 2; display: flex; gap: 4px; max-width: calc(100% - 120px); }
+.peach-react [data-follow-sources] [data-media-badge] { position: static; flex: none; }
+.peach-react [data-follow-sources] > [data-follow-badges] { flex: 0 1 auto; }
+.peach-react [data-follow-sources] [data-follow-seealso-label] { display: none; }
+.peach-react [data-follow-seealso] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px dashed var(--border-15);
+  border-radius: var(--badge-radius);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+}
+.peach-react [data-follow-seealso] [data-follow-site-icon] { margin: 0; }
+.peach-react [data-follow-sources] [data-follow-seealso] {
+  min-height: 24px; padding: 4px; border: 0; border-radius: var(--control-radius);
+  background: var(--glass-fill); box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(145%); color: var(--color-text-secondary); font: var(--board-caption);
+  pointer-events: auto;
+}
+.peach-react [data-follow-sources] [data-follow-site-icon] { width: 18px; height: 18px; }
+/* 卡上的标签：线与底取类型色，没记类型的按 general 那一档蓝。 */
+.peach-react [data-follow-item] [data-media-tag] {
+  --tag-color: #55a7ff;
+  border-color: color-mix(in srgb, var(--tag-color) 42%, transparent);
+  background: color-mix(in srgb, var(--tag-color) 10%, transparent);
+  cursor: default;
+}
+.peach-react [data-follow-item] [data-media-tag][data-tag-cat="r34-artist"] { --tag-color: #e36c6c; }
+.peach-react [data-follow-item] [data-media-tag][data-tag-cat="r34-character"] { --tag-color: #68c76f; }
+.peach-react [data-follow-item] [data-media-tag][data-tag-cat="r34-copyright"] { --tag-color: #d675d6; }
+.peach-react [data-follow-item] [data-media-tag][data-tag-cat="r34-metadata"] { --tag-color: #f5a24a; }
+.peach-react [data-follow-issue] { display: block; margin: 18px 0 8px; color: var(--drop); font-size: var(--fs-sm); line-height: 1.7; overflow-wrap: anywhere; }
+.peach-react [data-follow-state] { flex: 1 1 100%; color: var(--drop); font-size: var(--fs-xs); }
+@media (max-width: 760px) {
+  .peach-react [data-follow-list]:not([data-follow-wall]) [data-follow-item] [data-media-meta] {
+    min-height: 0; content-visibility: visible; contain-intrinsic-block-size: none; grid-template-rows: none;
+  }
+  body[data-density] .peach-react [data-follow-item] [data-follow-labels] { height: auto; }
+  .peach-react [data-follow-item] [data-follow-labels]:empty { display: none; }
+}

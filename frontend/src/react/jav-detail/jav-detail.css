@@ -1,0 +1,50 @@
+.peach-react [data-jav-detail] [data-jav-art] { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 260px; }
+.peach-react [data-jav-picture] { display: block; width: 100%; height: auto; max-height: calc(76vh - 112px); object-fit: contain; min-height: 0; }
+.peach-react [data-jav-picture-wait] { display: grid; place-items: center; min-height: 300px; padding: 24px; }
+.peach-react [data-jav-picture-wait] [class~="skeleton-sheen"] { width: 100%; min-height: 260px; }
+.peach-react [data-jav-info] { min-width: 0; }
+.peach-react [data-jav-info] > * { flex-shrink: 0; }
+.peach-react [data-jav-info] p { overflow-wrap: anywhere; }
+.peach-react [data-jav-facts] { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: var(--fs-sm); margin-bottom: 18px; }
+.peach-react [data-jav-facts]:empty { display: none; }
+.peach-react [data-jav-facts] span { overflow-wrap: anywhere; }
+.peach-react [data-jav-detail] [data-jav-actions] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; }
+.peach-react [data-jav-rating] [data-rate] { cursor: default; }
+.peach-react [data-jav-rating] [data-rate][data-on="true"] svg { fill: currentColor; }
+.peach-react [data-jav-video] { width: 100%; position: relative; }
+.peach-react [data-jav-video] > [class~="video-js"] { width: 100%; height: auto; max-height: calc(76vh - 112px); aspect-ratio: 16 / 9; }
+.peach-react [data-jav-video] > [role="note"] { margin: 16px; }
+.peach-react [data-jav-preview-toggle] { position: absolute; z-index: 5; top: 16px; left: 16px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 0; border-radius: var(--pill-radius); background: rgba(0, 0, 0, .6); color: #fff; font-size: var(--fs-xs); cursor: pointer; }
+.peach-react [data-jav-preview-toggle]:hover { background: rgba(0, 0, 0, .78); }
+.peach-react [data-jav-preview-toggle] svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+.peach-react [data-jav-art][data-jav-playing] { flex-direction: column; }
+.peach-react [data-jav-reviews], .peach-react [data-jav-resources] { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+.peach-react :is([data-jav-reviews], [data-jav-resources]) summary { min-height: var(--control-h); width: 100%; gap: 8px; font-size: var(--fs-md); font-weight: 600; }
+.peach-react :is([data-jav-reviews], [data-jav-resources]) summary svg { width: 18px; height: 18px; flex: none; }
+.peach-react :is([data-jav-reviews], [data-jav-resources]) summary .contents svg { stroke: currentColor; fill: none; stroke-width: 2; }
+.peach-react [data-jav-review] { padding-top: 12px; border-top: 1px solid var(--line-soft); font-size: var(--fs-sm); }
+.peach-react [data-jav-review-meta] { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.peach-react [data-jav-review] time { color: var(--muted); }
+.peach-react [data-jav-rating] [data-rating-icon] { position: relative; display: block; width: 19px; height: 19px; }
+.peach-react [data-jav-rating] [data-rating-icon] svg { display: block; position: absolute; inset: 0; }
+.peach-react [data-jav-rating] [data-rating-fill] { position: absolute; inset: 0 auto 0 0; overflow: hidden; }
+.peach-react [data-jav-rating] [data-rating-fill] svg { fill: currentColor; max-width: none; }
+.peach-react [data-item-detail] [data-review-rating] { margin: 0; }
+.peach-react [data-review-rating] [data-rating-stars] { margin-left: 0; }
+.peach-react [data-review-rating] [data-rating-icon] { width: 16px; height: 16px; }
+.peach-react [data-review-rating] [data-rate] { width: 16px; height: 16px; }
+.peach-react [data-review-rating] [data-rate] svg { width: 16px; height: 16px; }
+.peach-react [data-review-rating] [data-rating-value] { display: none; }
+@media (min-width: 761px) {
+  .peach-react [data-jav-detail] > [data-stage-side] { min-height: 0; }
+  .peach-react [data-jav-detail] [data-stage-side-content] { max-height: none; }
+}
+@media (min-width: 1081px) {
+  .peach-react [data-jav-detail] { grid-template-rows: minmax(0, 1fr); }
+}
+.peach-react [data-jav-info] { overflow-anchor: none; }
+.peach-react [data-jav-review] p:last-child, .peach-react [data-jav-summary] { white-space: pre-wrap; }
+.peach-react [data-jav-failure] { position: relative; min-height: 260px; padding: 48px 24px; }
+@media (max-width: 640px) {
+  .peach-react [data-jav-detail] [data-jav-art] { min-height: 220px; }
+}

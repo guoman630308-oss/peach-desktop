@@ -1,0 +1,3 @@
+recursive-include migrations *.sql
+recursive-include web *
+recursive-include resources *.png *.jpg *.gif *.bmp *.webp *.avif *.svg *.ico *.icns *.json *.txt

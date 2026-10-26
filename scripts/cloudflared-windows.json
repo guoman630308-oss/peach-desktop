@@ -1,0 +1,8 @@
+{
+  "version": "2026.9.0",
+  "asset": "cloudflared-windows-amd64.exe",
+  "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-windows-amd64.exe",
+  "sha256": "547057326266f0e1c7d50d102dbd22ff283d740c055bd61e94f10e2c606f89af",
+  "license": "Apache-2.0",
+  "license_url": "https://github.com/cloudflare/cloudflared/blob/2026.9.0/LICENSE"
+}

@@ -1,0 +1,14 @@
+{
+  // 让 test/react 下的用例按 React JSX 转换；类型检查入口是 src/react/tsconfig.json。
+  "extends": "../../src/react/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["../../src/react/boardui/*"],
+      "@peach/legacy/core": ["../../src/core/index.ts"],
+      "@peach/legacy/ui": ["../../src/ui-kit/index.ts"],
+      "@peach/legacy/jav-title": ["../../src/core/jav-title.ts"],
+      "@peach/legacy/tags": ["../../src/core/tags.ts"]
+    }
+  },
+  "include": ["./", "../../src/react"]
+}

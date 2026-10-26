@@ -1,0 +1,5 @@
+name: Actions 工作流静态检查
+description: 使用固定版本 actionlint 校验工作流
+runs:
+  using: docker
+  image: Dockerfile

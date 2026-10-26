@@ -1,0 +1,17 @@
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!setup.py
+!MANIFEST.in
+!src/
+!src/**
+!migrations/
+!migrations/**
+!web/
+!web/**
+!resources/
+!resources/**
+**/__pycache__/
+**/*.pyc

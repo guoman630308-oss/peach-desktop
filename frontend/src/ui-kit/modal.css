@@ -1,0 +1,32 @@
+/* Geist Modal（`modal.ts`）：确认一次写操作。实测 https://vercel.com/geist/modal（2026-09-04）：
+   540px 宽、12px 圆角、窄屏两侧各留 10px，正文 20px 内边距，操作条粘在底、12px 内边距、
+   两端对齐，遮罩纯黑不带模糊。淡入用它给出的 .3s cubic-bezier(.175,.885,.32,1.1)；
+   它同时过渡 transform，起始值未取得，所以这里只做透明度。
+   操作条 `.geist-modal-footer` 在 web/css/01-base.css。 */
+.ui-geist-modal{box-sizing:border-box;width:min(540px,calc(100vw - 20px));
+  /* max-width 要自己写死：<dialog> 的 UA 样式带一条 calc((100% - 6px) - 2em)，
+     窄屏上它比 Geist 的 calc(100vw - 20px) 更小，卡片会莫名再窄十几像素。 */
+  max-width:min(540px,calc(100vw - 20px));max-height:min(800px,80vh);
+  padding:0;border:0;border-radius:var(--floating-radius);
+  background:var(--surface);color:var(--ink);overflow:hidden auto;overscroll-behavior:contain;
+  box-shadow:0 0 0 1px var(--border-15),0 32px 72px -12px #0009,0 8px 32px -12px #0009;
+  opacity:0;transition:opacity .3s cubic-bezier(.175,.885,.32,1.1),
+    overlay .3s allow-discrete,display .3s allow-discrete}
+.ui-geist-modal::backdrop{background:#0009;opacity:0;
+  transition:opacity .3s cubic-bezier(.175,.885,.32,1.1),
+    overlay .3s allow-discrete,display .3s allow-discrete}
+.ui-geist-modal[open],.ui-geist-modal[open]::backdrop{opacity:1}
+@starting-style{.ui-geist-modal[open],.ui-geist-modal[open]::backdrop{opacity:0}}
+.ui-geist-modal-body{padding:20px;font-size:var(--fs-md);line-height:20px;color:var(--ink-2)}
+.ui-geist-modal-body h3{margin:0;font-size:var(--fs-xl);line-height:26px;font-weight:600;color:var(--ink)}
+.ui-geist-modal-body p{margin:8px 0 0;line-height:20px;overflow-wrap:anywhere}
+.ui-geist-modal-body [data-modal-error]:not(:empty){margin-top:12px}
+.ui-geist-modal-list{position:relative;margin-top:12px;min-width:0}
+.ui-geist-modal-list>ul{box-sizing:border-box;max-height:min(320px,32dvh);margin:0;padding:4px 16px 4px 20px;
+  overflow:auto;overscroll-behavior:contain;list-style:disc;overflow-wrap:anywhere}
+.ui-geist-modal-list>ul>li{padding:4px 0}
+.ui-geist-modal-list>ul:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+/* 表单正文：字段和列表都在这 20px 内边距里，和标题、操作条对着同一条边。 */
+.ui-geist-modal-form{display:contents}
+.ui-geist-modal-fields{display:grid;gap:14px;margin-top:16px}
+.ui-geist-modal-fields:empty{display:none}

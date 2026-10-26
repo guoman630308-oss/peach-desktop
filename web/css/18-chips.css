@@ -1,0 +1,8 @@
+/* ── 标签按钮 chip ── */
+/* 壳里的产地选择与作品详情岛里的几枚次要操作用这一组；侧栏的筛选标签归侧栏岛（`frontend/src/react/sidebar/`）。 */
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.source-icon{display:block!important;width:16px!important;height:16px!important;min-width:16px;opacity:1!important;filter:none!important;object-fit:contain}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:var(--tag-pad-y) var(--tag-pad-x);border:1px solid var(--line);
+  border-radius:var(--tag-radius);background:transparent;cursor:pointer;font-size:var(--fs-xs)}
+.chip:hover{color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--hover);color:var(--ink)}

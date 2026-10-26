@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "peach"
+dynamic = ["version"]
+description = "Local-first media library, behavior ledger, and discovery application"
+readme = "README.md"
+# SPDX 表达式必须和 `LICENSE` 全文一致，换许可证要先改 ADR-0023 第 4 阶段；
+# `tests/test_repo_hygiene.py` 钉住 LICENSE 那一侧。
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.14"
+# `Private :: Do Not Upload` 不是修饰语：Peach 只自托管、不发 PyPI
+# （`.github/workflows/test.yml`），PyPI 拒收带这枚 classifier 的包，
+# 所以误跑 `twine upload` 会在传上去之前就被挡住。
+classifiers = [
+  "Private :: Do Not Upload",
+  "Environment :: Web Environment",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Database :: Front-Ends",
+  "Topic :: Multimedia :: Video",
+]
+dependencies = [
+  "itsdangerous==2.2.0",
+  "filelock==4.2.0",
+  "tldextract==5.4.0",
+  "APScheduler==3.11.3",
+  "beautifulsoup4==4.15.0",
+  "bencode2==0.3.38",
+  "browserexport==0.4.4",
+  "pyahocorasick==2.3.1",
+  "curl_cffi==0.16.3",
+  "fastapi==0.143.2",
+  # grpcio 与 protobuf 给云下载调 CloudDrive2 的 gRPC 接口（`downloads_clouddrive.py`）。
+  # 消息代码由 grpcio-tools 1.84.0 生成后提交，它自带的 protoc 对应 protobuf 7.35.1，
+  # 运行时 protobuf 必须同一大版本且不低于它。
+  "grpcio==1.84.0",
+  "httpx==0.28.1",
+  "m3u8==6.0.0",
+  "pillow==12.3.0",
+  "protobuf==7.36.2",
+  "pystray==0.19.5",
+  "pydantic==2.14.1",
+  "resvg-py==0.5.0",
+  "sentry-sdk==2.72.0",
+  "socksio==1.0.0",
+  "starlette==1.8.0",
+  "torznab==0.2.1",
+  "uvicorn==0.54.0",
+  "watchdog==6.0.0",
+  "zeroconf==0.151.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/peach-mitao/peach"
+Repository = "https://github.com/peach-mitao/peach"
+Issues = "https://github.com/peach-mitao/peach/issues"
+
+[project.scripts]
+peach = "peach.error_reporting:cli_main"
+peach-tray = "peach.error_reporting:tray_main"
+
+[project.optional-dependencies]
+# psutil 给 `scripts/agent_worktree.py` 查工作树里的残留进程：当前目录、父进程、CPU 与内存。
+dev = [
+    "filelock==4.2.0",
+    "psutil==7.2.2",
+    "ruff==0.17.1",
+    "seiso==0.4.0",
+]
+build = [
+    "pyinstaller==6.22.3",
+    "dmgbuild==1.6.7; sys_platform == 'darwin'",
+]
+macos = ["pyobjc-framework-Cocoa==12.2.2; sys_platform == 'darwin'"]
+desktop-window = [
+    "pywebview==6.2.1; sys_platform == 'win32'",
+    "pythonnet==3.2.1; sys_platform == 'win32'",
+]
+# numpy 本来就是 opencv 的传递依赖，这里显式钉住：`face_detect.decode` 直接 import 它
+# 把字节喂给 `cv2.imdecode`，被 import 的外部模块必须有声明的归属。
+vision = ["opencv-python-headless==5.0.0.93", "numpy==2.5.4"]
+maintenance-115 = ["p115client==0.0.9.7.2"]
+# 字形复核与英文媒体文件名分词工具。
+naming = [
+    "opencc==1.4.2",
+    "wordninja-enhanced==3.2.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.uv]
+# 只设下限：uv 是工具不是依赖，它的版本不进依赖图（scripts/test_runner.py 的
+# dependency_inputs 也不算它）。Homebrew、winget 与官方脚本都只装最新版，写死等号
+# 会让每台新机器上的 uv 连 `--no-project` 的钩子都拒绝运行；CI 想复现就在 setup-uv 里给 version。
+required-version = ">=0.12.13"
+cache-keys = [{file = "pyproject.toml"}, {file = "setup.py"}, {file = "src/peach/__init__.py"}, {file = "README.md"}]
+
+[tool.setuptools.dynamic]
+version = {attr = "peach.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py314"
+extend-exclude = ["src/peach/downloads_clouddrive_pb2.py"]
+
+[tool.ruff.lint]
+select = ["F", "PLE", "B006", "B012", "B018", "B023"]

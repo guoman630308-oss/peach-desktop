@@ -1,0 +1,13 @@
+/* 配置页（/configuration）骨架的卡片框体：`.configfieldset` 几条只给配置骨架用。
+   页面外壳与页签条在 `frontend/src/react/settings/configuration-page.css`；分区本身是 React 子树
+   （`frontend/src/react/settings/`），样式归 `peach-react.css`。 */
+.resourcesyncfooter>p{margin:0 auto 0 0;text-align:left}
+.configfieldset{display:flex;flex-direction:column;min-width:0;margin:0;padding:0;overflow:hidden;
+  border:1px solid var(--line);border-radius:var(--control-radius);background:var(--ground)}
+.configfieldset>.geist-fieldset-content{flex:1;min-height:0;padding:20px;display:grid;gap:20px}
+.configfieldset .geist-fieldset-title{margin:0}
+.configfieldset>.geist-fieldset-footer{box-sizing:border-box;min-height:var(--fieldset-bar-h);
+  margin:0;padding:12px 12px 12px 20px;display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  border-top:1px solid var(--line);background:var(--surface)}
+.configfieldset>.geist-fieldset-footer>p{min-width:0;margin:0 auto 0 0;color:var(--muted);font-size:var(--fs-sm)}
+@media(max-width:560px){.configfieldset>.geist-fieldset-footer{flex-wrap:wrap}}

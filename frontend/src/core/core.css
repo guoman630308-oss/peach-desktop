@@ -1,0 +1,18 @@
+/* 走出 Peach 的那一枚标（`icon('external-link', 'ui-externalmark')`），全站一个写法。
+   2026-09-06 实测 vercel.com/geist/colors 的 `Learn More`：14px/20px 的文字配 16×16 图标、
+   紧跟文字 2px、与文字行居中、颜色就是链接自己的 currentColor
+   （docs/reference-snapshots/vercel-geist-external-link-mark.md）。尺寸不是全站一个常数，
+   而是相对所在文字抬一档，16/14≈1.15em，所以 12px 小字旁边它也跟着小、比例不变。
+   全站只有这一条，页面各自不再调档：这一枚每次说的都是同一件事，尺寸和间距按页面
+   分档的话，同一个意思就有八个长相，并排放着像是八种不同的标。
+   间距只由所在链接的 gap 说：挂在标自己身上会和容器的 gap 叠起来。 */
+/* 宿主按档位定高，宽字形保留比例；覆盖控件默认的方形宽度。 */
+svg.iconwide.iconwide{width:auto!important}
+svg.ui-externalmark{width:1.15em;height:1.15em;flex:none;align-self:center;
+  stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* `jav-title.ts` 的番号行：番号与版次徽章连成一段不折行，标题跟在后面。徽章 `.javedition` 在 web/css/12-cards.css。 */
+.ui-javidentity{display:inline-flex;align-items:center;gap:5px;vertical-align:baseline;white-space:nowrap}
+.ui-javcode{font-weight:600;letter-spacing:.01em}.ui-javtitle{font-weight:400}
+/* 订阅新作卡的番号行由同一生成器输出，按条目宿主约束可用宽度。 */
+[data-feed-id] .ui-javidentity{max-width:100%;min-width:0}
+[data-feed-id] .ui-javcode{min-width:0;overflow:hidden;text-overflow:ellipsis}

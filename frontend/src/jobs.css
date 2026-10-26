@@ -1,0 +1,6 @@
+/* 任务那枚环形进度（同目录 `jobs.ts` 的 `jobProgressHtml`）：36px 的圆环在左，说明与计数在右。 */
+.ui-board-job-progress{display:flex;align-items:center;gap:12px;padding:12px 0;font-size:14px;line-height:20px}
+.ui-board-job-progress svg{flex:none}.ui-board-job-progress circle{fill:none;stroke-width:2.5;stroke-linecap:round}
+.ui-board-job-track{stroke:var(--line-soft)}.ui-board-job-fill{stroke:var(--tungsten);transition:stroke-dasharray .3s ease-out}
+.ui-board-job-progress small{display:block;color:var(--muted);font-size:12px;line-height:16px;font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){.ui-board-job-fill{transition:none}}

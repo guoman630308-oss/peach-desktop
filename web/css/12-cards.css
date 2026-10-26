@@ -1,0 +1,307 @@
+/* ── 主区：满屏，大图 ── */
+main{position:relative;z-index:1;padding:14px 16px 90px}
+#catalogPageHeading,#javLibraryHeader,#listTitle{padding:20px 16px 0;margin:0 0 20px}
+#catalogPageHeading[hidden],#javLibraryHeader[hidden]{display:none}
+#catalogPageHeading h2{margin:0;font:var(--board-title)}
+h2[data-page-title]{margin:0;font:var(--board-title);letter-spacing:0}
+@media(max-width:760px){#catalogPageHeading h2,h2[data-page-title]{font:var(--board-figure)}}
+.count{position:sticky;top:calc(var(--topH) + var(--filterH));z-index:60;
+  min-height:var(--sortH);color:var(--ink-2);margin:0 -16px 16px;padding:8px 16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:nowrap;
+  background:transparent;border-bottom:1px solid transparent}
+/* 管理区隐藏了 tagbar，count 吸顶若仍按「顶栏+筛选条」留位会悬空一条缝。
+   回收站这类页面直接贴着顶栏吸。manage-static（垃圾复核）不吸顶，要压过这条。 */
+.count.no-tagbar{top:var(--topH)}
+.count.manage-static{position:relative;top:auto;z-index:1}
+.resourcesyncbox{overflow:clip;border:1px solid var(--field-ring);border-radius:var(--floating-radius);background:var(--ground)}.resourcesyncbody{padding:20px}.resourcesyncbody p{max-width:760px;margin:0;color:var(--muted);font-size:var(--fs-sm);line-height:1.55}.resourcesyncfooter{box-sizing:border-box;min-height:var(--fieldset-bar-h);display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--line-soft);background:var(--overlay-5)}.resourcesyncfooter p{margin:0;color:var(--muted);font-size:var(--fs-xs);line-height:1.5}.resourceaction{box-sizing:border-box;height:36px;padding:0 12px;border:0;border-radius:var(--control-radius);box-shadow:0 0 0 1px var(--line-soft);background:var(--ground);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:none;font:inherit;font-size:var(--fs-sm);font-weight:500;cursor:pointer;transition:background-color .12s,color .12s}.resourceaction:hover:not(:disabled){background:color-mix(in srgb,var(--ink) 8%,var(--ground));color:var(--ink)}.resourceaction:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}.resourceaction:disabled{background:var(--sunk);color:var(--muted);cursor:not-allowed}.resourceaction svg{width:16px;height:16px;stroke:currentColor;fill:none}
+.tagbar,.count{transition:background-color .16s ease,border-color .16s ease}
+/* 吸顶那条是底色的半透明版，配方跟着 --ground 走：写死深色底会在浅色主题下
+   变成一条黑带压在白底内容上。 */
+.tagbar.is-stuck,.count.is-stuck{background:color-mix(in srgb,var(--ground) 84%,transparent);
+  border-bottom-color:var(--line-soft);backdrop-filter:saturate(1.35) blur(16px);
+  -webkit-backdrop-filter:saturate(1.35) blur(16px)}
+.count:empty{display:none}
+.count>span:first-child{flex:none}
+/* 等数据时换批键自己画：先画完第一条线，再从左到右画第二条，停住让图案看清，两条一起
+   淡出，下一圈立刻起笔。淡出结束正好落在一圈的末尾，所以中间没有一帧是空的。让它整圈
+   旋转的话，这枚两条交叉箭头的图标指向会一直变，读起来像图标画错了而不是像在忙。
+   动效写在 #i-shuffle 自己的两条线上，忙态只负责把两个自定义属性传下去：`<use>` 的影子树
+   里选不到外层那些忙态标记，但继承来的自定义属性进得去。它是这一行唯一还在动的东西，
+   其余部分必须保持静止。全局的 prefers-reduced-motion 规则会关掉它，图标停在画满的样子。 */
+@keyframes peach-strand-draw{
+  0%{stroke-dashoffset:100;opacity:1}
+  34%,86%{stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:0}}
+@keyframes peach-strand-draw-late{
+  0%,36%{stroke-dashoffset:100;opacity:1}
+  70%,86%{stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:0}}
+#i-shuffle .strand{stroke-dasharray:var(--strand-dash,none);
+  animation:peach-strand-draw var(--strand-cycle,0s) linear infinite}
+#i-shuffle .strand-b{animation-name:peach-strand-draw-late}
+/* 资源同步的「检查文件」键适配自己的忙态，不统一转圈：git-compare 照 lucide-animated 的
+   GitCompare 逐笔描画（右下圆→两条枝→左上圆，画完停住再一起淡出）。
+   机制同换批键：动效写在 symbol 自己的零件上，忙态把动画名和周期传下去；空闲时名字是
+   none，什么都不动。全局的 prefers-reduced-motion 规则会关掉它们。 */
+@keyframes peach-gc-draw-a{
+  0%{stroke-dashoffset:100;opacity:1}
+  17%,86%{stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:0}}
+@keyframes peach-gc-draw-b{
+  0%,25%{stroke-dashoffset:100;opacity:1}
+  42%,86%{stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:0}}
+@keyframes peach-gc-draw-c{
+  0%,50%{stroke-dashoffset:100;opacity:1}
+  67%,86%{stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:0}}
+#i-git-compare .gc-part{stroke-dasharray:var(--gc-dash,none);
+  animation-name:var(--gc-anim,none);animation-duration:var(--gc-cycle,1.8s);
+  animation-timing-function:linear;animation-iteration-count:infinite}
+#i-git-compare .gc-line-a,#i-git-compare .gc-line-b{animation-name:var(--gc-anim-b,none)}
+#i-git-compare .gc-end-b{animation-name:var(--gc-anim-c,none)}
+[data-resource-scan][aria-busy="true"] svg{--gc-dash:100;--gc-anim:peach-gc-draw-a;--gc-anim-b:peach-gc-draw-b;--gc-anim-c:peach-gc-draw-c}
+/* 壳自己画进 `#grid` 的那几屏（骨架、垃圾文件队列）是一叠卡：每一段卡合成一个 `.grid`，
+   `#grid` 本身只是这叠卡的容器，自己不排网格。目录、回收站与资料页的作品卡由 `catalog-grid`
+   island 自己排，版面写在 `frontend/src/react/components/media-card.css`。 */
+.gridstack{display:flex;flex-direction:column;gap:16px}
+/* 列距 16px 是给悬停面留的：卡片悬停时底色往盒外多铺 8px（见下方 `:hover`），列距再窄，
+   两张卡的悬停面就顶到邻卡上。 */
+.grid{gap:24px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--tile)),1fr))}
+.card{cursor:pointer;display:flex;flex-direction:column;gap:8px;min-width:0;border-radius:var(--surface-radius);
+  position:relative;transition:transform .18s ease,filter .18s ease,background-color .15s ease,box-shadow .15s ease;transform-origin:center}
+/* 垃圾文件队列里，视口外的卡片跳过渲染：滚动和侧栏开合时要算的只剩屏上那几十张。
+   目录、回收站与资料页作品区的作品卡归 `catalog-grid` island，同一份估计写在
+   `frontend/src/react/components/media-card.css`，取值与这里一致。
+   跳过的是卡里的两块，封面 `.pic` 和元信息区 `.meta`；卡片盒本身照常排版，所以屏外卡的
+   高度里只有元信息区一项是估计值。
+   - 封面高度由 `aspect-ratio` 从列宽推出，跳过渲染时照样成立，列宽随视口和侧栏开合怎么
+     变都与真实渲染一致。卡高随列宽在 270～590px 之间变（JAV 大图一档最高），整张卡
+     跳过就只能给一个固定占位，对不上所有版式，没渲染过的卡越多滚动条漂得越远。
+   - 元信息区高度不随列宽变，由它自己的排版 token 推出，见 `--card-meta-block`：两行标题
+     （`.meta .t` 的 2.7em）、一行归属（1lh）、`.mtext` 的 3px 行距。密集一档的高度是
+     `.mtext` 固定的三行，同一个变量。
+   叠层纸边画在 `.pic` 外面，不在裁切范围里。
+   跳过渲染连带 paint containment，裁切边是元信息区的 padding box：贴着左缘的头像悬停
+   描边、头像与标签的 2px 焦点环都画在内容盒外面。所以元信息区四周垫 8px 内边距、再用
+   -8px 外边距抵消，裁切边往外扩 8px（和整张卡的悬停面同宽），内容盒、卡片尺寸和它与
+   封面的间距一个像素不动；`frontend/e2e/design-*.test.ts` 按几何检查岛里的同一写法。垫出来的那一圈伸到
+   卡片盒外面，元信息区自己因此不接指针，只有它的子元素接：卡片的悬停面、点击区和悬停
+   预览的触发范围仍是卡片盒本身。元信息区没有背景，垫出来的一圈不画任何东西。
+   图片墙不在其内：它的封面没有固定比例，高度取自图片本身，跳过渲染时会按零高排版。
+   资料页的照片墙与名册（`entity-body` 岛）同理不在其内，它们也不是 `.card`。资料页
+   新作那一行（`.feednew`）只有一行、往横向排，屏外的卡不改变整页高度，标题字号也不是
+   `--fs-md`（`.feednewcard .meta .t` 是 `--fs-sm`），不套这份估计。 */
+.meta{--card-meta-block:calc(var(--fs-md)*2.7 + 3px + 1lh)}
+#grid .card :is(.pic,.meta){content-visibility:auto}
+/* `flex-shrink:0`：跳过渲染时元信息区的内容不参与最小尺寸，卡里有别的子元素要抢空间时它会
+   被压扁。渲染时它本来就压不动（自动最小尺寸就是内容高度），钉住不改变屏上的排版。
+   估计高度作用在内容盒上，内边距另外加在外面，所以 `--card-meta-block` 只估内容。 */
+#grid .card .meta{flex-shrink:0;
+  margin:-8px;padding:8px;pointer-events:none;contain-intrinsic-block-size:auto var(--card-meta-block)}
+:where(#grid) .card .meta>*{pointer-events:auto}
+/* 叠层往上溢出到行间距里，卡片本体不为它留白。留白的写法（padding-top:7px）会把
+   整张卡压低 7px 并加高 7px，同一行里 Mix 卡的封面和下面的文字就比邻居矮一截；
+   往上堆之后卡片盒和普通卡完全同高，下沿自然平齐。
+   纸边与封面是同一种表面，圆角同一档：容器取封面那一档，纸边继承容器。 */
+.mixstack{position:relative;isolation:isolate;border-radius:var(--badge-radius)}
+.mixstack::before,.mixstack::after{content:"";position:absolute;border-radius:inherit;
+  border:1px solid var(--border-15);background:color-mix(in srgb,var(--surface) 84%,var(--video-glow,#15202a));z-index:0}
+.mixstack::before{inset:0 12px 8px;transform:translateY(-7px);opacity:.54}
+.mixstack::after{inset:0 6px 4px;transform:translateY(-4px);opacity:.78}
+.mixstack .pic{z-index:1}
+.playlistcard .mixmeta{display:flex;min-width:0;gap:9px;align-items:flex-start}
+.playlistcard .mixcopy{flex:1}
+.mixcopy{min-width:0}.mixcopy b,.mixcopy span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mixcopy b{font-size:var(--fs-md);line-height:1.45}.mixcopy span{font-size:var(--fs-xs);color:var(--muted);margin-top:2px}
+/* 圆角只在最外面裁一次：`clip-path` 配一层满格的矩形蒙版，格子里的黑底、封面、悬停层与模糊衬底
+   先合成一张再按 `--pic-radius` 切。格子本身不写 `border-radius`，`overflow` 就只是矩形裁切：按圆角
+   裁的话每一层各切一次，抗锯齿那一圈里底下的黑会透上来，浅色封面四角就是一圈灰黑边。光有
+   `clip-path` 不够，没有蒙版时 Chrome 照样逐层切。 */
+.pic{--pic-radius:var(--badge-radius);position:relative;aspect-ratio:var(--card-ratio,16/9);background:#000;
+  clip-path:inset(0 round var(--pic-radius));mask-image:linear-gradient(#000 0 0);
+  overflow:hidden;display:flex;align-items:center;justify-content:center}
+/* 传统正封的比例留白使用同图补底，圆角由最外层统一裁切。 */
+.pic::before{content:"";position:absolute;inset:-8%;pointer-events:none;
+  background:var(--cover-blur,none) center/cover no-repeat;filter:blur(26px) brightness(.5)}
+/* 预览图：单格，contain 放进固定 16:9 框 —— 不拉伸、不裁切、不改框体大小 */
+.poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+  display:block;background:#000}
+.card>.pic,.card>.meta{position:relative;z-index:2}
+/* 悬停即播真视频（仅免费源，计费源永远不自动拉流） */
+.hv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;
+  opacity:0;transition:opacity .2s}
+.hv.on{opacity:1}
+/* 悬停面往卡片盒外多铺 8px：不动网格尺寸、不挤相邻卡，只让整张卡的命中反馈比内容
+   大一圈。背景仍落在卡本身，保留浏览器里可直接核验的悬停底色。 */
+body .card:hover{background:var(--hover);box-shadow:0 0 0 8px var(--hover)}
+body .card:hover .pic{filter:saturate(.9) brightness(.94)}
+body .card:focus-within{background:var(--hover);box-shadow:0 0 0 8px var(--hover)}
+.select-mode .card{cursor:default}
+.select-mode .hovertools{pointer-events:none!important}
+.card.selected .pic,.card.selected:hover .pic{box-shadow:inset 0 0 0 2px var(--on-media)}
+.hovertools{position:absolute;z-index:4;display:flex;align-items:center;gap:14px;
+  opacity:0;transition:opacity .15s;pointer-events:none}
+.hovertools button{pointer-events:none;width:58px;height:58px;border-radius:50%;border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.24);color:#fff;backdrop-filter:saturate(180%) blur(12px);
+  -webkit-backdrop-filter:saturate(180%) blur(12px);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;position:relative;transition:transform .15s ease,background .15s ease}
+.hovertools button svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.hovertools button:hover{transform:scale(1.12);background:rgba(0,0,0,.34)}
+.nopic{font-size:var(--fs-xs);letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.junkcount{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
+/* 复核那条分类切换在 10 个互不相同的候选数据集之间切（真 tablist）。
+   几何取 Geist Tabs 的 secondary 变体（vercel.com/geist/tabs 实测 2026-09-03）：高 32px、
+   左右 12px、6px 圆角、13px/400，hover 只换文字色，选中只抬底到 --hover、不动边框。 */
+.reviewtabs{display:flex;align-items:center;gap:5px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.reviewtabs::-webkit-scrollbar{display:none}
+.reviewtabs{margin-bottom:16px}
+/* 一枚也不描边。给每一枚都画一圈线之后，一排读起来是七个一模一样的框，选中那一枚
+   靠的是比页面底亮 2% 的填充——线比填充响得多，于是「选中」在浅色一档上根本看不出来。
+   Geist Tabs secondary 两态都没有 border，选中只有 `aria-selected:bg-gray-200` 一件事
+   （vercel-geist-semantics-measured.md「选中态与它的悬停」）。 */
+.reviewtabs button{box-sizing:border-box;height:32px;padding:0 12px;flex:none;
+  display:inline-flex;align-items:center;gap:6px;border:0;
+  border-radius:var(--control-radius);background:transparent;color:var(--muted);
+  text-decoration:none;font:inherit;font-size:var(--fs-sm);font-weight:400;
+  white-space:nowrap;cursor:pointer}
+.reviewtabs button:hover{color:var(--ink)}
+.reviewtabs button:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+/* 首页流和详情只留来源图标；完整来源与费用通过 title/aria-label 提供。 */
+.src{display:grid;place-items:center;width:20px;height:20px;padding:0;border:0;background:transparent}
+.src img,.src svg{width:18px;height:18px;border-radius:0;object-fit:contain;display:block;flex:none}
+/* 线条类来源图标（本地盘 / 在线）没有品牌底色，亮封面上会看不见：
+   垫一层深色方角底（--badge-radius，与圆形实体头像划清界限）。
+   115 / PikPak 的官方位图 logo 自带完整底色，保持裸图不再叠底。 */
+.src:has(svg){width:auto;height:auto;padding:3px;border-radius:var(--badge-radius);background:color-mix(in srgb,#080A0D 62%,transparent)}
+.src.free{color:#CFE8CF}.src.metered{color:#FFD9AE}
+.src svg{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* 详情面板里的来源 */
+.srcbig{display:inline-grid;place-items:center;width:22px;height:22px;padding:0;border:0;background:transparent}
+.srcbig img,.srcbig svg{width:17px;height:17px;border-radius:var(--badge-radius);object-fit:contain;flex:none}
+.srcbig svg{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.srcbig.metered{color:var(--meter)}.srcbig.free{color:var(--keep)}
+.meta{display:flex;gap:10px;min-width:0}
+.mav{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;background:var(--sunk);
+  position:relative;margin-top:2px;border:0;padding:0;cursor:pointer;color:inherit}
+.mav:hover{box-shadow:0 0 0 2px var(--ink-2)}
+.mav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.mav .ini,.mav [data-source-initial]{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:var(--fs-sm);color:var(--muted);font-family:Bahnschrift,"Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif}
+/* 共演头像最多五枚，常态紧叠；上、左、下三边给放大与焦点环留出空间，头像本身仍与单人
+   头像站在同一条左对齐线上。 */
+.mavstack{display:flex;flex:none;max-width:calc(100% - 48px);margin:-4px -2px -2px;padding:6px 2px 2px 5px}
+.mavstack .mav{margin-top:0;box-shadow:0 0 0 2px var(--ground)}
+.mavstack .mav+.mav{margin-left:-22px}
+.mavstack .mav:nth-child(1){z-index:5}
+.mavstack .mav:nth-child(2){z-index:4}
+.mavstack .mav:nth-child(3){z-index:3}
+.mavstack .mav:nth-child(4){z-index:2}
+.mavstack .mav:nth-child(5){z-index:1}
+.mavstack .mav:nth-child(n+6){display:none}
+.mavstack .mav:is(:hover,:focus-visible){z-index:6;box-shadow:0 0 0 2px var(--ink-2)}
+.mtext{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+/* 高度另用 max-height 封在两行：标题里的番号块是 inline-flex，WebKit 的 line-clamp 遇到非行内的
+   子元素就不截，iOS 上长标题会整段摊开，把「接着看」那一排撑得老高。 */
+.meta .t{font-size:var(--fs-md);line-height:1.35;min-height:2.7em;max-height:2.7em;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+.javedition{display:inline-flex;align-items:center;min-height:18px;padding:0 5px;border:1px solid currentColor;
+  border-radius:var(--badge-radius);font-size:var(--fs-xs);line-height:16px;font-weight:600;letter-spacing:0;vertical-align:1px}
+.javedition.subtitle{color:var(--ink-2)}
+.javedition.uncensored{color:var(--meter)}
+.javedition.cracked{color:var(--drop)}
+.javedition.censored{color:var(--muted)}
+/* 卷号说的是「这是第几份文件」，不是版次，用中性灰和三种版次色区分开。 */
+.javedition.partlabel{color:var(--muted);margin-left:6px}
+.meta .s{display:flex;gap:8px;color:var(--muted);align-items:center;flex-wrap:wrap}
+.meta .who{color:var(--ink-2);min-width:0;max-width:100%;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+/* 归属渲染成 `<span>` 就是不可点的那一种（队列行整行本身是按钮，里面嵌不了按钮）。
+   染成强调色会让人以为能点，点下去却落到卡片本身、打开的是视频详情。 */
+.meta span.who{color:var(--ink-2);cursor:default}
+/* 标签语义分级 */
+/* 卡片上那一行标签归 React 卡片（`media-card.css` 的 `[data-media-tags]`）。
+   .tg 只留 max-width:100% 这一层兜底：一颗标签自己就比整张卡还宽时，横着溢出会
+   压到卡片外面，这时候省略号是唯一的出路。 */
+.tg{padding:var(--tag-pad-y) var(--tag-pad-x);border-radius:var(--tag-radius);font:inherit;font-size:var(--fs-xs);border:1px solid var(--line);
+  line-height:1.45;white-space:nowrap;cursor:pointer;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;max-width:100%;
+  background:var(--tag-fill)}
+.tg.meta,.tg.position{color:var(--ink-2);border-color:var(--line)}
+.tg:hover{color:var(--ink);background:var(--hover)}
+.tg:disabled{cursor:not-allowed}
+/* 顶栏的密集模式固定为标题、身份、标签三行。缺少标签时第三行仍保留，
+   同一网格不会再被大小、观看次数或长身份撑成四行。分卷卡已有 7px 叠层空间，
+   密集网格的普通卡也保留同一高度，避免每行是否出现分卷卡决定整行高度。
+   三行由 `.mtext` 裁住，四周垫 4px 再用 -4px 抵消、自己不接指针，标签的
+   焦点环不被这一层裁掉。子元素把指针接回来；资料页新作那一行
+   的卡整块放行指针（见 `.feednewcard`），不接回来。 */
+body[data-density="dense"] .grid>.card{padding-top:7px}
+body[data-density="dense"] .card .meta{--card-meta-block:calc(2.7em + 36px)}
+body[data-density="dense"] .card .mtext{display:grid;grid-template-rows:1.35em 1.35em 30px;
+  gap:3px;margin:-4px;padding:4px;height:calc(var(--card-meta-block) + 8px);overflow:hidden;pointer-events:none}
+body[data-density="dense"] .card:not(.feednewcard) .mtext>*{pointer-events:auto}
+body[data-density="dense"] .card .meta .t{display:block;max-width:100%;min-height:1.35em;overflow:hidden;
+  -webkit-line-clamp:unset;white-space:nowrap;text-overflow:ellipsis}
+body[data-density="dense"] .card .meta .s{height:1.35em;min-height:0;flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
+body[data-density="dense"] .card .meta .who{flex:0 1 auto}
+body[data-density="dense"] .card .meta .size{flex:none;white-space:nowrap}
+
+.srow{display:flex;gap:13px;overflow-x:auto;padding-bottom:7px}
+
+/* 订阅源发现的新作（ADR-0041）。横排复用 `.srow`，卡片复用 `.card` 的封套与元数据；
+ * 这里只定宽度、淡出已读那一档，以及那两颗悬浮动作键——其余形态跟着资产卡走，
+ * 两种卡长得不一样的地方只应该是它们真的不一样的地方。 */
+.feednew{margin:0 0 18px}
+/* RSS 自己的橙：只给人物页「订阅新作」开关订上时用。新作卡等封面时的微光与全站等待态
+   同一种灰，骨架不另起一种颜色。 */
+:root{--feed-mark:#F78422}
+/* 卡片悬停时底色向四周多铺 8px（`box-shadow` 的 spread），而横滚容器把纵向溢出一并
+   裁掉：四边各留 8px 内边距，再用同样的负外边距收回来，卡片落点不动。 */
+.feednewrow{padding:8px;margin:-8px -8px 0}
+/* 往右翻时卡片从侧栏底下穿过去，和首页那几排头像（`catalog-filter.css` 的 `[data-catalog-tier]`）同一个
+   理由、同一种写法：让出轨道宽度加 `main` 的 16px 内边距，再原样加回内边距，第一张
+   仍站在这一屏的左对齐线上。首页与人物页的这一行都直接住在 `main` 里，所以让出的是
+   同一个数；窄屏的抽屉盖在内容上面，没有这条常驻的边，那一档不让。 */
+@media(min-width:761px){
+  .feednewrow{margin-left:calc(-1 * (var(--railW) + 16px));padding-left:calc(var(--railW) + 16px)}
+}
+/* 连不上图片主机那条 Note 与下面一行隔 12px：横排自己往上收了 8px，这里先垫回来。 */
+.feednetwork{margin-bottom:20px}
+.feednewcard{flex:none;width:168px}
+/* 已看过的不移走，只退到背景里：已读是标记，不是关掉。 */
+.feednewcard.isread{opacity:.55}
+/* 通向作品页的点击区，铺满整张卡，是一条外链。
+   资产卡的 `.pic` 与 `.meta` 压在点击区上面（z-index 2），那边的点击由卡片自己的脚本
+   接；这张卡只有这条外链，所以两块放行指针，落到下面的链接上，悬浮键自己再收回来。 */
+.feednewopen{position:absolute;inset:0;z-index:1;border-radius:inherit}
+.feednewcard>.pic,.feednewcard>.meta{pointer-events:none}
+.feednewcard .meta a.mav{pointer-events:auto}
+.feednewcard .meta span.mav{cursor:default}
+.feednewopen:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+/* 三颗动作键沿用 `.hovertools` 的磨砂圆底，只换尺寸和落点。`.hovertools` 默认
+   `pointer-events:none`——那是为了让指针落到底下的预览上，而这三颗是这张卡唯一能按的
+   东西，所以在显形的同时把点击收回来。 */
+.feednewtools{inset:auto 7px 7px auto;gap:6px}
+.feednewcard:hover .feednewtools,.feednewcard:focus-within .feednewtools{opacity:1}
+.feednewcard:hover .feednewtools button,.feednewcard:focus-within .feednewtools button{pointer-events:auto}
+.feednewtools button{width:32px;height:32px}
+.feednewtools button svg{width:17px;height:17px}
+/* 「想要」按下时星形填实：同一颗键既是开关也是读数。 */
+.feednewtools button[aria-pressed="true"] svg{fill:currentColor}
+.feednewcard .meta .t{font-size:var(--fs-sm)}
+/* 番号整段不折行；比卡还宽的长串在卡边收成省略号，不被标题块的溢出裁成半个字。 */
+/* 出演名单与完整日期分行，窄卡中的姓名仍有自己的宽度。 */
+.feednewcard .meta .s{display:grid;gap:0;white-space:nowrap;min-height:2lh}
+.feednewcard .meta .s>span{min-width:0}
+.feednewcard .meta .s>.feednewperformers{overflow:hidden;text-overflow:ellipsis}
+/* 占位卡直接套真卡的 `.t` 与 `.s`：标题块是两行 2.7em，下面那行放一个零宽字符，行高
+   跟真卡那行字同一套规则，到货那一下整行不跳。 */
+.feednewskeleton{pointer-events:none}
+.feednewcard:not(.feednewskeleton) .pic{background-color:var(--surface);color:var(--muted)}
+.feednewskeleton .pic{background:var(--hover)}
+.feednewskeleton .t>.skeleton{height:2.7em}
+.feednewskeleton .s>.skeleton{width:72%;height:auto}
+/* 占位卡不是在等哪一张图，它本身就是等待态：微光和骨架同一帧出现。`.imgwait` 那 180ms
+   的淡入门槛是给本地图的，套在这里，那 180ms 里露出来的是 `.pic` 的黑底。 */
+.feednewskeleton .pic.imgwait::after{transition:none}

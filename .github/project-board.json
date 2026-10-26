@@ -1,0 +1,40 @@
+{
+  "repository": "peach-mitao/peach",
+  "project_id": "PVT_kwDOE_1hCc4BnjsH",
+  "issues_only": true,
+  "issue_repositories": ["peach-mitao/peach", "peach-mitao/peach-roadmap"],
+  "planning_repository": "peach-mitao/peach-roadmap",
+  "issue_aliases": {
+    "peach-mitao/peach#69": "peach-mitao/peach-roadmap#1",
+    "peach-mitao/peach#70": "peach-mitao/peach-roadmap#2",
+    "peach-mitao/peach#71": "peach-mitao/peach-roadmap#3",
+    "peach-mitao/peach#72": "peach-mitao/peach-roadmap#4",
+    "peach-mitao/peach#73": "peach-mitao/peach-roadmap#5",
+    "peach-mitao/peach#74": "peach-mitao/peach-roadmap#6",
+    "peach-mitao/peach#75": "peach-mitao/peach-roadmap#7",
+    "peach-mitao/peach#76": "peach-mitao/peach-roadmap#8",
+    "peach-mitao/peach#77": "peach-mitao/peach-roadmap#9",
+    "peach-mitao/peach#78": "peach-mitao/peach-roadmap#10",
+    "peach-mitao/peach#79": "peach-mitao/peach-roadmap#11",
+    "peach-mitao/peach#80": "peach-mitao/peach-roadmap#12",
+    "peach-mitao/peach#81": "peach-mitao/peach-roadmap#13",
+    "peach-mitao/peach#82": "peach-mitao/peach-roadmap#14",
+    "peach-mitao/peach#83": "peach-mitao/peach-roadmap#15",
+    "peach-mitao/peach#84": "peach-mitao/peach-roadmap#16",
+    "peach-mitao/peach#85": "peach-mitao/peach-roadmap#17",
+    "peach-mitao/peach#86": "peach-mitao/peach-roadmap#18",
+    "peach-mitao/peach#87": "peach-mitao/peach-roadmap#19",
+    "peach-mitao/peach#88": "peach-mitao/peach-roadmap#20",
+    "peach-mitao/peach#89": "peach-mitao/peach-roadmap#21",
+    "peach-mitao/peach#90": "peach-mitao/peach-roadmap#22",
+    "peach-mitao/peach#67": "peach-mitao/peach-roadmap#23",
+    "peach-mitao/peach#68": "peach-mitao/peach-roadmap#24"
+  },
+  "implementation_commits": {
+    "peach-mitao/peach#53": ["b2bdb529b536723138144cedc996c8530df2a336"],
+    "peach-mitao/peach#61": ["03eb94e22387e9ba3fc2401a2b5c73f64f525a44"],
+    "peach-mitao/peach#62": ["7887699b3ee4059325ace140744904a39bb5bb4a"],
+    "peach-mitao/peach#64": ["b8b809f37bb825d50c0cc53c8040016d71606218"],
+    "peach-mitao/peach#65": ["7cf62507ce6148af6e9b06af724b8764cf547cbf"]
+  }
+}

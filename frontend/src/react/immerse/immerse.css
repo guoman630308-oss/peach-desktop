@@ -1,0 +1,101 @@
+/* 沉浸模式（常驻组件 `immerse`，`frontend/src/react/immerse/`）：全屏连播。
+ *
+ * 桌面采用 YouTube Shorts 的三段式布局：固定 9:16 舞台居中，动作列贴在舞台右侧，作者与标题留在
+ * 左下角。手机才让舞台重新铺满视口。
+ *
+ * 选择器全用 `data-*`，与遗留层同名的类一条不写（`test/legacy-class-names.test.ts`）。例外两类：
+ * `video-js` 是 Video.js 的组件契约；头像圆框里那一层由 `card-art` 的 `avatarInner` 拼，首字母挂的 `ini`
+ * 不是岛挂的，按 `[class~=…]` 认，权重与类选择器相同。
+ *
+ * 本文件按来源的先后排：动作键圆钮在前，沉浸层在后，窄屏最后；同权重时后写的胜出，这个顺序是
+ * 外观的一部分。 */
+
+/* ── 动作键圆钮 ──
+   只共享 48/24 的几何与图标居中；表面色由使用场景决定。 */
+[data-immerse-circle]{box-sizing:border-box;width:48px;height:48px;padding:0;border:0;border-radius:50%;
+  background:rgba(255,255,255,.1);color:#f1f1f1;display:grid;place-items:center;cursor:pointer}
+[data-immerse-circle]:hover{background:rgba(255,255,255,.18)}
+[data-immerse-circle]:focus-visible{outline:2px solid var(--tungsten);outline-offset:3px}
+[data-immerse-circle] svg{display:block;width:24px;height:24px;flex:none;stroke:currentColor;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── 沉浸层 ── */
+[data-immerse]{position:fixed;inset:0;z-index:200;background:#0f0f0f;display:flex;align-items:center;justify-content:center;overflow:hidden}
+[data-immerse][hidden]{display:none}
+body[data-immerse-open]{overflow:hidden}
+[data-immerse-stage]{position:absolute;left:50%;top:50%;width:min(56.25vh,calc(100vw - 240px));aspect-ratio:9/16;
+  transform:translate(-50%,-50%)}
+[data-immerse-stage][data-wide]{left:50%;right:auto;width:min(64vw,177.778vh);aspect-ratio:16/9;transform:translate(-50%,-50%)}
+[data-immerse-track]{position:absolute;inset:0;overflow:hidden;border-radius:var(--floating-radius);background:#000;
+  box-shadow:0 0 64px rgba(0,0,0,.34);touch-action:manipulation;cursor:pointer}
+/* 第一条片子出画前只留加载提示：框、动作列、作者标题和进度条按出画时的形状一起出现，
+   不会先按竖屏摆一遍再跳。片子在隐藏的舞台里照常缓冲。 */
+[data-immerse][data-idle] :is([data-immerse-stage],[data-immerse-ui],[data-immerse-bar]){visibility:hidden}
+/* 一格一片：`[data-immerse-slide]` 上下滑动，Video.js 的外包 div 和 video 都铺满它。 */
+[data-immerse-track] [data-immerse-slide]{position:absolute;inset:0;background:#000;will-change:transform;
+  transition:transform .2s cubic-bezier(.2,.2,.4,.9)}
+[data-immerse-slide]>.video-js{position:absolute;inset:0;width:100%;height:100%;background:#000}
+[data-immerse-track] video{position:absolute;inset:0;max-height:none;max-width:none;
+  width:100%;height:100%;object-fit:cover;background:#000}
+/* 片源与视口比例差得多时按原始比例完整显示（留黑边），不裁掉画面。
+   判据在 `immerse.ts` 的 `fitMode`：这里只认结果，不再假设「竖屏才需要 contain」。 */
+[data-immerse-track] video[data-fit=contain]{object-fit:contain}
+[data-immerse-loader]{position:absolute;z-index:12;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgba(255,255,255,.24);
+  border-radius:var(--pill-radius);background:rgba(0,0,0,.58);color:#fff;backdrop-filter:blur(12px);pointer-events:none;
+  font:var(--fs-xs)/1 "Cascadia Mono",monospace;white-space:nowrap}
+[data-immerse-loader][hidden]{display:none}
+/* 加载圈由遗留层的 `spinnerHtml` 拼；外面这层不占盒子，圈与文字照旧是提示条的两个弹性子项。 */
+[data-immerse-spinner]{display:contents}
+[data-immerse-ui]{position:absolute;left:20px;bottom:20px;width:min(520px,calc(50% - 28.125vh - 36px));
+  padding:0;color:#f1f1f1;pointer-events:none}
+[data-immerse][data-wide] [data-immerse-ui]{width:min(500px,calc(36vw - 56px))}
+[data-immerse-actions]{position:absolute;left:calc(100% + 12px);bottom:8px;width:72px;
+  display:flex;flex-direction:column;align-items:center;gap:16px}
+[data-immerse-stage][data-wide] [data-immerse-actions]{left:auto;right:12px;bottom:18px}
+[data-immerse-action]{display:flex;flex-direction:column;align-items:center;gap:6px;color:#f1f1f1}
+[data-immerse-actions] button{position:relative;transition:background .14s}
+[data-immerse-actions] button:focus-visible{outline:2px solid var(--tungsten);outline-offset:3px}
+[data-immerse-label]{font-size:var(--fs-xs);font-weight:500;line-height:1.25;white-space:nowrap}[data-immerse-label] b{font:inherit}
+/* 进度条。可见部分只有 4px，但命中区得够高——屏幕最下沿的 4px 是鼠标最难瞄的那一条。所以
+   本体是 20px 的透明热区，轨道和已播部分画在它底部，鼠标靠近（或拖动中）才变粗。
+   touch-action:none 是为了让触控拖动不被当成页面滚动。 */
+[data-immerse-bar]{position:absolute;left:0;right:0;bottom:0;height:20px;z-index:3;
+  cursor:pointer;touch-action:none;display:flex;align-items:flex-end}
+[data-immerse-bar]::before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;
+  background:rgba(255,255,255,.16);transition:height .12s}
+[data-immerse-bar] i{position:relative;display:block;height:4px;width:0;background:var(--tungsten);
+  transition:height .12s}
+[data-immerse-bar]:hover::before,[data-immerse-bar]:hover i,
+[data-immerse-bar][data-scrubbing]::before,[data-immerse-bar][data-scrubbing] i{height:9px}
+[data-immerse-author]{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:var(--fs-md);line-height:1.2}
+/* 作者名单行省略、元信息不折：十几位共演时名字收成一截，「· 时长 · 横屏 · 序号」照旧排在后面。 */
+[data-immerse-author]>a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f1f1f1;font-weight:600;text-decoration:none;pointer-events:auto}
+[data-immerse-author]>a:hover{color:var(--tungsten);text-decoration:none}[data-immerse-author]>span{flex:none;white-space:nowrap;color:#aaa;font-size:var(--fs-sm)}
+[data-immerse-avatar]{position:relative;width:40px;height:40px;flex:none;overflow:hidden;border:0;border-radius:50%;padding:0;
+  background:#333;color:#f1f1f1;cursor:pointer;pointer-events:auto}
+[data-immerse-avatar] img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+[data-immerse-avatar] [class~=ini]{position:absolute;inset:0;display:grid;place-items:center;font-weight:600}
+[data-immerse-avatar]:hover{box-shadow:0 0 0 2px #f1f1f1}
+/* 标题是进详情页的入口，所以是按钮；但它在画面上就是一行字，不能长成按钮的样子。 */
+[data-immerse-ui] [data-immerse-title]{display:block;max-width:100%;margin:0;padding:0;border:0;background:none;
+  color:inherit;font:inherit;font-size:var(--fs-xl);font-weight:600;line-height:1.25;text-align:left;cursor:pointer;pointer-events:auto;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-immerse-ui] [data-immerse-title]:hover{color:var(--ink-2)}
+[data-immerse-actions] button[aria-pressed="true"]{background:#f1f1f1;color:#0f0f0f}
+[data-immerse-close]{position:absolute;top:15px;right:15px;width:42px;height:42px;background:rgba(0,0,0,.5);color:#EEE;
+  border:0;border-radius:50%;padding:0;display:grid;place-items:center;cursor:pointer}
+[data-immerse-close] svg{width:21px;height:21px;stroke:currentColor;fill:none}
+
+/* ── 窄屏：舞台铺满视口，动作列贴右、作者标题贴左下 ── */
+@media (max-width:760px){
+  [data-immerse-stage],[data-immerse-stage][data-wide]{inset:0;width:100%;height:100%;aspect-ratio:auto;transform:none}
+  [data-immerse-track]{border-radius:0;box-shadow:none}
+  [data-immerse-actions]{left:auto;right:max(8px,env(safe-area-inset-right));bottom:92px;width:56px;gap:14px}
+  [data-immerse-stage][data-wide] [data-immerse-actions]{left:auto;right:max(8px,env(safe-area-inset-right));bottom:92px}
+  [data-immerse-ui]{left:14px;right:82px;bottom:28px;width:auto;padding:0 0 env(safe-area-inset-bottom)}
+  [data-immerse][data-wide] [data-immerse-ui]{width:auto}
+  [data-immerse-author]{margin-bottom:8px}[data-immerse-author]>span{display:none}[data-immerse-avatar]{width:36px;height:36px}
+  [data-immerse-ui] [data-immerse-title]{font-size:var(--fs-md)}
+  [data-immerse-close]{top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right))}
+}

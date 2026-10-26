@@ -1,0 +1,13 @@
+# 从通用英文词频里移除的拼接词；它们在媒体文件名里几乎总是两个词粘在一起。
+# 只影响插入空格的位置，不用于身份归属。人名（Irina、Sona、Rina 等）不要放进来：
+# 移出词频表后，整词出现的名字会被切成碎片。
+ahot
+alot
+asa
+cockin
+froms
+gota
+hiscock
+mein
+sowell
+tfi

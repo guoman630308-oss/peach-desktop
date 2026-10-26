@@ -1,0 +1,9 @@
+/* 推荐卡复用馆藏的悬停、封面和身份头像；文字区和操作区保持同一排版高度。 */
+.peach-react [data-media-grid] > [data-jav-card] { align-self: stretch; gap: 12px; }
+.peach-react [data-jav-skeleton-actions] { height: 36px; }
+.peach-react [data-jav-skeleton-avatar] { width: 38px; height: 38px; border-radius: 50%; }
+.peach-react [data-jav-skeleton-cover] { border-radius: var(--surface-radius); }
+.peach-react [data-jav-skeleton-text] { height: 20px; }
+.peach-react [data-jav-skeleton-action] { height: 36px; border-radius: var(--control-radius); }
+.peach-react [data-jav-title] { margin: 0; font-weight: normal; }
+.peach-react [data-jav-actions] { margin-top: auto; }

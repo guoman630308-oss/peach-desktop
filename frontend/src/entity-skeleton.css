@@ -1,0 +1,6 @@
+/* `entity-skeleton.ts` 资料页骨架的身份信息那一栏；头像、标题与资料表的版式在 web/css/07-entity.css。 */
+.ui-entityidentity{min-width:0;max-width:100%}
+[data-skeleton] [data-hero-costar-name][class~="skeleton"]{width:52px;height:1lh}
+@media (max-width:760px){
+  .ui-entityidentity{width:100%}
+}

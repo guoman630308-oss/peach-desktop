@@ -1,0 +1,3 @@
+#!/bin/sh
+# 手工 merge 与直接提交走同一条判据，见同目录的 pre-commit。
+exec "$(dirname "$0")/pre-commit"

@@ -1,0 +1,92 @@
+/* `markup.ts` 画出来的那几件小部件：Spinner、Loading Dots、徽标、进度条、空态、勾选框、项目横幅与圆环仪表。
+   Geist Spinner = 用户触发动作的即时反馈；Loading Dots = 后台任务仍在推进。 */
+@keyframes geist-spinner-opacity{0%{opacity:1}100%{opacity:.15}}
+.ui-geist-spinner{position:relative;display:inline-block;flex:none;width:16px;height:16px;color:currentColor}
+.ui-geist-spinner>i{position:absolute;top:1px;left:7px;width:2px;height:4px;border-radius:var(--pill-radius);
+  background:currentColor;transform-origin:1px 7px;transform:rotate(var(--spinner-angle));
+  animation:geist-spinner-opacity 1s linear var(--spinner-delay) infinite}
+@keyframes geist-loading-dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+.ui-geist-loading{display:inline-flex;align-items:center;min-width:0;gap:8px;color:var(--muted)}
+.ui-geist-loading-dots{display:inline-flex;align-items:center;gap:3px;flex:none}
+.ui-geist-loading-dots>i{width:4px;height:4px;border-radius:50%;background:currentColor;
+  animation:geist-loading-dot 1.2s ease-in-out infinite}
+.ui-geist-loading-dots>i:nth-child(2){animation-delay:.15s}.ui-geist-loading-dots>i:nth-child(3){animation-delay:.3s}
+.ui-geist-badge{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:20px;padding:0 6px;border-radius:var(--badge-radius);background:var(--hover);color:var(--ink-2);font-size:var(--fs-xs);font-weight:500;line-height:1;white-space:nowrap}
+/* `progressHtml` 那一条进度条，颜色由调用方写进 `--progress-color`；刻度 `.ui-geist-progress-stop` 在下面仪表那一段。 */
+.ui-geist-progress{height:8px;margin-top:7px;overflow:hidden;border-radius:var(--pill-radius);background:var(--line-soft)}.ui-geist-progress i{display:block;width:var(--progress-value);height:100%;border-radius:inherit;background:var(--tungsten)}
+.ui-geist-progress{position:relative}.ui-geist-progress i{background:var(--progress-color,var(--feedback-success))}
+@media(prefers-reduced-motion:no-preference){.ui-geist-progress i{transition:width .2s ease-out,background-color .2s ease-out}}
+
+/* Geist Empty State（`emptyStateHtml`）：图标、标题与说明同处一个组件；外层容器只负责与上方工具条保持 16px。 */
+.ui-emptystate{grid-column:1/-1;display:grid;justify-items:center;align-content:center;gap:8px;box-sizing:border-box;width:100%;min-height:320px;padding:48px 24px;text-align:center;border:1px solid var(--line-soft);border-radius:var(--floating-radius);background:var(--ground)}
+.ui-emptystate .ui-es-icon{display:grid;place-items:center;box-sizing:border-box;width:54px;height:54px;padding:10px;border-radius:var(--floating-radius);border:1px solid var(--border-15);color:var(--muted);margin-bottom:8px}
+.ui-emptystate .ui-es-icon svg{width:32px;height:32px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ui-emptystate .ui-es-copy{display:grid;justify-items:center;gap:8px}
+.ui-emptystate h3{margin:0;font-size:var(--fs-md);font-weight:600;color:var(--ink)}
+.ui-emptystate p{margin:0;max-width:340px;font-size:var(--fs-sm);line-height:1.55;color:var(--muted)}
+.ui-emptystate .ui-es-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
+/* 共用勾选框：站内此前一半地方用原生 checkbox（只调了 accent-color，未选中态由浏览器
+   自绘、没有悬停反馈），另一半用关注列表自绘的那份，两种画法并排出现。统一成这一份。
+   悬停只抬填充不提边，与按钮同口径。 */
+.ui-pcheck{position:relative;display:grid;place-items:center;width:20px;height:20px;flex:none;cursor:pointer}
+.ui-pcheck input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ui-pcheck>span{box-sizing:border-box;width:16px;height:16px;border:1px solid var(--border-15);border-radius:var(--badge-radius);
+  display:grid;place-items:center;background:var(--ground);color:transparent;transition:.14s ease}
+.ui-pcheck>span svg{display:block;width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5}
+.ui-pcheck:hover>span,label:hover>.ui-pcheck>span{background:var(--hover)}
+.ui-pcheck input:checked+span{border-color:var(--ink-2);color:var(--ink)}
+.ui-pcheck input:focus-visible+span{outline:2px solid var(--tungsten);outline-offset:2px}
+.ui-pcheck input:disabled+span{cursor:not-allowed;border-color:var(--line)}
+.ui-pcheck input:disabled:checked+span{color:var(--muted)}
+.ui-pcheck:has(input:disabled){cursor:not-allowed}
+.ui-pcheck:has(input:disabled)>span{background:var(--ground)}
+/* 瀑布流里空态横跨所有列。 */
+[data-layout="masonry"]>.ui-emptystate{column-span:all}
+/* Board 的那一层（boardui checkbox-glyph.tsx）：未选 1px 边线加 shadow-xs，悬停边线深一档；选中蓝渐变加内嵌高光，
+   勾 2px 圆头 200ms 从零画出。边线 token `--color-border-checkbox-*` 在 web/board.css。 */
+.ui-pcheck{vertical-align:middle;align-self:center}
+.ui-pcheck>span{position:relative;width:16px;height:16px;border:1px solid var(--color-border-button-default);border-radius:4px;background:var(--color-background-primary-default);box-shadow:var(--elevation-xs);transition:background .15s,border-color .15s,box-shadow .15s}
+.ui-pcheck input:is(:checked,:indeterminate)+span{color:#fff;border-color:transparent;background:var(--board-blue);box-shadow:inset 0 1px 0 #ffffff40,0 1px 2px #0450e229}
+.ui-pcheck input:indeterminate+span svg{visibility:hidden}
+.ui-pcheck input:indeterminate+span::after{content:'';position:absolute;top:6px;left:3px;width:8px;height:2px;border-radius:1px;background:#fff}
+.ui-pcheck input:disabled+span{opacity:.5}
+.ui-pcheck>span svg{width:14px;height:14px;stroke-width:2}
+.ui-pcheck:hover>span{border-color:var(--color-border-button-hover)}
+input[type=checkbox]:not([data-toggle]):not(.ui-pcheck input):not(.peach-react input){accent-color:var(--color-accent-600);width:16px;height:16px;vertical-align:middle;margin:0;flex:none}
+.ui-pcheck>span{border-color:var(--color-border-checkbox-default);box-shadow:var(--elevation-xs);transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease}
+.ui-pcheck:hover>span,label:hover>.ui-pcheck>span{border-color:var(--color-border-checkbox-hover);background:var(--color-background-primary-default)}
+.ui-pcheck input:is(:checked,:indeterminate)+span{border-color:transparent;background:var(--board-blue);box-shadow:inset 0 2px 0 0 #ffffff40,inset 0 0 0 1px #3b82f6}
+.ui-pcheck:hover input:is(:checked,:indeterminate)+span,label:hover>.ui-pcheck input:is(:checked,:indeterminate)+span{border-color:transparent;background:linear-gradient(180deg,#60a5fa,#3b82f6);box-shadow:inset 0 2px 0 0 #ffffff40,inset 0 0 0 1px #3b82f6}
+@keyframes board-check-draw{from{stroke-dashoffset:23px}to{stroke-dashoffset:0}}
+.ui-pcheck>span svg{stroke-dasharray:23;stroke-dashoffset:0}
+.ui-pcheck input:checked+span svg{animation:board-check-draw .2s cubic-bezier(.65,0,.35,1) forwards}
+@media(prefers-reduced-motion:reduce){
+.ui-pcheck input:checked+span svg{animation:none;stroke-dashoffset:0}}
+
+/* 项目横幅（`projectBannerHtml`）：通栏一条，语义色走 `--feedback-color`。 */
+.ui-project-banner{--feedback-color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px 16px;flex-wrap:wrap;padding:8px 24px;min-height:40px;border-block:1px solid color-mix(in srgb,var(--feedback-color) 30%,var(--ground));background:color-mix(in srgb,var(--feedback-color) 5%,var(--ground));color:var(--feedback-color);font-size:var(--fs-md);line-height:20px}
+.ui-project-banner>div{display:flex;align-items:center;gap:8px;min-width:0}
+.ui-project-banner p{margin:0;overflow-wrap:anywhere}
+/* 圆头端点是这枚字形的一部分：alert 与 info 圆圈里那个点是长度 .01 的路径，
+   butt 端点会把它渲染成看不见的薄片，横幅上只剩上半截竖杠，警告读成了半个符号。
+   只认直接子元素：带进度时横幅里那一枚是 `.ui-geist-gauge` 的圆环，它的端点是弧的
+   两头而不是字形笔画，跟着一起圆掉就成了另一种控件的长相。 */
+.ui-project-banner>div>svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.ui-project-banner>a{color:inherit;text-decoration:underline;text-underline-offset:5px;font-weight:500;flex:none}
+.ui-project-banner-error{--feedback-color:var(--drop)}
+.ui-project-banner-warning{--feedback-color:var(--meter)}
+.ui-project-banner-success{--feedback-color:var(--feedback-success)}
+/* 窄屏上说明从左边起，动作靠右端：`auto` 而不是定值缩进，说明长短不一时那个链接才
+   总在同一条竖线上，换行之后也还在这一横条的右端。 */
+@media(max-width:600px){.ui-project-banner{justify-content:flex-start}.ui-project-banner>a{margin-left:auto}}
+/* 圆环仪表（`gaugeHtml`）与进度条刻度（`progressHtml` 的 `stops`）。 */
+.ui-geist-gauge{display:inline-flex;width:32px;height:32px;flex:none;vertical-align:middle;margin-inline-end:8px}
+.ui-geist-gauge svg{width:100%;height:100%;fill:none;stroke-width:3}
+.ui-geist-gauge circle:first-child{stroke:var(--line-soft)}
+.ui-geist-gauge circle:last-child{stroke:var(--feedback-success);transform:rotate(-90deg);transform-origin:center}
+.ui-geist-progress-stop{position:absolute;top:0;bottom:0;width:2px;background:var(--ground);transform:translateX(-50%)}
+.ui-geist-gauge[data-level="warning"] circle:last-child{stroke:var(--meter)}
+.ui-geist-gauge[data-level="error"] circle:last-child{stroke:var(--drop)}
+.ui-gauge-status{margin-inline-end:8px;font-size:var(--fs-xs)}
+@media(prefers-reduced-motion:no-preference){.ui-geist-gauge circle:last-child{transition:stroke-dasharray .2s ease-out,stroke .2s ease-out}}

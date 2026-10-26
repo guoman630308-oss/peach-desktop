@@ -1,0 +1,227 @@
+/* 垃圾文件队列（`junk-card.tsx`、`junk-count.tsx`、`junk-queue-page.tsx`）。
+ *
+ * 取值同这一页迁到 React 之前壳里那一版：`web/css/12-cards.css` 的 `.junkcard`／`.junkfilters`
+ * 一族加 Board 覆盖层（`web/board.css` 的 `/junk-files` 那几条），以及 `web/css/19-immersive.css`
+ * 760px 以下的触摸尺寸。预览格、来源角标、选中描边与勾沿用作品卡（`../components/media-card.css`），
+ * 这里只写垃圾卡自己的几何。选择器全用 `data-*`：旧样式表不分层、排在后面，写旧类名会被接管。 */
+
+/* ── 计数行 ──
+ * 摘要面与分类条上下两块，同标题一样宽；分类条横向放不下时自己滚，滚动条是全站那条覆盖式的。
+ *
+ * 分类条是首页筛选条上排那一副：玻璃的料由 `web/board.css` 的 `[data-glass-pane]` 给，圆角、
+ * 饱和度与字色是 `../styles.css` 的 `[data-filter-glass]`；一排 48px 高、8px／12px 内边距、格间 7px，
+ * 分类键同 `../catalog-filter/catalog-filter.css` 的 `[data-catalog-view]`。当前那一类的底由那块滑动
+ * 玻璃（`[data-view-glide]`）给，键自己不铺底，字压在玻璃上面。这一条不吸顶：它住在壳的 `#count`
+ * 里，吸顶的范围出不了那一行；`[data-filter-glass]` 给吸顶用的 `top` 在这里清零，否则相对定位
+ * 会把整条往下推一个顶栏高。 */
+.peach-react [data-junk-count] { display: flex; flex-direction: column; gap: 16px; }
+.peach-react [data-junk-filters-frame][data-filter-glass] { position: relative; top: 0; min-width: 0; }
+.peach-react [data-junk-filters] {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  height: 48px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  box-sizing: border-box;
+}
+.peach-react [data-junk-filters]::-webkit-scrollbar { display: none; }
+.peach-react [data-junk-filters] a {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--glass-text) 60%, transparent);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-junk-filters] a:is(:hover, [aria-current="page"]) { color: var(--glass-text); }
+/* 不归滑动玻璃的那几处当前项自己垫一块同料的玻璃：换视图那一枚（已排除视图下它和「全部」同时
+ * 是当前项），以及壳在 React 包加载之前铺的那一版——那时滑动玻璃还没人放。 */
+.peach-react :is([data-junk-view-link], [data-junk-count-skeleton] [data-junk-kind-link])[aria-current="page"] {
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 62%), var(--glass-pick-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-rim), var(--glass-pick-shadow);
+}
+.peach-react [data-junk-filters] a:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-junk-filters] a > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* 计数徽标同首页标签药丸上那一枚：平时淡一档，悬停与当前项跟着字一起提亮。 */
+.peach-react [data-junk-filters] [data-count-badge] {
+  color: color-mix(in srgb, var(--glass-text) 55%, transparent);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-junk-filters] a:is(:hover, [aria-current="page"]) [data-count-badge] {
+  color: color-mix(in srgb, var(--glass-text) 80%, transparent);
+}
+/* 分隔线同首页与资料页那一条（`../entity-filter/entity-filter.css` 的 `[data-entity-sep]`）。 */
+.peach-react [data-junk-divider] { flex: none; width: 1px; height: 19px; margin: 0 3px; background: var(--field-ring-hover); }
+
+/* ── 网格与卡片 ──
+ * 卡片最窄 280px，放不下就退成一列；卡是一块有边的面，预览格贴边，元信息区四周 20px，
+ * 键行沉一档底色。卡片不做悬停面：卡上能点的是标题和三颗键，整张卡不是点击区。 */
+.peach-react [data-media-grid][data-junk-grid] {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.peach-react [data-media-card][data-junk-card] {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--surface-radius);
+  background: var(--color-background-primary-default);
+  cursor: default;
+  /* 视口外的卡跳过渲染，同旧 `.junkcard`：一张卡大约 360px 高。 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
+}
+.peach-react [data-junk-card] [data-media-art] > img { object-fit: contain; }
+.peach-react [data-junk-card] [data-media-glyph] b { font-weight: 700; }
+
+.peach-react [data-junk-meta] { display: grid; gap: 6px; min-width: 0; padding: 20px; }
+.peach-react [data-junk-title] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+}
+.peach-react button[data-junk-title] { cursor: pointer; }
+.peach-react button[data-junk-title]:hover { color: var(--ink-2); }
+.peach-react button[data-junk-title]:focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 3px;
+  border-radius: var(--control-radius);
+}
+.peach-react [data-junk-facts] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+  color: var(--muted);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-junk-why] { overflow-wrap: anywhere; }
+.peach-react [data-junk-size] { margin-left: auto; white-space: nowrap; }
+
+/* 三颗键等宽，图标加标签在各自那一格里居中；状态行跨满一行，没有话时不占地方。 */
+.peach-react [data-junk-actions] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--color-background-secondary-default);
+}
+.peach-react [data-junk-actions] button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  height: 36px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-button-default);
+  border-radius: 10px;
+  background: var(--color-background-primary-default);
+  box-shadow: var(--elevation-xs);
+  color: var(--ink);
+  font: var(--board-body-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-junk-actions] button:hover:not([aria-busy]) { background: var(--inset); color: var(--ink); }
+.peach-react [data-junk-actions] button:focus-visible { outline: 2px solid var(--tungsten); outline-offset: 2px; }
+.peach-react [data-junk-actions] button[aria-busy] { cursor: wait; opacity: .64; }
+.peach-react [data-junk-actions] button svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.peach-react [data-junk-spinner] { display: inline-flex; flex: none; }
+/* 「移入回收站」是全站那一档危险键：静止就是实底红配白字，悬停由一层伪元素加深，
+ * 同 `web/board.css` 的 `button.danger`。字号收一档，一格放得下五个字。 */
+.peach-react [data-junk-actions] button[data-junk-action="dispose"] {
+  position: relative;
+  isolation: isolate;
+  padding: 0 10px;
+  border: 0;
+  background: var(--board-red);
+  color: #fff;
+  font: inherit;
+  font-size: var(--fs-xs);
+}
+.peach-react [data-junk-actions] button[data-junk-action="dispose"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--board-red-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+.peach-react [data-junk-actions] button[data-junk-action="dispose"]:hover:not([aria-busy]) { background: var(--board-red); color: #fff; }
+.peach-react [data-junk-actions] button[data-junk-action="dispose"]:hover:not([aria-busy])::before { opacity: 1; }
+.peach-react [data-junk-actions] button[data-junk-action="dispose"]:active { background: var(--board-red-active); }
+.peach-react [data-junk-state] { grid-column: 1 / -1; color: var(--drop); font-size: var(--fs-xs); }
+.peach-react [data-junk-state]:empty { display: none; }
+/* 多选时整张卡都是切换选中，键行不接指针。 */
+.peach-react [data-select-mode] [data-junk-actions] { pointer-events: none; opacity: .52; }
+/* 紧凑密度下只剩图标。 */
+body[data-density="dense"] .peach-react [data-junk-actions] [data-junk-label] { display: none; }
+
+/* 手机上够手指点：分类与三颗键都到 44px。 */
+@media (max-width: 760px) {
+  .peach-react [data-junk-filters] { height: 60px; }
+  .peach-react [data-junk-filters] a { height: 44px; }
+  .peach-react [data-junk-actions] button { min-height: 44px; }
+  .peach-react [data-junk-actions] button[data-junk-action="dispose"] { padding-inline: 7px; }
+}
+
+/* 键行按自己的宽度判：卡片窄到三格放不下「图标＋五个字」时（单列手机上约 290px 宽的卡）
+ * 收掉图标、收窄内边距，字留着；无障碍名与 title 不变。 */
+.peach-react [data-junk-actions] { container-type: inline-size; }
+@container (max-width: 340px) {
+  .peach-react [data-junk-actions] button[data-junk-action] { gap: 4px; padding-inline: 6px; }
+  .peach-react [data-junk-actions] button > svg { display: none; }
+}

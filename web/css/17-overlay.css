@@ -1,0 +1,52 @@
+/* ── Toast：Sonner 的栈，Board 的面 ──
+   堆叠、悬停展开、滑动关闭与悬停暂停计时照 Sonner（`frontend/src/react/toaster.tsx`）；面、线、
+   外框采用 Agent Progress 的圆角、细边和接触阴影。颜色变量写在每条 toast
+   自己身上，压过 Sonner 按浅色主题挂在栈上的那一组，两档主题都跟着 Board token 走。
+   层级回到站内的 popover 档：Sonner 自带的九位数会连 tooltip 一起盖住。 */
+#toasts [data-sonner-toaster]{z-index:var(--layer-popover);font:var(--board-body)}
+#toasts .processing-task-toast{width:100%;right:0}
+[data-processing-dock]{width:100%}
+/* 状态色叠在不透明卡面上，悬浮任务不透出底下的页面。 */
+[data-processing-dock][data-processing-tone=error]{
+  background-image:linear-gradient(var(--color-background-tertiary-error),var(--color-background-tertiary-error))}
+[data-processing-dock][data-processing-tone=warning]{
+  background-image:linear-gradient(var(--color-status-yellow-background),var(--color-status-yellow-background))}
+#toasts [data-sonner-toast][data-styled=true]{--normal-bg:var(--color-background-primary-default);
+  --normal-border:var(--color-border-button-default);--normal-text:var(--color-text-primary);
+  width:max-content;min-width:min(400px,100%);max-width:100%;right:0;
+  padding:18px 20px;gap:12px;flex-wrap:wrap;font:var(--board-body)}
+#toasts :is([data-sonner-toast][data-styled=true],[data-processing-dock]){
+  border-radius:var(--floating-radius);box-shadow:var(--elevation-xs)}
+/* 正文按实际内容参与排布，上限留出图标、间距与 Sonner 的光学校正边距。 */
+#toasts [data-sonner-toast][data-styled=true] [data-content]{flex:1 1 auto;
+  max-width:calc(100% - 28px - var(--toast-icon-margin-start) - var(--toast-icon-margin-end))}
+#toasts [data-sonner-toast][data-styled=true] [data-button]{white-space:nowrap;margin-left:auto}
+@media(max-width:600px){
+  #toasts [data-sonner-toaster]{width:calc(100% - var(--mobile-offset-left) - var(--mobile-offset-right))}
+  #toasts [data-sonner-toast][data-styled=true]{width:100%;min-width:0;left:auto}
+}
+/* 正文里的换行照写，长路径与无空格的串就地折行。一条最高占视口的四分之一，再长在条内滚：
+   悬停展开时三条叠起来仍留在视口里，不顶出上沿。 */
+#toasts [data-sonner-toast][data-styled=true] [data-title]{font-weight:500;white-space:pre-line;overflow-wrap:anywhere;
+  max-height:24dvh;overflow-y:auto;overscroll-behavior:contain}
+#toasts [data-sonner-toast] b{font-variant-numeric:tabular-nums}
+/* 字形用全站那套描边件：成功是主色的勾，失败是警示色的圈。不写 `fill:none` 就按 `fill` 的
+   初值涂黑，一个勾会糊成实心箭头；圆线帽是感叹号那一点的全部，平头线帽下它就消失。 */
+#toasts [data-toast-glyph]{display:contents;color:var(--color-accent-600)}
+#toasts [data-type=error] [data-toast-glyph]{color:var(--drop)}
+#toasts [data-toast-glyph] svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+#toasts [data-sonner-toast] [data-close-button]:hover{background:var(--color-background-primary-hover);
+  border-color:var(--color-border-button-hover)}
+#toasts [data-sonner-toast] [data-button][aria-busy=true]{opacity:.6;cursor:default}
+#toasts [data-sonner-toast] [data-action]{background:var(--board-blue);color:var(--color-text-white)}
+#toasts [data-sonner-toast] [data-action]:hover:not(:disabled){background:var(--board-blue-hover);color:var(--color-text-white)}
+#toasts [data-sonner-toast] [data-action]:active:not(:disabled){background:var(--board-blue-active);color:var(--color-text-white)}
+#toasts [data-sonner-toast] [data-action]:focus-visible{outline:2px solid var(--color-border-focus-ring);outline-offset:2px}
+
+/* SFW 模式默认关闭，浏览器保存显式选择。全站图片、视频及 videojs 海报层
+   使用模糊、降低饱和度与压暗处理；品牌标识、来源图标保持可见。
+   悬停预览由 JS 停止启动，文字不受图片滤镜影响。 */
+body.censor img,body.censor video,body.censor .vjs-poster{
+  filter:blur(30px) saturate(.3) brightness(.6)}
+body.censor .brand .mark,body.censor .src img,body.censor [data-follow-site-icon]{filter:none}

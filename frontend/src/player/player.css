@@ -1,0 +1,464 @@
+/* 播放器（`frontend/src/player/`）：画面框、Video.js 的外观、统计角标、加载速度角标与右键菜单。
+ *
+ * 这些节点由命令式模块画，不进 React 渲染，也不在 `.peach-react` 里：画面框在两座详情岛的
+ * 媒体格里（`[data-stage-media]`），右键菜单建在 body 上、舞台开着时挪进舞台。选择器全用
+ * `data-*`；播放器皮肤的 `video-js` 与 `vjs-*` 类用于 Peach 控件和布局
+ * （`test/legacy-class-names.test.ts` 按前缀放行）。
+ *
+ * 引入顺序排在各岛样式之后、舞台样式之前（`src/react/styles.css`）。舞台里压过播放器的几条
+ * （小窗里的画面、影院模式下的画面上限）都写在 `stage.css`，排在这里后面才生效。
+ * `web/app.css`、`web/board.css` 剩下的规则排在这两份之后，它们选中的是壳自己的类。
+ *
+ * `backdrop-filter` 只写标准属性：带前缀那条由构建按目标补上。两条都手写的话，产物里只剩带前缀
+ * 那条，当前 Chromium 不认，模糊整条丢掉。 */
+
+/* Video.js 10 控件使用 light DOM，几何归 Peach 皮肤。 */
+.video-js{display:block;position:relative;box-sizing:border-box;color:#fff;background:#000;font-size:10px;line-height:1;font-family:inherit}
+.video-js>video-player{display:contents}
+.video-js>video-player>media-container{display:block;width:100%;height:100%;position:absolute;inset:0}
+.video-js :is(hlsjs-video,dash-video){display:contents}
+.video-js .vjs-tech{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.video-js .vjs-control-bar{display:flex;position:absolute;bottom:0;left:0;width:100%;height:3em;z-index:2}
+.video-js .vjs-control{position:relative;flex:none;box-sizing:border-box;width:4em;height:3em;color:inherit}
+.video-js .vjs-button{display:block;cursor:pointer;background:none;border:0;padding:0;color:inherit;font:inherit;outline-offset:2px;touch-action:manipulation;user-select:none}
+.video-js .vjs-button:focus-visible,.video-js media-slider-thumb:focus-visible{outline:2px solid var(--tungsten)}
+.video-js .vjs-slider{display:block;position:relative;cursor:pointer;touch-action:none}
+.video-js media-slider-track{display:block;position:absolute;inset:0}
+.video-js .vjs-play-progress,.video-js .vjs-load-progress,.video-js .vjs-volume-level{display:block;position:absolute;left:0;top:0;height:100%}
+.video-js .vjs-play-progress,.video-js .vjs-volume-level{width:var(--media-slider-fill,0%);background:#fff}
+.video-js .vjs-load-progress{width:var(--media-slider-buffer,0%);background:rgba(255,255,255,.35)}
+.video-js media-slider-thumb{display:block;position:absolute;left:var(--media-slider-fill,0%);top:50%;width:12px;height:12px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);z-index:2}
+.video-js .vjs-loading-spinner{display:none;position:absolute}
+.video-js.vjs-waiting:not(.vjs-paused) .vjs-loading-spinner{display:block}
+.video-js .vjs-error-display{display:none;position:absolute;inset:0;pointer-events:none}
+.video-js.vjs-error .vjs-error-display{display:flex;align-items:center;justify-content:center}
+.video-js.vjs-user-inactive.vjs-playing .vjs-control-bar{opacity:0;pointer-events:none}
+.video-js.vjs-fullscreen{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important}
+.video-js media-container:fullscreen{width:100vw;height:100vh;background:#000}
+.video-js .vjs-modal-dialog-content{position:absolute}
+.video-js media-slider-value{position:absolute;visibility:hidden}
+.video-js .vjs-volume-panel:hover media-slider-value,.video-js .vjs-volume-panel:focus-within media-slider-value{visibility:visible}
+/* ── 画面框与 Video.js 外观 ── */
+/* 挂载前的原生 video 与播放器皮肤共用尺寸和字形。 */
+video.video-js{vertical-align:top;font-size:10px;line-height:1;font-family:Arial,Helvetica,sans-serif}
+[data-stage-media]{background:#000;position:relative;display:flex;align-items:center;justify-content:center;isolation:isolate}
+[data-ambient-canvas]{position:absolute;z-index:0;inset:-34px;width:calc(100% + 68px);height:calc(100% + 68px);
+  filter:blur(46px) saturate(1.45);opacity:.42;transform:scale(1.06);pointer-events:none;
+  mask-image:radial-gradient(ellipse at center,#000 28%,rgba(0,0,0,.72) 55%,transparent 86%);-webkit-mask-image:radial-gradient(ellipse at center,#000 28%,rgba(0,0,0,.72) 55%,transparent 86%)}
+[data-stage]:not([data-ambient]) [data-ambient-canvas]{display:none}
+[data-stage-media]>video,[data-stage-media]>.video-js{position:relative;z-index:1}
+[data-stage-media] video{width:100%;max-height:76vh;display:block}
+/* 计费来源点击前只显示拉流入口。显式 display:block 会覆盖浏览器的 hidden 默认样式，
+   让尚未启动的播放器和入口各占一半，所以这里必须让隐藏视频完全退出布局。 */
+[data-stage-media]>video[hidden]{display:none}
+/* 高度只由 16:9 和宽度决定，不设最低高度。给一个像素地板的话，窄屏下画面按
+   object-fit:contain 缩在中间，上下各补一条黑边——414px 宽的视口上那是 112px 的空白，
+   比它保护的东西更显眼。设置面板与统计面板本来就是 max-height 加内部滚动，播放器矮下来
+   它们跟着矮，不会被裁。占位门同用一套判据，否则点开的一瞬间整页会往下跳一截。 */
+[data-stage-media]>.video-js{width:100%;height:auto;max-height:76vh;aspect-ratio:16/9;background:#000}
+/* 画面层的高度只跟着外框走。上面那条 `[data-stage-media] video` 的 76vh 是给裸 `<video>` 的，它同样
+   命中 Video.js 里面这一枚：影院模式把外框放高之后，画面还停在 76vh，底下空出一条黑边。 */
+[data-stage-media] .video-js .vjs-tech{object-fit:contain;max-height:none}
+/* 中心提示圆自己就是画面中央的播放态入口，原生大播放键留着只会跟它抢同一块地方。 */
+[data-stage-media] .video-js .vjs-big-play-button{display:none}
+/* Peach 的控件在 `player.ready` 里才装上（提示圆是其中一枚）。在那之前控制条是 Video.js 原装那一排：
+   没有时间、没有右侧胶囊，播放键也没换上 Peach 的字形，机器一忙这一段就看得见。装上之前先藏着。 */
+[data-stage-media] .video-js:not(:has(.vjs-peach-bezel)) .vjs-control-bar{visibility:hidden}
+/* YouTube e937390a `FsY` spinner DOM 与当前四段动画；复用 Video.js 的 waiting/seeking 状态。 */
+[data-stage-media] .video-js .vjs-loading-spinner{z-index:18;left:50%;top:50%;width:64px;height:64px;margin:0;padding:0;border:0;border-radius:0;background:transparent;opacity:1;transform:translate(-50%,-50%)}
+[data-stage-media] .video-js .vjs-loading-spinner:before,[data-stage-media] .video-js .vjs-loading-spinner:after{content:none}
+.vjs-peach-spinner-container{pointer-events:none;position:absolute;width:100%;height:100%;top:0;left:0;animation:peach-spinner-linspin 1.5682352941176s linear infinite}
+.vjs-peach-spinner-rotator{position:absolute;width:100%;height:100%;animation:peach-spinner-easespin 5332ms cubic-bezier(.4,0,.2,1) infinite both}
+.vjs-peach-spinner-left,.vjs-peach-spinner-right{position:absolute;inset:0;overflow:hidden}.vjs-peach-spinner-left{right:49%}.vjs-peach-spinner-right{left:49%}
+.vjs-peach-spinner-circle{box-sizing:border-box;position:absolute;width:200%;height:100%;border:6px solid #ddd;border-bottom-color:transparent;border-radius:50%}
+.vjs-peach-spinner-left .vjs-peach-spinner-circle{left:0;right:-100%;border-right-color:transparent;animation:peach-spinner-left-spin 1333ms cubic-bezier(.4,0,.2,1) infinite both}
+.vjs-peach-spinner-right .vjs-peach-spinner-circle{left:-100%;right:0;border-left-color:transparent;animation:peach-spinner-right-spin 1333ms cubic-bezier(.4,0,.2,1) infinite both}
+@keyframes peach-spinner-linspin{to{transform:rotate(1turn)}}
+@keyframes peach-spinner-easespin{12.5%{transform:rotate(135deg)}25%{transform:rotate(270deg)}37.5%{transform:rotate(405deg)}50%{transform:rotate(540deg)}62.5%{transform:rotate(675deg)}75%{transform:rotate(810deg)}87.5%{transform:rotate(945deg)}to{transform:rotate(3turn)}}
+@keyframes peach-spinner-left-spin{0%{transform:rotate(130deg)}50%{transform:rotate(-5deg)}to{transform:rotate(130deg)}}
+@keyframes peach-spinner-right-spin{0%{transform:rotate(-130deg)}50%{transform:rotate(5deg)}to{transform:rotate(-130deg)}}
+/* YouTube `e937390a` 实测控制层：59px 控制栏、40px 左钮、右侧共享胶囊和 6px 进度命中区。 */
+/* video.js 自带 Arial；播放器里的时间、菜单、加载速度都跟页面主字体走，不另起一套。 */
+[data-stage-media] .video-js{font-family:inherit}
+[data-stage-media] .video-js .vjs-control-bar{box-sizing:border-box;left:12px;right:12px;bottom:8px;width:auto;height:59px;
+  padding:3px 0 0;display:flex;align-items:flex-end;border-radius:0;background:transparent;backdrop-filter:none}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control{position:relative;align-self:flex-end;flex:0 0 40px;width:40px;height:40px;margin:0 0 8px;
+  border:0;border-radius:50%;background:rgba(0,0,0,.6);box-shadow:none;overflow:visible}
+[data-stage-media] .video-js .vjs-volume-panel>.vjs-mute-control .vjs-icon-placeholder:before,
+[data-stage-media] .video-js .vjs-peach-right-controls .vjs-icon-placeholder:before{display:grid;place-items:center;width:100%;height:100%;line-height:normal;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+[data-stage-media] .video-js [data-peach-explicit-icon]>.vjs-icon-placeholder:before,
+[data-stage-media] .video-js [data-peach-explicit-icon]>.vjs-icon-placeholder:after{display:none}
+[data-stage-media] .video-js .vjs-volume-panel>.vjs-mute-control[data-peach-explicit-icon]>.vjs-icon-placeholder{display:none!important}
+.vjs-peach-control-icon{position:absolute;z-index:2;left:50%;top:50%;width:24px;height:24px;display:block;
+  transform:translate(-50%,-50%) scale(1);fill:currentColor;stroke:none;filter:drop-shadow(0 0 1px rgba(0,0,0,.8));pointer-events:none;
+  transition:transform .1s cubic-bezier(.05,0,0,1)}
+[data-stage-media] .video-js [data-peach-explicit-icon]:active>.vjs-peach-control-icon{transform:translate(-50%,-50%) scale(.9)}
+/* 上游 delhi-modern 的播放键是 56px 圆里放一个 36px 的图标框（`svg{padding:10px}`），
+   图标本体 26 个单位。Peach 的键是 40px，同比例给 26px 的框，画出来 18.6px。 */
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control>.vjs-peach-control-icon{width:26px;height:26px}
+/* 播放↔暂停靠插值同一条路径完成，不是换图：上游那两条路径的记号结构逐位相同（233 个记号、
+   116 个数字，命令序列都是 MLCCLCCLCCLCCZMLCCVCCLCCVLCCZ），所以浏览器插 `d` 得到的中间
+   形状就是上游 `eST` 自己插出来的那些。不支持插值 `d` 的浏览器退回瞬间切换。 */
+.vjs-peach-morph-icon path{transition:d .2s cubic-bezier(.4,0,.2,1)}
+/* 两道弧的缩放中心写在变换里，所以 `transform-origin` 必须归零：默认的 50% 50% 会把中心
+   整体挪一段，弧就不是缩进自己而是斜着飞出去。`transform-box:view-box` 让这里的 px
+   等于视框单位，跟上游 `transform` 属性里的数字对得上。 */
+.vjs-peach-morph-icon .vjs-peach-volume-arc-inner,
+.vjs-peach-morph-icon .vjs-peach-volume-arc-outer{transform-box:view-box;transform-origin:0 0;
+  transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.vjs-peach-morph-icon[data-silent="true"] .vjs-peach-volume-arc-inner{transform:translate(18px,12px) scale(0) translate(-18px,-12px)}
+.vjs-peach-morph-icon[data-silent="true"] .vjs-peach-volume-arc-outer,
+.vjs-peach-morph-icon[data-loud="false"] .vjs-peach-volume-arc-outer{transform:translate(22px,12px) scale(0) translate(-22px,-12px)}
+/* 弧缩完那一刻整块换成静音那张图标，和上游 `jjc` 走到 q===1 时替换整个 svg 一样：时长 0、
+   延迟 250ms，实心喇叭让位，挖空的喇叭和叉号顶上。挖空那条的外框与实心那条是同一串数字，
+   所以换的那一刻只有中间的洞出现，轮廓一动不动。取消静音走没有延迟的那一条，洞和叉号
+   立刻消失、弧再长回来。 */
+.vjs-peach-morph-icon .vjs-peach-volume-speaker{opacity:1;transition:opacity 0s linear}
+.vjs-peach-morph-icon .vjs-peach-volume-speaker-muted,
+.vjs-peach-morph-icon .vjs-peach-volume-x{opacity:0;transition:opacity 0s linear}
+.vjs-peach-morph-icon[data-silent="true"] .vjs-peach-volume-speaker{opacity:0;transition:opacity 0s linear .25s}
+.vjs-peach-morph-icon[data-silent="true"] .vjs-peach-volume-speaker-muted,
+.vjs-peach-morph-icon[data-silent="true"] .vjs-peach-volume-x{opacity:1;transition:opacity 0s linear .25s}
+.vjs-peach-hover{position:absolute;z-index:0;left:0;top:4px;width:100%;height:32px;border-radius:var(--pill-radius);pointer-events:none;
+  background:transparent;transition:background .2s cubic-bezier(.05,0,0,1)}
+/* 40px 的圆形播放键里再铺一层 40×32 的胶囊，hover 时亮起来的是个两头圆的方块，
+   和键本身的圆形对不上。圆键的高亮层统一是内缩 4px 的同心圆——音量键、时间钮的
+   `:after{inset:4px}` 早就是这个样子，播放键、左上统计钮、右上关闭钮跟着走同一套。 */
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control>.vjs-peach-hover{inset:4px;width:auto;height:auto;border-radius:50%}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control:hover>.vjs-peach-hover,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control:focus-visible>.vjs-peach-hover,
+.vjs-peach-right-controls>.vjs-control:hover>.vjs-peach-hover,
+.vjs-peach-right-controls>.vjs-control:focus-within>.vjs-peach-hover{background:rgba(255,255,255,.1)}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control:active>.vjs-peach-hover,
+.vjs-peach-right-controls>.vjs-control:active>.vjs-peach-hover{background:rgba(255,255,255,.2)}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-play-control .vjs-icon-placeholder,
+[data-stage-media] .video-js .vjs-peach-right-controls button,.vjs-peach-settings>button,.vjs-peach-theater>button{position:relative;z-index:1}
+/* 音量键和左边的播放键、右边的胶囊同一排，底色必须同一档 .6；之前是 .3，
+   一排三个黑底就它一个发灰。 */
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel{box-sizing:border-box;z-index:3;position:relative;align-self:flex-end;flex:0 0 40px;width:40px;height:40px!important;
+  margin:0 0 8px 12px;padding:0;border:0;border-radius:var(--pill-radius);background:rgba(0,0,0,.6);box-shadow:none;
+  backdrop-filter:blur(16px);
+  display:grid;grid-template-columns:40px 0;column-gap:0;align-items:center;isolation:isolate;overflow:visible;transition:width .2s cubic-bezier(.05,0,0,1),flex-basis .2s cubic-bezier(.05,0,0,1),padding-right .2s cubic-bezier(.05,0,0,1)}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel:after{content:"";position:absolute;z-index:0;inset:4px;border-radius:var(--pill-radius);background:transparent;pointer-events:none;transition:background .2s cubic-bezier(.05,0,0,1)}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel:hover:after,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel:focus-within:after,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel.vjs-hover:after,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel.vjs-slider-active:after{background:rgba(255,255,255,.1)}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel:active:after{background:rgba(255,255,255,.2)}
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel:hover,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel:focus-within,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel.vjs-hover,
+[data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel.vjs-slider-active{flex-basis:111px;width:111px;grid-template-columns:40px 52px;column-gap:3px;padding-right:16px;background:rgba(0,0,0,.6)}
+[data-stage][data-theater] [data-stage-media] .video-js .vjs-control-bar>.vjs-volume-panel,
+.video-js.vjs-fullscreen .vjs-control-bar>.vjs-volume-panel{background:rgba(0,0,0,.6)!important;
+  backdrop-filter:blur(16px);}
+[data-stage-media] .video-js .vjs-volume-panel>.vjs-mute-control{box-sizing:border-box;z-index:1;position:relative!important;left:0!important;top:0!important;align-self:center;flex:0 0 40px;width:40px!important;min-width:40px;height:40px!important;margin:0!important;padding:0!important;border:0;background:transparent;transform:none!important}
+[data-stage-media] .video-js .vjs-volume-panel>.vjs-mute-control>.vjs-peach-control-icon{width:18px;height:18px}
+[data-stage-media] .video-js .vjs-volume-panel>.vjs-volume-control.vjs-volume-horizontal{box-sizing:border-box;z-index:1;position:relative!important;left:0!important;top:0!important;display:block!important;align-self:center;flex:0 0 52px;width:52px!important;min-width:52px;height:40px!important;min-height:36px;margin:0!important;padding:0!important;overflow:visible;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .1s cubic-bezier(0,0,.2,1)}
+[data-stage-media] .video-js .vjs-volume-panel:hover>.vjs-volume-control.vjs-volume-horizontal,
+[data-stage-media] .video-js .vjs-volume-panel:focus-within>.vjs-volume-control.vjs-volume-horizontal,
+[data-stage-media] .video-js .vjs-volume-panel.vjs-hover>.vjs-volume-control.vjs-volume-horizontal,
+[data-stage-media] .video-js .vjs-volume-panel.vjs-slider-active>.vjs-volume-control.vjs-volume-horizontal{opacity:1;visibility:visible;pointer-events:auto;transition-delay:.08s}
+/* 滑轨本体撑满面板那 40px 高：Video.js 只在滑轨元素上接鼠标，画出来的那条 2px 线要是
+   就是滑轨，鼠标得正好压在线上才点得到。线和进度各画在竖直中线上，滑轨自己透明。 */
+[data-stage-media] .video-js .vjs-volume-panel .vjs-volume-bar.vjs-slider-horizontal{box-sizing:border-box;position:absolute!important;left:0!important;right:auto!important;top:0!important;width:52px!important;height:40px!important;margin:0!important;overflow:visible!important;background:transparent;transform:none}
+[data-stage-media] .video-js .vjs-volume-panel .vjs-volume-bar.vjs-slider-horizontal::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:rgba(255,255,255,.3)}
+[data-stage-media] .video-js .vjs-volume-panel .vjs-volume-level{top:50%;bottom:auto;height:2px;margin-top:-1px;background:#fff}
+/* Video.js 在鼠标所在的位置画一条 1px 黑线、高度随滑轨，滑轨撑满面板后它成了一整条竖杠。
+   位置已经由上面那枚数字说了，线本身只去掉底色，数字照旧挂在它身上。 */
+[data-stage-media] .video-js .vjs-volume-panel .vjs-mouse-display{background:transparent}
+[data-stage-media] .video-js .vjs-volume-panel .vjs-volume-level:before{top:50%;right:-6px;width:12px;height:12px;margin:0;font-size:0;border-radius:50%;background:#fff;transform:translateY(-50%)}
+/* `right:auto` 必须带 !important：Video.js 的 VolumeLevelTooltip 每 30ms 往元素上写一句
+   行内 `style.right=-Npx`，行内声明压过样式表里同名的普通声明。`left:50%` 和那个 right
+   同时成立时，绝对定位的宽度就由两边反推，不再收缩到文字宽——底色会摊成一块比数字大得多
+   的方块，而且它下一次测量自己时又按新宽度算 N，尺寸每帧都在飘。 */
+[data-stage-media] .video-js .vjs-volume-panel .vjs-volume-tooltip{z-index:5!important;left:50%;right:auto!important;top:auto;bottom:calc(50% + 31px);
+  float:none;transform:translateX(-50%);padding:5px 9px;border-radius:var(--surface-radius);background:rgba(0,0,0,.6);
+  backdrop-filter:blur(16px);color:#fff;font-family:inherit;font-size:var(--fs-sm);font-weight:500;
+  line-height:15px;text-shadow:0 0 2px #000;overflow:visible;white-space:nowrap}
+.vjs-peach-right-controls{box-sizing:border-box;position:relative;align-self:flex-end;flex:0 0 auto;height:40px;margin:0 0 8px auto;
+  padding:0 4px;display:flex;align-items:center;border:0;border-radius:var(--pill-radius);background:rgba(0,0,0,.6);box-shadow:none;
+  overflow:visible;backdrop-filter:blur(16px);}
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-control{box-sizing:border-box;position:relative;flex:0 0 48px;width:48px!important;min-width:48px;height:40px!important;
+  margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#fff}
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-control>button{width:100%;height:100%;margin:0;padding:0;border:0;background:transparent;color:inherit}
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-control:focus,
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-control:focus-visible,
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-control>button:focus,
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-control>button:focus-visible{outline:0;box-shadow:none}
+[data-stage-media] .video-js .vjs-peach-right-controls>.vjs-button:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+/* 官方时间滑条承接完整的 18px 命中区；6px 轨道贴底，扩出的部分位于彩条上方。
+   几何取自已登记的 YouTube 控制条证据，拖动与键盘操作由 Video.js 处理。 */
+[data-stage-media] .video-js .vjs-progress-control{z-index:2;position:absolute;left:0;right:0;top:-12px;width:auto;height:18px;
+  min-width:0;display:flex;align-items:flex-end}
+[data-stage-media] .video-js .vjs-progress-control .vjs-progress-holder{width:100%;height:18px;margin:0;border-radius:0;background:transparent}
+[data-stage-media] .video-js .vjs-progress-holder>media-slider-track{top:auto;bottom:0;height:6px;background:rgba(40,40,40,.6);transform:scaleY(.667);transition:transform .2s cubic-bezier(.05,0,0,1)}
+[data-stage-media] .video-js .vjs-progress-control:hover media-slider-track,[data-stage-media] .video-js .vjs-progress-control:focus-within media-slider-track{transform:scaleY(1)}
+[data-stage-media] .video-js .vjs-load-progress{background:rgba(255,255,255,.4)}
+[data-stage-media] .video-js .vjs-load-progress div{background:rgba(255,255,255,.2)}
+[data-stage-media] .video-js .vjs-play-progress{background:var(--tungsten)}
+/* 官方滑块是唯一的进度圆点：常驻 12px，悬停与聚焦按证据放大至 1.67 倍。 */
+[data-stage-media] .video-js .vjs-progress-thumb{top:auto;bottom:-3px;background:var(--tungsten);transform:translateX(-50%);transition:transform .2s cubic-bezier(.05,0,0,1)}
+[data-stage-media] .video-js .vjs-progress-control:hover .vjs-progress-thumb,[data-stage-media] .video-js .vjs-progress-control:focus-within .vjs-progress-thumb{transform:translateX(-50%) scale(1.67)}
+[data-stage-media] .video-js .vjs-mouse-display .vjs-time-tooltip,
+[data-stage-media] .video-js .vjs-play-progress .vjs-time-tooltip{display:none!important}
+.vjs-peach-seek-preview{position:absolute;z-index:4;bottom:calc(100% - 2px);transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;pointer-events:none;color:#fff}
+.vjs-peach-seek-preview[hidden]{display:none}
+/* 取景框自己裁，图在里面挪。时间轴预览取回来的是一张 10×10 的接触印相，要看的那一格
+   靠把图放大十倍再往左上推整格数得到；边框和圆角画在框上，图挪动时不跟着走。 */
+.vjs-peach-seek-frame{position:relative;width:240px;aspect-ratio:16/9;display:block;overflow:hidden;
+  border:2px solid #fff;border-radius:var(--floating-radius);background:#000;box-shadow:0 8px 24px #0009}
+.vjs-peach-seek-frame[hidden]{display:none}
+.vjs-peach-seek-preview img{position:absolute;left:0;top:0;width:100%;height:100%;display:block;object-fit:cover}
+.vjs-peach-seek-preview span{min-width:58px;margin-top:8px;padding:6px 10px;border-radius:var(--pill-radius);
+  background:rgba(0,0,0,.68);font-size:var(--fs-sm);font-weight:600;line-height:1;text-align:center;box-shadow:0 2px 8px #0006}
+[data-stage-media] .video-js .vjs-custom-control-spacer{display:block;flex:1 1 auto}
+[data-stage-media] .video-js .vjs-time-control{display:none!important}
+[data-stage-media] .video-js .vjs-peach-time{box-sizing:border-box;align-self:flex-end;flex:0 0 auto;width:auto;height:40px;margin:0 0 8px 12px;
+  padding:0 16px;border:0;border-radius:var(--pill-radius);background:rgba(0,0,0,.6);color:#fff;cursor:pointer;
+  position:relative;isolation:isolate;overflow:visible;font-weight:400;font-size:var(--fs-md);line-height:40px;font-family:inherit;font-variant-numeric:tabular-nums;white-space:nowrap;text-shadow:0 0 1px rgba(0,0,0,.8)}
+[data-stage-media] .video-js .vjs-peach-time:after{content:"";position:absolute;z-index:0;inset:4px;border-radius:var(--pill-radius);background:transparent;transition:background .2s cubic-bezier(.05,0,0,1)}
+[data-stage-media] .video-js .vjs-peach-time:hover:after,[data-stage-media] .video-js .vjs-peach-time:focus-visible:after{background:rgba(255,255,255,.1)}
+[data-stage-media] .video-js .vjs-peach-time:active:after{background:rgba(255,255,255,.2)}
+[data-stage-media] .video-js .vjs-peach-time:focus-visible{outline:0}.vjs-peach-time-text{position:relative;z-index:1}
+.vjs-peach-settings,.vjs-peach-theater,.vjs-peach-expand{position:relative;flex:0 0 48px;width:48px!important;min-width:48px}
+.vjs-peach-settings>button,.vjs-peach-theater>button,.vjs-peach-expand>button{width:100%;height:100%;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center}
+.vjs-peach-expand>button>svg{width:24px;height:24px;fill:currentColor;stroke:none;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+.vjs-peach-settings>button>svg,.vjs-peach-theater>button>svg,.vjs-peach-caption-options>svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+.vjs-peach-settings [data-player-quality-badge]{position:absolute;z-index:2;right:4px;top:1px;min-width:17px;height:12px;padding:0 2px;
+  display:grid;place-items:center;border-radius:var(--badge-radius);background:var(--tungsten);color:var(--ground);font-size:var(--fs-xs);font-weight:600;line-height:1;transform:scale(.67);transform-origin:top right}
+.vjs-peach-settings [data-player-quality-badge][hidden]{display:none}
+.vjs-peach-settings-menu{box-sizing:border-box;position:absolute;z-index:2300;right:-100px;bottom:52px;width:min(274px,calc(100vw - 28px));max-height:min(420px,calc(var(--peach-player-h,480px) - 74px),calc(100vh - 130px));overflow:auto;
+  padding:0;border:0;border-radius:var(--floating-radius);background:rgba(0,0,0,.6);box-shadow:none;backdrop-filter:blur(16px);
+  color:#fff;text-shadow:0 0 1px rgba(0,0,0,.8);font-weight:400;font-size:var(--fs-md);line-height:1.3;font-family:inherit}
+/* 面板的显隐照 YouTube 播放器 9470c977 的 www-player.css：`.ytp-popup` 淡入 .1s
+   cubic-bezier(0,0,.2,1)，`[aria-hidden=true]` 淡出 .1s cubic-bezier(.4,0,1,1)。
+   所以关闭不能用 display:none——那样没有可过渡的中间态。visibility 延后到淡出结束，
+   面板既退出无障碍树也不再接命中测试。 */
+.vjs-peach-settings-menu{opacity:1;visibility:visible;transition:opacity .1s cubic-bezier(0,0,.2,1)}
+.vjs-peach-settings-menu[aria-hidden="true"]{opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .1s cubic-bezier(.4,0,1,1),visibility 0s .1s}
+/* 次级菜单同一份来源：`.ytp-popup-animating` 与其面板都是 .25s cubic-bezier(.4,0,.2,1)，
+   `.ytp-panel-animate-back/forward` 是 translateX(∓100%) 加透明度 0。 */
+.vjs-peach-settings-menu.vjs-peach-popup-animating{overflow:hidden;pointer-events:none;transition:height .25s cubic-bezier(.4,0,.2,1)}
+.vjs-peach-panel{position:relative}
+.vjs-peach-popup-animating .vjs-peach-panel{transition:transform .25s cubic-bezier(.4,0,.2,1),opacity .25s cubic-bezier(.4,0,.2,1)}
+.vjs-peach-panel-leaving{position:absolute;left:0;top:0;width:100%}
+.vjs-peach-panel-animate-back{opacity:0;transform:translateX(-100%)}
+.vjs-peach-panel-animate-forward{opacity:0;transform:translateX(100%)}
+.vjs-peach-settings-menu button{box-sizing:border-box;position:relative;isolation:isolate;overflow:hidden;width:100%;min-height:48px;padding:0;border:0;border-radius:var(--control-radius);background:transparent;color:#fff;font:inherit;cursor:pointer}
+.vjs-peach-settings-menu button:before{content:"";position:absolute;z-index:0;inset:0;border-radius:inherit;background:transparent;pointer-events:none;transition:background .1s cubic-bezier(.05,0,0,1)}
+.vjs-peach-settings-menu button:hover:before,.vjs-peach-settings-menu button:focus-visible:before{background:rgba(255,255,255,.1)}
+.vjs-peach-settings-menu button:active:before{background:rgba(255,255,255,.2)}
+.vjs-peach-settings-menu button:focus-visible{outline:0}
+.vjs-peach-settings-menu button>*{position:relative;z-index:1}
+.video-js .vjs-peach-menu-row{display:grid;grid-template-columns:56px minmax(0,1fr) minmax(0,max-content) 32px;gap:0;align-items:center;padding:0!important;text-align:left}
+.vjs-peach-menu-row>svg{justify-self:start;margin-left:8px;width:24px;height:24px;fill:currentColor;stroke:none}.vjs-peach-menu-row>span{font-size:var(--fs-md);line-height:18.2px}.vjs-peach-menu-row>b{padding-left:8px;font-size:var(--fs-md);line-height:18.2px;font-weight:400;color:rgba(255,255,255,.7);white-space:nowrap}
+.vjs-peach-menu-row>svg:last-child{justify-self:center;margin:0;width:18px;height:18px;color:rgba(255,255,255,.7);fill:currentColor;stroke:none}
+.vjs-peach-menu-row[data-player-ambient]{grid-template-columns:56px minmax(0,1fr) auto;padding-right:8px!important}.vjs-peach-switch{box-sizing:border-box;display:block;position:relative;width:40px;height:24px;border-radius:var(--floating-radius);background:rgba(0,0,0,.3)}
+.vjs-peach-switch:after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:none;transition:transform .2s cubic-bezier(.05,0,0,1),background .2s cubic-bezier(.05,0,0,1)}
+.vjs-peach-menu-row[aria-checked="true"] .vjs-peach-switch{background:rgba(255,255,255,.3)}.vjs-peach-menu-row[aria-checked="true"] .vjs-peach-switch:after{background:#fff;transform:translateX(16px)}
+.vjs-peach-panel-header{box-sizing:border-box;height:57px;padding:8px 0;display:flex;align-items:center;gap:0;border-bottom:1px solid rgba(255,255,255,.2);color:#eee;white-space:nowrap}
+.vjs-peach-panel-header .vjs-peach-menu-back{flex:0 0 48px;width:48px;min-height:48px;height:48px!important;display:grid;place-items:center;border:0!important;border-radius:50%!important;color:#eee}
+.vjs-peach-settings-menu .vjs-peach-panel-header .vjs-peach-menu-back:before{inset:4px}
+.vjs-peach-panel-header .vjs-peach-menu-back svg{width:32px;height:32px;display:block;fill:currentColor;stroke:none}
+.vjs-peach-panel-header strong{font-size:var(--fs-md);line-height:18.2px;font-weight:500;color:#eee}
+.vjs-peach-panel-menu{padding:8px}
+.video-js .vjs-peach-menu-option{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;padding:0 20px 0 8px!important;text-align:left;font-size:var(--fs-md)!important;line-height:18.2px}
+.vjs-peach-option-check{width:40px;height:24px;display:grid;place-items:center}.vjs-peach-option-check svg{width:24px;height:24px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vjs-peach-option-label{min-width:0}
+/* 播放速度面板照 YouTube delhi-modern（player 9470c977 的 www-player.css 与 base.js）：
+   内容区 24px/16px/16px 内距；读数 18px/900/22px 居中、下留 24px；滑条一行 gap 16px、
+   下留 24px，加减键 32px 圆、24px 字，各动 0.05；预设胶囊 53×32、圆角 16、12px 字、gap 8px，
+   底色 rgba(255,255,255,.1)、悬停 .2、按下 .3，过渡 .2s cubic-bezier(.05,0,0,1)；
+   1.0 下面挂一行 14px 行高的说明。滑条轨道 4px 高，已过部分 #fff、余下 #909090，
+   把手 16px 白圆上移 6px；已过比例由脚本写进自定义属性，上游同样是自定义属性驱动。
+   字号、字重和圆角走 Peach 自己的 token：上游读数那档 18px/900 和说明那档 10px 都不在
+   Peach 的字号刻度上，900 也不在 Geist 的三档字重里；胶囊和轨道的圆角本来就大于自身高度的
+   一半，`--pill-radius` 渲染出来与上游那两个字面值一模一样。 */
+.vjs-peach-speed-panel{box-sizing:border-box;display:flex;flex-direction:column;padding:24px 16px 16px}
+.vjs-peach-speed-display{display:flex;justify-content:center;margin-bottom:24px;
+  font-size:var(--fs-lg);font-weight:600;line-height:22px;color:#fff}
+.vjs-peach-speed-slider{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.vjs-peach-speed-chips{display:flex;align-items:flex-start;gap:8px}
+.vjs-peach-speed-preset{display:flex;flex:0 1 53px;min-width:0;flex-direction:column;align-items:center}
+.vjs-peach-speed-preset-label{margin-top:4px;font-size:var(--fs-xs);font-weight:400;line-height:14px;color:rgba(255,255,255,.7)}
+.vjs-peach-settings-menu .vjs-peach-speed-button{display:flex;justify-content:center;align-items:center;
+  height:32px;min-height:32px;padding:0;border:0;border-radius:var(--pill-radius);background:rgba(255,255,255,.1);
+  color:#fff;font-weight:500;line-height:16px;text-align:center;cursor:pointer;
+  transition:background .2s cubic-bezier(.05,0,0,1)}
+.vjs-peach-settings-menu .vjs-peach-speed-button:before{content:none}
+.vjs-peach-settings-menu .vjs-peach-speed-button:hover{background:rgba(255,255,255,.2)}
+.vjs-peach-settings-menu .vjs-peach-speed-button:active{background:rgba(255,255,255,.3)}
+/* 加减两键画的是图标不是字形：`−` 与 `+` 的墨迹绕数学轴排布，行盒居中之后实测还偏
+   下 3.0px、偏左 1.8px（32px 圆里 24px Roboto，行高 16px），而减号的墨迹本身只有 2px 高，
+   这点位移一眼就看得见。文字没有按墨迹居中的写法，换成 24px 图标就是几何居中。 */
+.vjs-peach-speed-slider .vjs-peach-speed-button{flex:none;width:32px}
+.vjs-peach-speed-slider .vjs-peach-speed-button>svg{width:24px;height:24px;display:block;
+  stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.vjs-peach-speed-chips .vjs-peach-speed-button{width:100%;gap:4px;font-size:var(--fs-xs)}
+.vjs-peach-speed-range{--peach-speed-percent:0%;-webkit-appearance:none;appearance:none;flex:1 1 auto;
+  width:100%;min-width:0;height:24px;margin:0;background:transparent;cursor:pointer}
+.vjs-peach-speed-range:focus-visible{outline:0}
+.vjs-peach-speed-range::-webkit-slider-runnable-track{height:4px;border-radius:var(--pill-radius);
+  background:linear-gradient(to right,#fff 0,#fff var(--peach-speed-percent),#909090 var(--peach-speed-percent),#909090 100%)}
+.vjs-peach-speed-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;
+  margin-top:-6px;border-radius:50%;background:#fff}
+.vjs-peach-speed-range::-moz-range-track{height:4px;border-radius:var(--pill-radius);
+  background:linear-gradient(to right,#fff 0,#fff var(--peach-speed-percent),#909090 var(--peach-speed-percent),#909090 100%)}
+.vjs-peach-speed-range::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:#fff}
+/* 320px 高的播放器只给面板 246px：内距和两处 24px 间隔都收到 16px 就是 225px。 */
+.video-js.vjs-peach-xsmall .vjs-peach-speed-panel{padding:16px}
+.video-js.vjs-peach-xsmall .vjs-peach-speed-display,
+.video-js.vjs-peach-xsmall .vjs-peach-speed-slider{margin-bottom:16px}
+/* 中心提示照同一份 www-player.css：`.ytp-bezel` 78px 圆、blur(16px)、rgba(0,0,0,.6)，
+   图标 54px；窄屏收到 64px 圆配 48px 图标。动画 1s cubic-bezier(.05,0,0,1) 走
+   0→1.33→1 的缩放淡出，`role="status"` 带这一次的动作名。 */
+.vjs-peach-bezel{position:absolute;z-index:19;left:50%;top:50%;width:78px;height:78px;margin:-39px 0 0 -39px;
+  display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.6);
+  backdrop-filter:blur(16px);color:#fff;opacity:0;pointer-events:none}
+.vjs-peach-bezel[hidden]{display:none}
+.vjs-peach-bezel-icon{display:grid;place-items:center;width:54px;height:54px}
+.vjs-peach-bezel-icon svg{width:100%;height:100%;display:block;fill:currentColor;stroke:none}
+.vjs-peach-bezel-run{animation:peach-bezel-fadeout 1s cubic-bezier(.05,0,0,1) 1 normal forwards}
+@keyframes peach-bezel-fadeout{0%{opacity:0}25%,75%{opacity:1;transform:scale(1.33)}to{opacity:0;transform:scale(1)}}
+.video-js.vjs-peach-xsmall .vjs-peach-bezel{width:64px;height:64px;margin:-32px 0 0 -32px}
+.video-js.vjs-peach-xsmall .vjs-peach-bezel-icon{width:48px;height:48px}
+/* 转圈和报错卡片都停在同一个圆心上：提示圆还在淡出时它们就位，两块东西会叠着画。 */
+.video-js.vjs-waiting .vjs-peach-bezel,.video-js.vjs-seeking .vjs-peach-bezel,
+.video-js.vjs-error .vjs-peach-bezel{display:none}
+/* 悬停提示取自 YouTube delhi-modern（player 9470c977 的 www-player.css）：毛玻璃 blur(16px)、
+   8px 圆角（--surface-radius）、5px 9px 内距、13px/15px 500 字重（--fs-sm）、
+   text-shadow 0 0 2px #000；快捷键徽标 1px rgba(255,255,255,.3) 边、4px 圆角（--badge-radius）、
+   最小宽 11px、左外边距 4px，空了就收起。控制条上每个按钮共用这一套。
+   底色是 Peach 主动偏离上游的一处：上游 rgba(0,0,0,.3) 加 blur 落在亮画面上只剩一块低对比
+   灰板，悬停时看着像凭空多出来一块阴影。提示和播放器其它悬浮件同档，一律 rgba(0,0,0,.6)。 */
+.vjs-peach-tooltip{position:absolute;z-index:5;right:50%;bottom:calc(100% + 12px);transform:translateX(50%);
+  display:none;align-items:center;padding:5px 9px;border-radius:var(--surface-radius);background:rgba(0,0,0,.6);
+  backdrop-filter:blur(16px);color:#fff;white-space:nowrap;
+  font-size:var(--fs-sm);font-weight:500;line-height:15px;text-shadow:0 0 2px #000;pointer-events:none}
+.vjs-peach-tooltip,.vjs-volume-tooltip{--surface-radius:8px;--badge-radius:4px}
+.vjs-peach-tooltip kbd{display:flex;justify-content:center;align-items:center;min-width:11px;margin-left:4px;padding:0 2px;
+  border:1px solid rgba(255,255,255,.3);border-radius:var(--badge-radius);color:#fff;font:inherit}
+.vjs-peach-tooltip kbd[hidden]{display:none}
+[data-stage-media] .video-js .vjs-control-bar button:hover>.vjs-peach-tooltip,
+[data-stage-media] .video-js .vjs-control-bar button:focus-visible>.vjs-peach-tooltip{display:flex}
+.vjs-peach-theater>button[aria-pressed="true"]{color:#fff}
+@media (max-width:640px){
+  [data-stage-media] .video-js .vjs-control-bar{left:8px;right:8px;bottom:6px;height:59px;padding:3px 0 0}
+  [data-stage-media] .video-js .vjs-progress-control,[data-stage-media] .video-js.vjs-layout-tiny .vjs-progress-control,
+  [data-stage-media] .video-js.vjs-layout-x-small .vjs-progress-control{left:0;right:0;top:-12px;height:18px;display:flex}
+  [data-stage-media] .video-js.vjs-layout-small .vjs-current-time,[data-stage-media] .video-js.vjs-layout-small .vjs-duration,
+  [data-stage-media] .video-js.vjs-layout-small .vjs-time-divider{display:flex}
+  [data-stage-media] .video-js .vjs-time-control{font-size:var(--fs-xs)}
+  .vjs-peach-seek-frame{width:160px}
+  .vjs-peach-settings-menu{right:-100px;width:min(274px,calc(100vw - 16px));border-radius:var(--floating-radius)}
+}
+/* 窄屏梯度照搬 YouTube delhi-modern：base.js 9470c977 里 `v.width<528` 打开 ytp-xsmall-width-mode，
+   右侧只留设置键和展开键，按钮从 48 收到 36、图标 24 收到 18；展开后铺开全部按钮。
+   YouTube 展开时把时间显示改成 visibility:hidden 占着位，Peach 改成 display:none 让出宽度——
+   它的控制条比 YouTube 窄，留着那段空位就又超框了。 */
+.vjs-peach-expand{display:none}
+.video-js.vjs-peach-xsmall .vjs-peach-right-controls>.vjs-control{flex:0 0 36px;width:36px!important;min-width:36px}
+.video-js.vjs-peach-xsmall .vjs-peach-right-controls .vjs-peach-control-icon,
+.video-js.vjs-peach-xsmall .vjs-peach-right-controls>.vjs-control:not(.vjs-peach-expand)>button>svg{width:18px;height:18px}
+/* 窄屏只有展开键不缩：YouTube 那边其余按钮的 svg 是 18px 加 7px 内边距，
+   `.ytp-expand-right-bottom-section-button` 的 svg 内边距是 0，整块 32px 铺满按钮。
+   跟着缩到 18px 的话，这个箭头在窄屏上几乎看不出是个可点的键。 */
+.video-js.vjs-peach-xsmall .vjs-peach-expand>button>svg{width:32px;height:32px}
+/* 窄屏的悬停底照 `.ytp-delhi-modern.ytp-xsmall-width-mode .ytp-chrome-bottom .ytp-button:before`：
+   32×32 的正圆。上游按钮本体 32px 配 4px 2px 外边距，正好是这里 40px 行高里 36px 的一格。 */
+.video-js.vjs-peach-xsmall .vjs-peach-right-controls>.vjs-control>.vjs-peach-hover{
+  left:2px;width:32px;height:32px;border-radius:50%}
+/* 折叠态里设置键就是这排的右端，`right:-100px` 是给它右边还有影院和全屏时留的位；
+   窄屏照原样偏移会把整个面板推到播放器外面。贴住设置键右缘往左铺，高度按播放器
+   自己的高度收顶（`--peach-player-h` 由布局脚本写在播放器元素上）。 */
+.video-js.vjs-peach-xsmall .vjs-peach-settings-menu{right:0;width:min(274px,calc(100vw - 48px));
+  max-height:calc(var(--peach-player-h,420px) - 74px)}
+/* 面板底边离播放器底边 66px（离设置键 52px 加控制条那 14px），顶上再留 8px，所以收顶取
+   播放器高度减 74px：320px 高的播放器给出 246px。八档播放速度单列要 57+16+8×48=457px，
+   排两列、行高 44px 是 57+8+4×44=241px，最挤的那个面板也不用滚。 */
+.video-js.vjs-peach-xsmall .vjs-peach-panel-menu{padding:4px 8px}
+.video-js.vjs-peach-xsmall .vjs-peach-menu-option{min-height:44px}
+.video-js.vjs-peach-xsmall .vjs-peach-panel-menu:has(>.vjs-peach-menu-option:nth-child(5)){display:grid;grid-template-columns:1fr 1fr}
+.video-js.vjs-peach-xsmall .vjs-peach-right-controls>.vjs-control:not(.vjs-peach-settings):not(.vjs-peach-expand){display:none}
+.video-js.vjs-peach-xsmall .vjs-peach-expand{display:block}
+.video-js.vjs-peach-xsmall.vjs-peach-right-expanded .vjs-peach-right-controls>.vjs-control:not(.vjs-peach-settings):not(.vjs-peach-expand){display:block}
+.video-js.vjs-peach-xsmall.vjs-peach-right-expanded .vjs-peach-time{display:none}
+.vjs-peach-expand>button>svg{transition:transform .3s cubic-bezier(.05,0,0,1);transform:rotate(180deg)}
+.video-js.vjs-peach-right-expanded .vjs-peach-expand>button>svg{transform:rotate(0)}
+/* 报错文案本来就居中，压住它的是统计面板（z-index 8）。所以不改居中，改成一张自带底色、
+   盖在统计面板上方的卡片，并撤掉 Video.js 那层铺满全画面的渐变——留着它就等于用报错
+   把统计面板整个糊掉，而加载失败时正需要看统计里的编码和体积。 */
+[data-stage-media] .video-js.vjs-error .vjs-error-display{background:none}
+[data-stage-media] .video-js.vjs-error .vjs-error-display .vjs-modal-dialog-content{
+  z-index:9;left:50%;top:50%;width:max-content;max-width:min(560px,calc(100% - 48px));height:auto;
+  padding:14px 18px;border-radius:var(--surface-radius);background:rgba(2,4,8,.86);
+  display:flex;align-items:center;justify-content:center;text-align:center;overflow-wrap:anywhere;
+  transform:translate(-50%,-50%)}
+[data-stage-media] :is([data-stage-media]>.video-js.vjs-fullscreen,.video-js.vjs-fullscreen,.video-js[data-peach-fullscreen],body.vjs-full-window .video-js,.video-js:fullscreen,.video-js:-webkit-full-screen,.video-js:-moz-full-screen,[data-stage-media]:fullscreen>.video-js,[data-stage-media]:-webkit-full-screen>.video-js,[data-stage-media]:-moz-full-screen>.video-js){position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;padding:0!important;
+  max-width:none!important;max-height:none!important;aspect-ratio:auto!important;z-index:10000!important}
+[data-stage-media] :is([data-stage-media]>.video-js.vjs-fullscreen,.video-js.vjs-fullscreen,.video-js[data-peach-fullscreen],body.vjs-full-window .video-js,.video-js:fullscreen,.video-js:-webkit-full-screen,.video-js:-moz-full-screen,[data-stage-media]:fullscreen>.video-js,[data-stage-media]:-webkit-full-screen>.video-js,[data-stage-media]:-moz-full-screen>.video-js) .vjs-tech{
+  position:absolute!important;inset:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;object-fit:cover!important}
+[data-player-stats-button]{position:absolute;left:11px;top:11px;z-index:8;width:40px;height:40px;padding:0;
+  display:grid;place-items:center;border:0;border-radius:50%;
+  background:rgba(0,0,0,.6);color:#fff;cursor:pointer;box-shadow:none;isolation:isolate;overflow:hidden}
+[data-player-stats-button][hidden]{display:none}
+[data-player-stats-button]:after,[data-stage-close]:after{content:"";position:absolute;z-index:0;inset:4px;border-radius:50%;background:transparent;pointer-events:none;transition:background .2s cubic-bezier(.05,0,0,1)}
+[data-player-stats-button]:hover:after,[data-player-stats-button]:focus-visible:after,[data-stage-close]:hover:after,[data-stage-close]:focus-visible:after{background:rgba(255,255,255,.1)}
+[data-player-stats-button]:active:after,[data-stage-close]:active:after{background:rgba(255,255,255,.2)}
+[data-player-stats-button]:focus-visible,[data-stage-close]:focus-visible{outline:0}
+[data-player-stats-button][aria-pressed="true"]{background:var(--hover);color:var(--ink)}
+[data-player-stats-button] svg{position:relative;z-index:1;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+[data-player-stats]{position:absolute;left:11px;top:58px;z-index:8;min-width:320px;max-width:min(520px,calc(100% - 22px));
+  max-height:calc(100% - 114px);overflow-y:auto;overscroll-behavior:contain;padding:10px 12px;border:1px solid rgba(255,255,255,.18);border-radius:var(--surface-radius);
+  background:rgba(2,4,8,.78);color:#eef3f8;box-shadow:0 12px 28px #0008;
+  backdrop-filter:saturate(1.25) blur(14px);font-size:var(--fs-xs);line-height:1.5;font-family:inherit}
+[data-player-stats] dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:1px 12px;margin:0}[data-player-stats] dt{text-align:right;font-weight:600}[data-player-stats] dd{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-player-stats] dd[data-player-stats-metric]{display:grid;grid-template-columns:166px minmax(0,1fr);gap:9px;align-items:center;overflow:visible}
+[data-player-stats-metric]>span{overflow:hidden;text-overflow:ellipsis}
+[data-player-stats-plot]{height:20px;padding:2px;display:grid;grid-template-columns:repeat(24,minmax(2px,1fr));align-items:end;gap:1px;background:#000;overflow:hidden}
+[data-player-stats-plot] i{display:block;min-height:0;background:transparent}
+[data-player-stats-plot="speed"] i[data-bar]{background:#55b5bd}[data-player-stats-plot="activity"] i[data-bar]{background:#4ba8df}
+[data-player-stats-plot="buffer"] i[data-bar]{background:#d8e98a}[data-player-stats-plot="buffer"] i[data-bar="mid"]{background:#efb55f}[data-player-stats-plot="buffer"] i[data-bar="low"]{background:#e16962}
+[data-player-stats][hidden]{display:none}
+@media(max-width:600px){[data-player-stats] dd[data-player-stats-metric]{grid-template-columns:96px minmax(0,1fr)}}
+[data-player-net]{box-sizing:border-box;position:absolute;left:58px;top:11px;z-index:8;height:40px;min-height:40px;padding:0 11px;
+  display:flex;align-items:center;gap:7px;white-space:nowrap;border:0;border-radius:var(--floating-radius);
+  background:rgba(0,0,0,.6);color:#fff;box-shadow:none;backdrop-filter:blur(16px);font-size:var(--fs-xs);line-height:1;font-family:inherit}
+/* 徽标里的图标必须自己声明描边：sprite 里的仪表盘是描边图形，不声明就按 SVG 默认的
+   fill 画成黑色实心块，压在 rgba(0,0,0,.6) 的底上等于没有。速率也要按整体不换行，
+   否则「640 KB/s」会在这条 flex 行里断成两行，把 40px 的胶囊顶破。 */
+[data-player-net] svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+[data-player-net][hidden]{display:none}
+/* 被门挡住的 <video> 只带 hidden 属性，而 `.video-js{display:block}` 是作者样式，
+   压得住 UA 的 `[hidden]`。原先靠内联 `style="display:none"` 顶住，三个门里
+   只有两个写了——第三个能对只是因为它那一支还没初始化成 `.video-js`。 */
+[data-stage-media] video[hidden]{display:none}
+[data-stage-close]{position:absolute;top:11px;right:11px;z-index:9;width:40px;height:40px;
+  background:rgba(0,0,0,.6);color:#F0E9DE;
+  border:0;border-radius:50%;padding:0;cursor:pointer;box-shadow:none;
+  display:grid;place-items:center;isolation:isolate;overflow:hidden}
+[data-stage-close] svg{position:relative;z-index:1;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
+
+/* ── 右键菜单 ── */
+/* 播放器右键菜单和右下角设置面板是同一块浮层，外观取同一份：rgba(0,0,0,.6) 加 blur(16px)、
+   --floating-radius 圆角、8px 内边距、无阴影；每项 48px 高、项内 --control-radius 圆角，首列 56px
+   里靠左 8px 放 24px 图标，--fs-md 常规字重白字，悬停 rgba(255,255,255,.1)、按下 .2；勾选项右侧
+   32px 一格放 18px 白勾。选择器挂在 id 上：页面菜单那组 `body :is(.popmenu…)` 规则会把字色压成
+   次级灰、行高压到 36px、勾选项铺浅底，按类名写压不过它。 */
+#playerMenu[data-player-context-menu]{padding:8px;border:0;gap:0;border-radius:var(--floating-radius);background:rgba(0,0,0,.6);
+  backdrop-filter:blur(16px);box-shadow:none;color:#fff;
+  min-width:240px;max-width:calc(100vw - 16px);text-shadow:0 0 1px rgba(0,0,0,.8)}
+[data-player-context-menu][popover]{inset:auto;margin:0}
+#playerMenu>[data-player-menu]{box-sizing:border-box;display:grid;grid-template-columns:56px minmax(0,1fr) 32px;gap:0;align-items:center;width:100%;min-height:48px;
+  margin:0;padding:0;border:0;border-radius:var(--control-radius);background:transparent;box-shadow:none;color:#fff;
+  font:inherit;font-size:var(--fs-md);font-weight:400;line-height:18.2px;text-align:left;white-space:nowrap;cursor:pointer}
+#playerMenu>[data-player-menu]:hover,#playerMenu>[data-player-menu]:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:0}
+#playerMenu>[data-player-menu]:active{background:rgba(255,255,255,.2)}
+[data-player-menu]>svg{justify-self:start;margin-left:8px;width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2}
+[data-player-menu]>svg[data-player-menu-fill]{fill:currentColor;stroke:none}
+[data-player-menu]>span{overflow:hidden;text-overflow:ellipsis}
+[data-player-menu]>[data-player-menu-check]{grid-column:3;justify-self:center;margin:0;width:18px;height:18px;visibility:hidden}
+[data-player-menu][aria-checked="true"]>[data-player-menu-check]{visibility:visible}

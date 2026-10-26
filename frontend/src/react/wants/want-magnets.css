@@ -1,0 +1,10 @@
+.peach-react [data-want-magnets] { container: resource-links / inline-size; }
+.peach-react [data-resource-protocol] { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+.peach-react [data-resource-title] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peach-react [data-resource-facts] > span { white-space: nowrap; }
+.peach-react [data-resource-actions] { min-width: 0; }
+.peach-react [data-want-magnets] [data-resource-protocol] { padding-block: 16px; border-bottom: 1px solid var(--color-separator-border); }
+.peach-react [data-want-magnets] ul { gap: 0; }
+@container resource-links (min-width: 760px) {
+  .peach-react [data-resource-protocol] { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+}

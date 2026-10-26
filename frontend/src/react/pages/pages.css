@@ -1,0 +1,38 @@
+/* 独立页面包的样式入口（`web/dist/peach-pages.css`）。
+ *
+ * 首启、登录与错误三页由服务端吐同一张薄壳，页面上只有这一份样式表，没有 `board.css` 与 `/app.css`。控件、
+ * token 与容器基线和主界面的 React 子树同一套（`../base.css`），扫描范围只到页面包真正用到的
+ * 源码，产物才小。壳把 `.peach-react` 挂在 `<body>` 上、`.dark` 挂在 `<html>` 上。 */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none);
+@import "../preflight-scoped.css";
+@import "../boardui/styles/theme.css";
+@import "../boardui/styles/typography.css";
+@import "../components/surface-motion.css";
+@import "../base.css";
+
+@source "./";
+@source "../settings/folder-rows.tsx";
+@source "../settings/password-pair.tsx";
+@source "../settings/section.tsx";
+@source "../components/note.tsx";
+@source "../components/segmented.tsx";
+@source "../boardui/components/base/";
+@source "../boardui/components/application/settings/settings-rows.tsx";
+
+/* 整页底色落在 body 上：根元素没有背景时它会铺满画布，回弹滚动露出来的也是这一档。
+ * 取最底的 `background-full`，卡面是 secondary，卡里的控件再亮一档（`auth-card.tsx`）。 */
+body.peach-react {
+  min-height: 100dvh;
+  background-color: var(--color-background-full);
+}
+
+/* 共用 Collapse（`src/ui-kit/collapse.ts`）的高度过渡，同 `src/ui-kit/collapse.css`。 */
+.ui-fcollapse {
+  overflow: hidden;
+  transition: height 0.2s ease-in-out;
+}
+
+.ui-fcollapse.ui-fcollapse-settled {
+  overflow: visible;
+}

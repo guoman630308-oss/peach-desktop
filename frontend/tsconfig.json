@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+
+    "noEmit": true,
+    // 测试配置 import Vite 配置时保留 .ts 后缀；这里只检查类型。
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+
+    "paths": {
+      "@peach/legacy/core": ["./src/core/index.ts"],
+      "@peach/legacy/ui": ["./src/ui-kit/index.ts"],
+      "@peach/legacy/jav-title": ["./src/core/jav-title.ts"],
+      "@peach/legacy/tags": ["./src/core/tags.ts"],
+      "@peach/legacy/ui-sounds": ["./src/ui-kit/sounds.ts"],
+      "@peach/legacy/middle-truncate": ["./src/ui-kit/middle-truncate.ts"],
+      "@peach/card-art": ["./src/card-art/index.ts"],
+      "@peach/appearance": ["./src/appearance/index.ts"],
+      "@peach/query": ["./src/query/index.ts"],
+      "@peach/history": ["./src/history/index.ts"],
+      "@peach/shell": ["./src/shell/index.ts"]
+    }
+  },
+  "include": ["src", "test", "vite.config.ts", "vite.pages.config.ts", "vite.agentation.config.ts", "vitest.config.ts"],
+  // React 子树另有一份放宽过的配置，入口是 src/react/tsconfig.json（`npm run typecheck` 两份都跑）。
+  "exclude": ["src/react", "test/react"]
+}

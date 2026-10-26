@@ -1,0 +1,386 @@
+/* 首页筛选条（`catalog-filter-page.tsx`）：两排头像、浮层上排的视图与标签、下排读数。
+ *
+ * 下排的换一批、版式与排序键，以及交集条，和资料页那一条是同一组组件、同一份样式
+ * （`../entity-filter/entity-filter.css`，那边的选择器同时认 `[data-catalog-frame]`）。浮层的料与吸顶在
+ * `../styles.css` 的 `[data-filter-glass]`，滑动玻璃的形状与材质在 `web/board.css` 的 `[data-view-glide]`。
+ * 岛挂上之前壳铺的那份骨架（`../../catalog-filter-skeleton.ts`）用同一组属性画，几何在这里一处定。
+ *
+ * 选择器全用 `data-*`：遗留样式表不分层、排在后面，写遗留类名会被接管。颜色读遗留层的
+ * `--glass-text`、`--glass-low`、`--ink-2` 这组：它们在 `:root` 上算好再继承进来。 */
+
+/* ── 宿主 ──
+ * 宿主（`#catalogFilter`）、React 根和岛的根都不生成盒子：两排头像与浮层要直接当 `body` 的孩子排，
+ * 浮层吸顶的范围是 `body` 整页，只裹着它自己的父元素一格都走不动。前两层的规则在
+ * `web/css/03-filterbar.css`，岛的根用 `contents`。 */
+
+/* ── 两排头像 ──
+ * 女优是竖排人像格：48px 圆头像在上、名字在下，格宽 76、圆角 12；厂牌是 40px 高的一枚，28px 圆标识在左、
+ * 名字在右。两排都不描边，悬停铺 primary-hover。 */
+.peach-react [data-catalog-tiers] {
+  position: relative;
+  z-index: 1;
+  padding: 10px 0 8px;
+  font: var(--board-body);
+  letter-spacing: normal;
+}
+
+.peach-react [data-catalog-tier] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -3px;
+  padding: 0 16px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.peach-react [data-catalog-tier]::-webkit-scrollbar { display: none; }
+.peach-react [data-catalog-tier]:last-child { padding-bottom: 4px; }
+
+/* 往右翻的时候这几排从侧栏底下穿过去，不在侧栏那条边上被切平：侧栏是一块玻璃，底下有东西在走
+ * 才看得出它是透的。左边界仍停在原处，让出去多少宽度就原样加回内边距。窄屏那一档的抽屉是盖上来的，
+ * 没有这条常驻的边，所以只在留了轨道宽度的档位上开。 */
+@media (min-width: 761px) {
+  .peach-react [data-catalog-tier] {
+    margin-left: calc(-1 * var(--railW));
+    padding-left: calc(var(--railW) + 16px);
+  }
+}
+
+.peach-react :is([data-tier-performer], [data-tier-studio]) {
+  flex: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: var(--board-body-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--lift-motion, var(--board-motion)),
+    scale calc(var(--spring-press-ms) * 1ms) var(--spring-press), background-color .2s ease-out, color .2s ease-out;
+}
+.peach-react :is([data-tier-performer], [data-tier-studio]):hover {
+  background: var(--color-background-primary-hover);
+  color: var(--color-text-primary);
+}
+.peach-react :is([data-tier-performer], [data-tier-studio]):active {
+  scale: .96;
+  transition: scale .06s ease-out;
+}
+.peach-react :is([data-tier-performer], [data-tier-studio]):focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+
+.peach-react [data-tier-performer] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 76px;
+  padding: 6px 4px;
+  text-align: center;
+}
+
+.peach-react [data-tier-studio] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 6px 12px 6px 6px;
+  text-align: left;
+}
+
+.peach-react :is([data-tier-ring], [data-tier-mark]) {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-text-primary) 10%, var(--color-background-primary-default));
+  color: var(--color-text-secondary);
+}
+
+.peach-react [data-tier-ring] {
+  display: block;
+  width: 48px;
+  height: 48px;
+  font: 600 18px/24px var(--board-font);
+}
+/* 圆框里那两层由遗留层 `entityFaceImg` 拼：首字母垫在底下居中，头像图铺满盖在上面。 */
+.peach-react [data-tier-ring] > [data-tier-initial] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.peach-react :is([data-tier-ring], [data-tier-mark]) > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.peach-react [data-tier-name] {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--board-caption);
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+/* 厂牌标识文件本身就是不透明方图，边距烤在图里，所以铺满圆片；首两个字只在没图时出。 */
+.peach-react [data-tier-mark] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font: 600 12px/16px var(--board-font);
+}
+
+/* ── 上排 ──
+ * 左边四枚是视图，四选一、恒有一枚生效；分隔线右边的标签才是可加可不加的筛选。宽屏只有标签那一格
+ * 横滚，窄屏（760px 以下）换成整段一起滚：四枚视图在 375 上要占掉两百多像素，钉住它们等于把标签挤到
+ * 屏幕外。 */
+.peach-react [data-catalog-scroll] {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.peach-react [data-catalog-views] {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+}
+
+/* 自己不铺底：选中那一枚的填充由那块滑动玻璃给。字压在玻璃上面，滑过去时才不被一路盖暗。 */
+.peach-react [data-catalog-view] {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--glass-text) 60%, transparent);
+  font-size: 13px;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.peach-react [data-catalog-view]:is(:hover, [aria-pressed="true"]) { color: var(--glass-text); }
+.peach-react [data-catalog-view]:focus-visible {
+  outline: 2px solid var(--tungsten);
+  outline-offset: 2px;
+}
+
+.peach-react [data-catalog-tags] {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+}
+.peach-react [data-catalog-tags]::-webkit-scrollbar { display: none; }
+
+@media (max-width: 760px) {
+  .peach-react [data-catalog-scroll] {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .peach-react [data-catalog-scroll]::-webkit-scrollbar { display: none; }
+  .peach-react [data-catalog-scroll] > [data-catalog-tags] {
+    flex: 0 0 auto;
+    min-width: auto;
+    overflow: visible;
+  }
+}
+
+/* 标签的圆角同详情里那一颗（`--tag-radius`）。虚线只画在「此刻还没加上去」的那几枚上，悬停只把虚线
+ * 拉成实线、字提到 `--ink`；加上去之后是 `--picked` 的面，同交集条那一颗。
+ *
+ * 虚线与实线两档取自 2026-09-05 实测的 vercel.com/<team>/~/deployments 筛选令牌：未生效
+ * `background:rgba(0,0,0,0)` 配 `1px dashed rgba(0,0,0,.21)`，已生效 `background:#FFFFFF` 配
+ * `1px solid rgba(0,0,0,.08)`，两个数就是 `--field-ring-hover` 与 `--field-ring`，暗色一档换成同位置的白
+ * 透明度。未生效那道虚线照它取 `--field-ring-hover`；加上去之后那圈实线落在 `--picked` 的面上，取玻璃上
+ * 那一档 `--glass-low`，说的是「这是一颗标签」。虚线说的是「这条筛选可加、此刻没加」，四枚视图四选一、
+ * 恒有一枚生效，这句话对它们从来不成立，所以不画。悬停只拉成实线、不填：同排还有恒常生效的视图，悬停也
+ * 填就会同屏读出两种「已生效」。
+ *
+ * 计数是标签的附注，不是标签名的一部分：同字号同色贴在一起时「巨乳63」读成一个词。所以 13px 的标签
+ * 配 11px 等宽的数，退到五成五的字色，悬停或按下时回到八成；再小就难以辨认了。间隔只能由外边距给，
+ * 药丸是 flex 容器，标签与计数之间的空格文本节点不参与布局。字色按这块玻璃自己的文字色降档：玻璃上
+ * `--muted` 与 `--ink-2` 是同一个值，照搬 flat 层那一档，计数和标签仍然一样亮。 */
+.peach-react [data-catalog-tag] {
+  gap: 0;
+  border-radius: var(--tag-radius);
+  border-color: var(--field-ring-hover);
+  color: var(--glass-text);
+}
+.peach-react [data-catalog-tag]:hover { color: var(--ink); }
+.peach-react [data-catalog-tag][aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--glass-low);
+  background: var(--picked);
+}
+.peach-react [data-catalog-tag] [data-count-badge] {
+  margin-left: 6px;
+  color: color-mix(in srgb, var(--glass-text) 55%, transparent);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.peach-react [data-catalog-tag]:is(:hover, [aria-pressed="true"]) [data-count-badge] {
+  color: color-mix(in srgb, var(--glass-text) 80%, transparent);
+}
+
+
+/* ── 下排 ──
+ * 读数照 `10,471 个符合` 写：12px 等宽、常规字重，颜色比标签低一档。其余控件同资料页那一排。 */
+.peach-react [data-catalog-frame] > [data-filter-row="bottom"] {
+  color: var(--ink-2);
+  font-family: "Cascadia Mono", Consolas, ui-monospace, "Microsoft YaHei UI", "PingFang SC", monospace;
+  font-size: 12px;
+  line-height: 20px;
+}
+.peach-react [data-catalog-readout] {
+  flex: none;
+  white-space: nowrap;
+}
+.peach-react [data-catalog-summary] { display: flex; flex: none; align-items: center; gap: 12px; }
+
+.peach-react [data-catalog-frame][data-single-row] { flex-direction: row; }
+.peach-react [data-catalog-frame][data-single-row] > [data-filter-row="top"] { flex: 1; }
+.peach-react [data-catalog-frame][data-single-row] > [data-filter-row="bottom"] { flex: none; }
+
+/* ── 空馆藏占位 ──
+ * 说的是「这里将来会有东西」：形状同真头像与真标签，只铺 `--hover` 的面，不接指针，由容器裁到可用宽度。 */
+.peach-react :is([data-catalog-placeholder]) { pointer-events: none; }
+.peach-react [data-catalog-tier]:has([data-catalog-placeholder]) { overflow: hidden; }
+.peach-react [data-catalog-placeholder="performer"] {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 76px;
+  padding: 6px 4px;
+  font: var(--board-caption);
+}
+.peach-react [data-catalog-placeholder="performer"] > :first-child {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--hover);
+}
+.peach-react [data-catalog-placeholder="performer"] > :last-child {
+  width: 60%;
+  border-radius: var(--badge-radius);
+  background: var(--hover);
+}
+.peach-react [data-catalog-placeholder="studio"] {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 6px 12px 6px 6px;
+}
+.peach-react [data-catalog-placeholder="studio"] > :first-child {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--hover);
+}
+.peach-react [data-catalog-placeholder="studio"] > :last-child {
+  width: 48px;
+  border-radius: var(--badge-radius);
+  background: var(--hover);
+}
+.peach-react [data-catalog-placeholder="tag"] {
+  display: flex;
+  flex: none;
+  gap: 7px;
+}
+.peach-react [data-catalog-placeholder="tag"] > span {
+  flex: none;
+  width: 72px;
+  height: 30px;
+  border-radius: var(--tag-radius);
+  background: var(--hover);
+}
+
+/* 挂上之前壳铺的骨架（`data-loading`）用同一组占位，面上再走一道微光：它说的是「马上就来」，
+ * 空馆藏那一份是静止的。 */
+.peach-react [data-loading] [data-catalog-placeholder] > span {
+  position: relative;
+  overflow: hidden;
+}
+.peach-react [data-loading] [data-catalog-placeholder] > span::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  right: -200%;
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--hover), var(--skeleton-sheen) 50%, var(--hover));
+  background-size: 50% 100%;
+  animation: peach-skeleton-sweep 1.5s ease-in-out infinite reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .peach-react [data-loading] [data-catalog-placeholder] > span::after { animation: none; }
+}
+
+/* ── 换一批 ──
+ * 真实头像与胶囊留在原处，用 `visibility` 藏起来，微光画在 `::after` 上并单独露出来：框就是它们自己的框，
+ * 零位移，藏起来的控件也不可聚焦。四枚视图由 state 决定，这一趟不改它们，不盖。 */
+.peach-react [data-refreshing] :is([data-catalog-tag], [data-tier-ring], [data-tier-name], [data-tier-studio]) {
+  position: relative;
+  overflow: hidden;
+  visibility: hidden;
+  border-color: transparent;
+  background: var(--hover);
+}
+.peach-react [data-refreshing] [data-tier-name] {
+  width: 52px;
+  margin: 0 auto;
+  border-radius: var(--control-radius);
+}
+.peach-react [data-refreshing] :is([data-catalog-tag], [data-tier-ring], [data-tier-name], [data-tier-studio])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  right: -200%;
+  visibility: visible;
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--hover), var(--skeleton-sheen) 50%, var(--hover));
+  background-size: 50% 100%;
+  animation: peach-skeleton-sweep 1.5s ease-in-out infinite reverse;
+}
+/* 头像框上那层「图还在路上」的微光（遗留层 `watchPendingImages` 标的类）也画在 `::after` 上，已经收尾的框
+ * 别把它一起藏掉。那枚类名不归岛管，这里按属性认它。 */
+.peach-react [data-refreshing] [data-tier-ring][class~="ui-imgdone"]::after {
+  opacity: 1;
+  filter: none;
+  visibility: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .peach-react [data-refreshing] :is([data-catalog-tag], [data-tier-ring], [data-tier-name], [data-tier-studio])::after {
+    animation: none;
+  }
+}

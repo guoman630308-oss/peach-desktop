@@ -1,0 +1,500 @@
+/* 色板：灯箱 / 接触印相。底色带棕不是纯黑，中性灰偏暖向主调靠。
+   钨丝灯琥珀作主调，冷青只给数据，语义色（免费/计费/丢弃）与主调分开。 */
+/* 深色只保留轻微层级，不让输入框、关注管理和数据详情陷进近乎纯黑的第三档。
+   2026-08-30 按实际画面回执，把 ground 从 #020408 抬到 #080A0D；所有使用
+   token 的页面、侧栏、输入与选中面同步生效。 */
+/* 浅色一档不带色相。2026-09-04 实测 vercel.com 后台：白底那套中性色从 #FFFFFF 一路到
+   #171717 全部落在 hsl(0,0%,·) 上，悬停与选中是纯黑透明度（5%）而不是调过色的实色灰。
+   带蓝的浅灰在白底上读成脏，实色中间态又比它所在的面板还重，合起来就是「太暗、太脏」。
+   数值与来源见 docs/reference-snapshots/vercel-geist-semantics-measured.md。 */
+:root{
+  --ground:#FFFFFF; --surface:#FAFAFA; --sunk:#F2F2F2; --hover:rgba(0,0,0,.05); --skeleton-sheen:#EBEBEB;
+  --line:#E5E5E5; --line-soft:#EBEBEB;
+  /* 白面与页面底之间的那一档，全站的「中间色」。分段器和 tab 的选中格、面板里嵌进去的
+     那些行都填它：白面上再叠一张白等于没填，填页面底那一档又跟页面本身同色——两种做法
+     在浅色一档上都读不出「这一格是被选中的」，也读不出「这一行是嵌进去的」。
+     取值是 Geist 的 gray-200：实测 vercel.com 的 Tabs secondary 选中态就是 `bg-gray-200`
+     #EBEBEB（vercel-geist-semantics-measured.md「选中态与它的悬停」），暗色一档按同一
+     方向在面上叠 9% 白。 */
+  --inset:#EBEBEB;
+  --ink:#171717; --ink-2:#4D4D4D; --muted:#666666;
+  /* 压在缩略图上的标记用这一对，两档同值、不跟主题翻面：它底下是媒体不是页面。
+     取 --ink／--ground 的话，同一张照片上浅色一档是深片白勾、暗色一档是浅片深勾，
+     同一个东西两副长相。选中标记与它在卡面上那圈环都引用这里。 */
+  --on-media:#F5F7FA; --on-media-ink:#090B0F;
+  /* 蓝只给焦点环、链接、进度／数据和 Toggle 开态；按下／选中态与主动作走 --ink／--ink-2 反相，
+     其它选择器引用 --tungsten 由 tests/test_web_ui.py 拒绝。 */
+  --tungsten:#0095F6;
+  /* 评分那一排的琥珀，空心实心都用它，两态的差别只有填不填。它和上面那几个语义色一样
+     两档各写各的值：借 --line 画空心星在深色底上站得住（#3A3A3D 压在近黑上），
+     换到浅色一档就是 #E5E5E5 压在 #FAFAFA 上，同一份写法在两个主题下不是同一件事。 */
+  --rating:#B8860B;
+  --loupe:#127A72; --keep:#2E7D32; --meter:#B26A10; --drop:#C0392B; --success:#2E7D32;
+  --tile:336px; --topH:56px; --filterH:58px; --filterItemH:40px; --sortH:53px; --railW:72px;
+  /* 圆角也是有词汇的，不是随手挑一个数。
+     --pill:整圆，只给真正的胶囊——标签、筛选令牌、滚动条和进度条这类连续的条。
+     --control-radius:控件（按钮、分段器），实测 Geist 的 6px。
+     --badge-radius:状态与元信息标记。把「WIP」「最长」这种普通元信息做成整圆胶囊，
+     是 vercel-report-design 点名要拒绝的反射：它们会跟真标签抢同一种视觉身份，
+     用户以为可以点。
+     --surface-radius:不浮起的内嵌表面——缩略图、行卡片、Note、分段器外框，介于控件与浮层之间。
+     除这五个 token、50% 和 0 之外不写字面圆角；带边框容器里的头尾条用 calc(… - 1px) 保持同心。
+     字重同理只有 400／500／600 三档：vercel.com/design.md 明说不要自造数字字重，650、700 全部收到 600。 */
+  --pill-radius:999px; --tag-radius:var(--pill-radius);
+  --control-radius:6px; --badge-radius:4px; --floating-radius:12px; --surface-radius:8px; --tag-pad-y:4px; --tag-pad-x:10px; --hover-delay:5s;
+  /* 侧栏光晕的参数层。三枚光晕的颜色、椭圆尺寸和收边位置全部落在这里；
+     `.glowlayer::before` 只引用变量，一个字面颜色都不写。这组默认值就是预设「钨丝暖阁」，
+     颜色与 frontend/src/appearance/home-glow.ts 里那一档一字不差，页面第一帧和 applyHomeGlow() 写完之后画面相同。
+     只有颜色那三个由设置面板写到 `.glowlayer` 自己的行内样式上，写在这一层而不是 <html>
+     上的理由记在下面那条规则里；半轴和收边只有这一份，用户不调、也不进 localStorage。
+     圆心根本不在参数里：三枚光晕是侧栏玻璃面上那两团反光换成的，位置由 glowdrift 那两条
+     动画一直推着走，写死一个圆心等于把会动的光钉成一张贴图。存几何还有第二重代价——
+     旧版本那套横躺在页面顶部的坐标会原样跟着老用户留下来。
+     半轴的参照是一张两倍于侧栏的画布（和 board.css 里 --glass-drift-a/b 同一套算法），
+     20% 落到侧栏上就是 40%，跟着侧栏自己的长宽各向异性地拉成椭圆。
+     「大小」和「柔化」两条拉条各自乘在半轴与收边上，倍率由页面写进 --glow-size 与
+     --glow-soften；基准值留在这里，用户存的是那两条拉条的档位，不是算完的百分比。
+     「漂移速度」同理写进 --glow-drift-scale（时长倍率）与 --glow-drift-play：拉到 0 时
+     暂停漂移那两条动画，不去算一个除以零的时长。
+     --glow-lerp 是插值空间：默认空串等于按 sRGB 插，认得 `in oklab` 的引擎在下面那条
+     @supports 里把它换成 `in oklab`。写成变量而不是把整段 background 抄第二遍，是因为
+     两份三层渐变里任何一层改歪一个百分点都看不出来，而它们本该永远相同。 */
+  --glow-lerp: ;
+  --glow-size:1; --glow-soften:1; --glow-drift-scale:1; --glow-drift-play:running;
+  --glow-spot-1-color:rgba(143,152,164,.52); --glow-spot-1-w:calc(20% * var(--glow-size)); --glow-spot-1-h:calc(20% * var(--glow-size)); --glow-spot-1-fade:calc(72% * var(--glow-soften));
+  --glow-spot-2-color:rgba(182,188,196,.38); --glow-spot-2-w:calc(26% * var(--glow-size)); --glow-spot-2-h:calc(26% * var(--glow-size)); --glow-spot-2-fade:calc(74% * var(--glow-soften));
+  --glow-spot-3-color:rgba(111,119,131,.50); --glow-spot-3-w:calc(23% * var(--glow-size)); --glow-spot-3-h:calc(23% * var(--glow-size)); --glow-spot-3-fade:calc(73% * var(--glow-soften));
+  /* 强度是用户那一档，主题缩放是色板那一档，实际不透明度是两者相乘。
+     深色侧栏那块玻璃吃光、浅色那块反光，同一组颜色照搬到浅色会浓得压住导航文字，所以
+     浅色把整层按同一个比例收下来，而不是另存一套颜色：用户挑的是同一片光，两个主题不该
+     是两种东西。这一档的 .6 是在浏览器里逐档量出来的，判据是玻璃面上那块底色偏暖多少
+     （红减蓝）：.34 只有 4 级，一眼看过去和没开一样；.6 是 7 级，三枚光晕读得出来是三种
+     颜色；到 1 是 11 级，整条侧栏跟着泛米色，那时候有颜色的就不是光而是侧栏本身了。 */
+  --glow-noise:0; --glow-strength:1; --glow-theme-scale:.6;
+  /* 一颗标签的脸只有这一张：--tag-radius 的圆角、一圈 --line、这块比面再沉一档的填充、
+     --ink-2 的字。同一个词出现在卡片上、详情面板里、筛选条上和交集条里，读的人认的是
+     同一样东西；四处各画各的，同一个词就成了四种控件。写成 token 是因为这块填充是一句
+     算式，抄第三遍时总有一处的比例会错开一两个百分点，而差一档正好是「另一种东西」。 */
+  --tag-fill:color-mix(in srgb,var(--surface) 82%,var(--ground));
+  /* 一行里的输入框、下拉触发器和按钮共用这一个高度。写成变量是因为差 3px 就不是一行了，
+     而窄屏那条把输入框字号顶到 16 像素的防放大规则只抬没写死高度的那几个，同排的按钮不动。
+     Geist 自己的实测值是 32px，见 docs/reference-snapshots/vercel-geist-controls-measured.md。 */
+  --control-h:38px;
+  /* 框体上下两条横条的统一高度。写成变量是因为它同时管数据管理的卡片、链接管理
+     和资源同步：这三处任何一处单独调，页面上就会出现两种「同一种条」。 */
+  --fieldset-bar-h:52px;
+  /* 全站只有两张面。--page 是退到后面的那张：页面底、框体里的操作条。
+     --ground 是浮在它上面的那张：顶栏、窄栏、卡片、面板、菜单、按钮和输入框，
+     靠这一档差加一条发丝线浮起来，不靠投影。
+     2026-09-05 实测 vercel.com 后台：页面底与左栏都是 --ds-background-200 #FAFAFA，
+     部署行、设置 fieldset 的正文和次级按钮是 --ds-background-100 #FFFFFF 配 1px 的 8% 黑，
+     不带投影；fieldset 的操作条落回 #FAFAFA，与页面底是同一个 token。
+     暗色那档 Vercel 是纯黑页面配 #0A0A0A 的面——方向不变，仍是面比底亮。
+     Peach 的暗色底带蓝，所以按同一方向在 --ground 之下取一档，不跳到纯黑。
+     顶栏与窄栏是与 Vercel 有意分开的一处：Vercel 的页头和页面底同色、不浮，
+     Peach 有一条从上贯到底的窄栏，两条一起留在 --ground 才不会在左上角撞出两种白。 */
+  --page:#FAFAFA;
+  /* 选中填的那张面，就是上面那个中间色。判据是「跟周围不同」，不是「更亮」：选中格多半
+     站在白卡上，往亮里填等于白叠白，一排 tab 里哪一枚被选中读不出来。Geist 的取法是往下
+     压一档到 gray-200。深色一档叠白后本来就比面亮，同一个 token 两边都成立。 */
+  --picked:var(--inset);
+  /* 小窗播放浮在整页内容、吸顶条、抽屉（97）和沉浸层（200）之上，却要让设置面板、
+     菜单与 Toast 盖住它：dialog 以上三档都不是这个位置。 */
+  --layer-miniplayer:900; --layer-dialog:1000; --layer-popover:1100; --layer-tooltip:1200;
+  --frost-panel:rgba(250,250,250,.92); --frost-light:rgba(255,255,255,.86);
+  /* 盖住整页的弹层共用这一档遮罩：设置面板和作品详情浮窗底下都是同一片馆藏，压成两种
+     深浅只会让人以为自己打开的是两种东西。取值沿用设置面板在 Board UI 一版里的实际渲染
+     （常驻组件 `settings-panel` 的 `[data-settings-panel]`），两档主题同值、不带模糊。 */
+  --scrim:rgba(0,0,0,.7);
+  --overlay-5:rgba(0,0,0,.05);--border-10:rgba(0,0,0,.10);--border-15:rgba(0,0,0,.15);
+  /* 输入框静止那条边。2026-09-05 实测 vercel.com 的输入框：静止 1px 的
+     gray-alpha-400、悬停 alpha-500。焦点不是蓝的——蓝在这套里只给链接和数据。
+     悬停与聚焦的环另走 BoardUI Input 的 border-button 两档，见 .geist-input；
+     --field-ring-focus 留给 .pickrow 这类「选中的那一行」标边。 */
+  --field-ring:rgba(0,0,0,.08);--field-ring-hover:rgba(0,0,0,.21);
+  --field-ring-focus:rgba(0,0,0,.34);
+  /* 字号只有这一套刻度。之前站内散着 22 种字号（9…48px），相邻两档差半像素，
+     既排不出层级也没法复核。收敛成 8 档，下限 12px：更小的灰字在 Vercel 的
+     design.md 里被明确列为要拒绝的生成式设计反射。新增字号前先证明现有 8 档都不合适。 */
+  --fs-xs:12px; --fs-sm:13px; --fs-md:14px; --fs-lg:16px;
+  --fs-xl:20px; --fs-2xl:24px; --fs-3xl:32px; --fs-4xl:48px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#080A0D; --surface:#0C0F14; --sunk:#0B0D11; --hover:rgba(255,255,255,.07); --skeleton-sheen:rgba(255,255,255,.12);
+  --line:#3A3A3D; --line-soft:#2C2C30; --inset:rgba(255,255,255,.09);
+  --ink:#FFFFFF; --ink-2:#C9CDD4; --muted:#9AA0A8;
+  --tungsten:#0095F6;
+  --frost-panel:rgba(6,9,14,.94); --frost-light:rgba(14,18,24,.90);
+  --overlay-5:rgba(245,250,255,.05);--border-10:rgba(245,250,255,.10);--border-15:rgba(245,250,255,.15);
+  --field-ring:rgba(255,255,255,.14);--field-ring-hover:rgba(255,255,255,.24);
+  --field-ring-focus:rgba(255,255,255,.51);
+  --page:#04060A;
+  --picked:var(--inset);
+  --rating:#E5B34A;
+  --loupe:#6FD0C8; --keep:#5FB95F; --meter:#E0912F; --drop:#FF5252; --success:#5FB95F;
+  --glow-theme-scale:1;}}
+:root[data-theme="dark"]{
+  --ground:#080A0D; --surface:#0C0F14; --sunk:#0B0D11; --hover:rgba(255,255,255,.07); --skeleton-sheen:rgba(255,255,255,.12);
+  --line:#3A3A3D; --line-soft:#2C2C30; --inset:rgba(255,255,255,.09);
+  --ink:#FFFFFF; --ink-2:#C9CDD4; --muted:#9AA0A8;
+  --tungsten:#0095F6;
+  --frost-panel:rgba(6,9,14,.94); --frost-light:rgba(14,18,24,.90);
+  --overlay-5:rgba(245,250,255,.05);--border-10:rgba(245,250,255,.10);--border-15:rgba(245,250,255,.15);
+  --field-ring:rgba(255,255,255,.14);--field-ring-hover:rgba(255,255,255,.24);
+  --field-ring-focus:rgba(255,255,255,.51);
+  --page:#04060A;
+  --picked:var(--inset);
+  --rating:#E5B34A;
+  --loupe:#6FD0C8; --keep:#5FB95F; --meter:#E0912F; --drop:#FF5252; --success:#5FB95F;
+  --glow-theme-scale:1;}
+
+*,*::before,*::after{box-sizing:border-box}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+/* 整页也不给滚动条留那一列。原生滚动条自己占 15px 实宽，浅色一档的槽还是块比 --page
+   更亮的死白，窗口右边于是常年挂着一条从头贯到底的白带；要它不跳版又得 scrollbar-gutter
+   把这 15px 永久扣下来，等于为一条装饰付一整列。改成 .ovtrack 那套覆盖式滑块之后，
+   宽度归零，跳版的前提也一并消失——设置面板、灯箱和播放器给 body 加 overflow:hidden 时，
+   本来就没有东西会消失。 */
+html{color-scheme:light;scroll-padding-top:calc(var(--topH) + 8px);scrollbar-width:none}
+/* 这段内边距给的是跳到锚点、键盘移焦时的落点，免得目标钻到粘性顶栏底下。焦点就在顶栏
+   里时它反而帮倒忙：搜索框本来就钉在视口上沿，却落在这段「被盖住」的区域里，浏览器每敲
+   一个字都要把光标往下滚，而顶栏跟着一起走，页面就一路往回退。 */
+html:has(.top :focus){scroll-padding-top:0}
+html::-webkit-scrollbar{display:none}
+/* 换筛选那一路上关掉滚动锚定：卡片换成骨架、骨架再换成新卡片，锚定每一步都要照新内容
+   把位置推一次，而这一路正有一段回到顶部的滚动在走，两边会互相顶。 */
+html.refiltering{overflow-anchor:none}
+@media (prefers-color-scheme:dark){html:not([data-theme="light"]){color-scheme:dark}}
+html[data-theme="dark"]{color-scheme:dark}
+html,body{margin:0;padding:0}
+body{background:var(--page);color:var(--ink);
+  font-family:Roboto,"Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI","PingFang SC",sans-serif;
+  font-size:var(--fs-md);line-height:1.45;-webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums}
+/* 光晕住在侧栏里自己那枚空 div 上，而不是 `body` 的伪元素上，为的是把自定义属性的失效
+   范围关在这一层里。自定义属性是继承的：往 <html> 或 <body> 上写一次 --glow-strength，
+   整棵树都要重算样式。2026-09-16 在首页量过，判据是「写一次变量再强制 layout 的耗时」，取
+   三轮每帧平均：写在 <html> 上 12.7–16.6ms（页面约 5800–6000 个节点），写一个根本没人
+   引用的 --zzz-unused 同样是 15.0–16.2ms——这笔钱买的全是继承失效，和光晕怎么画无关；
+   同一份代码写到一枚没有子节点的元素上是 0.09–0.10ms。拖拉条时每帧都要写一次，
+   16.7ms 的帧预算里先扣掉 15ms，掉帧就是必然。
+   `will-change:opacity` 也试过并量过：同样三轮 60 步合成拖动，提层后每帧间隔取最好一轮
+   18.86ms、不提层 19.49ms，轮内波动本身就有 2ms 上下，这 0.6ms 读不出是效果，代价却是
+   一整块合成层常驻显存，所以不提。
+   三层都只引用 --glow-* 变量，这里一个颜色都不写死：用户在设置面板里换配色时，改的就是
+   那组变量，规则本身不动。插值空间走 --glow-lerp。
+
+   这一层画的就是侧栏玻璃面自带的那两团慢漂反光，换成用户配得了色的三枚。board.css 那条
+   玻璃规则把 --glass-drift-a/b 铺在每一块玻璃上，抽屉这一块交给这里来铺（侧栏岛的
+   `sidebar.css` 因此把抽屉上的两个变量置为 none，两套光斑叠着漂会糊成一团）；搜索框、筛选浮层、图标钮
+   那些玻璃面保持自己原来的漂移不动——它们身上那一点正是从侧栏折射过去的光。
+   正文身后什么都不铺：整条页面宽的光带是背景不是光晕，字压在上面读不出来。
+
+   位置不是参数，由 glowdriftx/glowdrifty 一直推着走，算法照搬 board.css 那两条：画布是
+   元素的两倍大，background-position 从 0% 到 100% 正好把光斑中心从右下角推到左上角，
+   -10% 与 110% 那两档让它探出框外一点。三枚各走一条相位不同的李萨如轨迹，横竖两条动画
+   41s 与 67s 互质，合起来四十多分钟不重样。
+   z-index 取 -2：抽屉 #drawer 自己带 backdrop-filter，是一个层叠上下文，负层只压在它那块玻璃
+   填充之上、被导航内容全部盖住；-1 已经归了选中项那块玻璃 [data-sidebar-glide]，光晕要在它下面。
+   溢出由抽屉的 overflow:hidden 连圆角一起裁掉，这一层不必自己再写一遍圆角。
+   首屏 ambient-in 那一下淡入留着：这一层一直在动，开页时从 0 亮起来读成「灯亮了」，
+   直接带着满强度出现反而像一张贴图突然贴上去。 */
+.glowlayer{--ambient-opacity:calc(var(--glow-strength) * var(--glow-theme-scale));
+  position:absolute;inset:0;z-index:-2;pointer-events:none}
+.glowlayer::before{content:"";position:absolute;z-index:0;pointer-events:none;inset:0;
+  opacity:var(--ambient-opacity);background:
+    radial-gradient(var(--glow-lerp) var(--glow-spot-1-w) var(--glow-spot-1-h) at 50% 50%,var(--glow-spot-1-color),transparent var(--glow-spot-1-fade)),
+    radial-gradient(var(--glow-lerp) var(--glow-spot-2-w) var(--glow-spot-2-h) at 50% 50%,var(--glow-spot-2-color),transparent var(--glow-spot-2-fade)),
+    radial-gradient(var(--glow-lerp) var(--glow-spot-3-w) var(--glow-spot-3-h) at 50% 50%,var(--glow-spot-3-color),transparent var(--glow-spot-3-fade));
+  background-size:200% 200%;background-repeat:no-repeat;
+  background-position:50% 20%,80% 70%,20% 80%;
+  animation:glowdriftx calc(41s * var(--glow-drift-scale)) linear infinite,glowdrifty calc(67s * var(--glow-drift-scale)) linear infinite,ambient-in .8s ease .5s both;
+  animation-play-state:var(--glow-drift-play),var(--glow-drift-play),running}
+/* 三条轨迹是同一条李萨如曲线的三个相位：第一枚与 board.css 的 --glass-drift-a 同相，
+   第二枚是它的镜像，第三枚横向错四分之一周期、纵向错八分之一，三枚因此从不在同一处会合。 */
+@keyframes glowdriftx{
+  0%{background-position-x:50%,50%,110%}
+  12.5%{background-position-x:7.6%,92.4%,92.4%}
+  25%{background-position-x:-10%,110%,50%}
+  37.5%{background-position-x:7.6%,92.4%,7.6%}
+  50%{background-position-x:50%,50%,-10%}
+  62.5%{background-position-x:92.4%,7.6%,7.6%}
+  75%{background-position-x:110%,-10%,50%}
+  87.5%{background-position-x:92.4%,7.6%,92.4%}
+  100%{background-position-x:50%,50%,110%}
+}
+@keyframes glowdrifty{
+  0%{background-position-y:-10%,50%,7.6%}
+  12.5%{background-position-y:7.6%,7.6%,50%}
+  25%{background-position-y:50%,-10%,92.4%}
+  37.5%{background-position-y:92.4%,7.6%,110%}
+  50%{background-position-y:110%,50%,92.4%}
+  62.5%{background-position-y:92.4%,92.4%,50%}
+  75%{background-position-y:50%,110%,7.6%}
+  87.5%{background-position-y:7.6%,92.4%,-10%}
+  100%{background-position-y:-10%,50%,7.6%}
+}
+/* 认得 oklab 插值的引擎在这里才拿到它。反过来写——默认 `in oklab`、老引擎再关掉——
+   的后果是老引擎把整条 background 判成无效，首页顶上一片光都没有，而不是退回 sRGB。 */
+@supports (background:linear-gradient(in oklab,red,blue)){:root{--glow-lerp:in oklab}}
+/* 颗粒感是可选的一层，默认强度 0 就是关。瓦片由 feTurbulence 当场生成，仓库里不落
+   位图；overlay 只压在光晕上，导航内容在它之后绘制，不受影响。 */
+.glowlayer::after{content:"";position:absolute;z-index:0;pointer-events:none;inset:0;
+  opacity:var(--glow-noise);mix-blend-mode:overlay;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='peachglowgrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23peachglowgrain)'/%3E%3C/svg%3E") 0 0/120px 120px repeat}
+@keyframes ambient-in{from{opacity:0}to{opacity:var(--ambient-opacity)}}
+/* 跟着动效偏好走：一屋子的光一直在挪是这块玻璃读成实物的理由，但 prefers-reduced-motion
+   的人要的正是「别再动了」。停在当前那一帧，光还在，只是不动——整层关掉等于换了个配色。 */
+@media (prefers-reduced-motion:reduce){.glowlayer::before{animation:ambient-in .8s ease .5s both}}
+.disp{font-family:Bahnschrift,"Segoe UI Variable Display","Microsoft YaHei UI",sans-serif;
+  font-weight:600;letter-spacing:.02em}
+.mono{font-family:"Cascadia Mono",Consolas,ui-monospace,"Microsoft YaHei UI","PingFang SC",monospace;
+  font-variant-numeric:tabular-nums;font-size:var(--fs-xs)}
+button,input,textarea{font:inherit;color:inherit}
+button,a,input,textarea,select,summary,[role="button"]{touch-action:manipulation}
+/* 按钮里的字是界面标签时它不是内容：触屏长按按钮、标签 chip 或折叠标题时不选中字、
+   不弹系统菜单。链接和输入框不在这里。按钮里装的是馆藏数据时它就是内容——作品卡上的
+   标题与番号、女优名、标签，系列名、筛选页的女优与厂牌名、中间省略的文件名与标题——
+   照常能长按复制，页内查找也落得到（offscreen-cards.test.ts）。 */
+button,[role="button"],summary{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+[data-media-card] button,button:is([data-series-link],[data-tier-performer],[data-tier-studio],[data-middle-truncate]){
+  user-select:auto;-webkit-user-select:auto;-webkit-touch-callout:default}
+/* React 子树的焦点环由 BoardUI 组件自己画（输入框画在外框上）；`:where` 让特指度保持 0,1,0。 */
+:where(:not(.peach-react *)):focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* 静态搜索框：React 接管前的骨架里用（索引页标题行），接管后换成 BoardUI 的 InputBase。
+   两者是同一只框的前后两帧，几何与面照 InputBase 取：无边框的填充底、20px 图标距左 8px、
+   文字从 34px 起（8 + 20 + 2 + 4），框高跟同一行按钮共用 --control-h。 */
+.geist-search{position:relative;min-width:0}
+.geist-search-prefix{position:absolute;z-index:1;left:8px;top:calc((var(--control-h) - 20px) / 2);
+  display:grid;place-items:center;width:20px;height:20px;color:var(--color-text-tertiary);pointer-events:none}
+.geist-search-prefix>svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none}
+.geist-search input[type="search"]{width:100%;min-width:0;height:var(--control-h);
+  box-sizing:border-box;border:0;border-radius:var(--control-radius);
+  background:var(--color-background-tertiary-default);color:var(--ink);padding:0 8px 0 34px;font-size:var(--fs-md);
+  font-family:inherit;line-height:20px;transition:box-shadow .12s ease}
+.geist-search input[type="search"]::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.geist-search input[type="search"]::placeholder{color:var(--color-text-tertiary)}
+/* 悬停与聚焦是同一枚 2px inset ring 在两档灰之间换档，聚焦压过悬停（BoardUI Input
+   的 `ring-2 ring-inset`，2026-09-09 取证登记 boardui-input）。上游把 box-shadow 写进了
+   transition，环是渐变出来的，不是硬切。 */
+.geist-search input[type="search"]:hover{box-shadow:inset 0 0 0 2px var(--color-border-button-hover)}
+.geist-search input[type="search"]:focus{outline:0;box-shadow:inset 0 0 0 2px var(--color-border-button-active)}
+/* 纯文本输入框：全站唯一一份。此前每处自己拼内边距，控件高度散在 34/40/43 三档，
+   而 <=760px 那条把输入框字号顶到 16 像素的防放大规则只抬没写死高度的那几个，
+   同一行里的按钮不动，两个控件就差一截。
+   高度走 --control-h，与 .geist-search 同档；同一行的按钮和下拉触发器引用同一个 token，
+   要换档只改 :root 那一处。Geist 自己的实测值是 32px，见
+   docs/reference-snapshots/vercel-geist-controls-measured.md。 */
+.geist-input{box-sizing:border-box;width:100%;min-width:0;height:var(--control-h);
+  border:1px solid var(--field-ring);border-radius:var(--control-radius);
+  background:var(--ground);color:var(--ink);padding:0 12px;
+  font:inherit;font-size:var(--fs-md);line-height:20px;transition:box-shadow .12s ease}
+.geist-input::placeholder{color:var(--muted)}
+.geist-input:hover{box-shadow:inset 0 0 0 2px var(--color-border-button-hover)}
+.geist-input:focus{outline:0;box-shadow:inset 0 0 0 2px var(--color-border-button-active)}
+/* 按钮分档只靠填充，边框一条不画：Geist 的四个变体 `border-width` 全是 0、字重全是 500。
+   次级那一档另挂一圈 `box-shadow:0 0 0 1px`（2026-09-07 复测 vercel.com/geist/button：次级
+   填 #FFFFFF、环 rgb(235,235,235)；primary #171717、error、warning 三档 `box-shadow:none`；
+   禁用档填 #F2F2F2、字 #8F8F8F、环仍在、`cursor:not-allowed`）。
+   这圈环不能省。次级填的是 --ground，而面板、卡片和框体本身也是 --ground：按钮落在它们
+   上面时两块同色，一条边都读不出来（暗色一档 --ground 是 #080A0D，整颗键化在面里）。
+   「只在操作条上出现、比条子亮一档就是边界」对配置页的「添加文件夹」「选择文件夹」不成立：
+   它们直接坐在 --ground 上。换成实底亮色会让一颗次要动作抢过主动作的份量，所以照 Geist
+   的做法：填充不动，补一圈 1px。实心的三档不挂环，它们自己的填充就是边界。
+   环用 box-shadow 而不是 border：不占盒子，32px 的行高和并排实心档的外沿仍然齐平。 */
+.geist-button{box-sizing:border-box;height:32px;padding:0 14px;border:0;
+  border-radius:var(--control-radius);background:var(--ground);color:var(--ink);display:inline-flex;
+  align-items:center;justify-content:center;gap:6px;font:inherit;font-size:var(--fs-md);font-weight:500;
+  line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 0 0 1px var(--line-soft);
+  transition:background-color .15s ease-in-out,color .15s ease-in-out}
+/* 次级的悬停抬到 Geist 实测的 gray-200 那一档（浅色 #EBEBEB、深色 #1F1F1F），墨色 8% 压在
+   自己那块面上即是这个值。比它淡的一档在白底上与静止态只差两三个色阶，鼠标压在哪颗按钮
+   上看不出来；用墨色混合而不是某个固定 token，是因为浅色要往下压、深色要往上抬。 */
+.geist-button:hover:not(:disabled){background:color-mix(in srgb,var(--ink) 8%,var(--ground))}
+.geist-button,.geist-button:hover{text-decoration:none}
+/* 按钮里唯一还挂图标的一类是走出 Peach 的链接，那一枚的长相由下面两条说。 */
+.geist-button svg{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:2}
+.geist-button:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+.geist-button:disabled{background:var(--sunk);color:var(--muted);cursor:not-allowed}
+/* Vercel/Geist loading actions look unavailable and reject repeat activation,
+   but remain focusable; JS pairs this with aria-disabled instead of disabled. */
+button[aria-busy="true"],[role="button"][aria-busy="true"]{
+  cursor:wait!important;opacity:.55!important;filter:saturate(.35)
+}
+/* 强调档那一面不在这里：它的渐变、边、阴影和悬停归 `board.css` 的 Board primary 一处。
+   这里留着一份 Geist 的墨色实底加悬停提亮的话，它的 `.primary:hover:not(:disabled)`
+   比 Board 那条静止规则还重一个类，压上去就跳回墨色。 */
+/* 实心档的禁用态要自己写：.geist-button:disabled 排在 .primary 前面，同权重下后者赢，
+   不补这条的话禁用的主动作还是满格实底，看着可点。 */
+.geist-button.primary:disabled{background:var(--sunk);color:var(--muted);box-shadow:0 0 0 1px var(--line-soft)}
+/* 危险档静止就是实底红，不是描红边等悬停才填。只换描边和文字色的话，两个状态在暗色底上
+   几乎一样亮，按下去之前看不出这是不可逆动作；Geist 的 error 变体也是 `rgb(217,48,54)`
+   实底配纯白字，静止态就红。销毁按钮全站只有这一个写法：标记上写 `.danger`。
+   档位只能挂在 `<button>` 的 `.danger` 上，不要另起一个页面类来承担同一件事。
+   `.xxxactions button` 这类容器规则自己就填底色，权重是一个类加一个类型名；
+   页面单类顶不过它——同权重时按文件顺序决胜，而分区号更大的页面文件总在后面，
+   红会被容器那份底色静静盖掉，选择器和声明单看都没有问题。
+   类名写两遍是为了权重：`button.danger.danger` 算两个类加一个类型名，比容器规则
+   高一档，进哪个容器都赢；只写一遍就和容器规则同权重，而它排在前面，红会被盖掉。 */
+button.danger.danger{
+  background:var(--drop);color:#fff;box-shadow:none}
+button.danger.danger:hover:not(:disabled){
+  background:color-mix(in srgb,var(--drop) 82%,#000);color:#fff}
+button.danger.danger:disabled{
+  background:var(--sunk);color:var(--muted);box-shadow:0 0 0 1px var(--line-soft)}
+.geist-button.error{background:#da2f35;color:#fff;box-shadow:none}
+.geist-button.warning{background:#ff990a;color:#000;box-shadow:none}
+.geist-button.error:hover:not(:disabled){background:color-mix(in srgb,#da2f35 85%,#000);color:#fff}
+.geist-button.warning:hover:not(:disabled){background:color-mix(in srgb,#ff990a 85%,#000);color:#000}
+.geist-button:is(.error,.warning):disabled{background:var(--sunk);color:var(--muted);box-shadow:0 0 0 1px var(--line-soft)}
+.skiplink{position:fixed;z-index:1000;left:12px;top:8px;transform:translateY(-150%);
+  padding:9px 13px;border-radius:var(--control-radius);background:var(--ink);color:var(--ground);text-decoration:none;
+  transition:transform .12s ease}
+.skiplink:focus-visible{transform:translateY(0)}
+/* 覆盖式滚动条：原生的藏掉，滑块浮在内容上，一列宽度都不占。
+   2026-09-05 实测 vercel.com 侧栏（`nav.overflow-y-auto` + 它的兄弟 `div.group/track`）：
+   容器 `scrollbar-width:none`、`padding-right:0`，轨道 `absolute right-0 top-2 bottom-2`
+   宽 12px、底透明；滑块 `absolute right-0` 宽 3px、`border-radius` 实测 9999px（Peach 走
+   --pill-radius 的 999px，整圆只留一个来源）、
+   `background:var(--ds-gray-500)`（浅色一档实测 rgb(201,201,201)，暗色一档 rgb(69,69,69)），
+   轨道悬停时宽到 6px，`transition:width .15s cubic-bezier(.4,0,.2,1)`；高度和位移写在滑块的
+   行内样式上，按可视高/内容高的比例算。
+   Peach 的 --field-ring-hover 是 rgba(0,0,0,.21)，压在白面上正好是 rgb(201,201,201)，
+   同一个数还自带暗色一档，所以直接用它，不再为滑块单开一个颜色 token。
+   轨道 12px 只是好瞄的命中区，看得见的永远只有那 3px。
+   有意差异一：Vercel 的轨道是 `hidden pointer-fine:block`，粗指针一档整条不画。Peach 让滑块
+   照画，只把「能拖」收给细指针。原生滚动条已被容器关掉，跟着 Vercel 收掉整条就等于触屏上
+   既没有滑块也没有系统指示器，读不出这一列有多长、自己在哪儿；而滑块本身不占宽度，
+   留着不挡任何东西。拖不动的东西不该吃走触摸事件，所以命中区由 pointer-events 分档。
+   有意差异二：Vercel 只在内部滚动区这么做，根滚动条留给浏览器；Peach 整页也换掉，见上面
+   `html` 那条。整页那一条的命中区必须收到滑块本身：轨道横跨整个窗口右边，12px 宽的透明
+   条会把右边缘所有点击吃掉——设置面板就贴在那儿。 */
+.ovtrack{position:absolute;z-index:2;pointer-events:none}
+.ovtrack[hidden]{display:none}
+@media (pointer:fine){.ovtrack{pointer-events:auto}}
+.ovtrack.ov-y{right:0;top:8px;bottom:8px;width:12px}
+.ovtrack.ov-x{left:8px;right:8px;bottom:0;height:12px}
+/* 复核卡正文的纵向轨道位于右侧内边距中，12px 命中区完整留在内容之外。 */
+[data-review-key]>div:has(>div[data-overlay-scrollbar])>.ovtrack.ov-y{translate:12px 0}
+.ovthumb{position:absolute;border-radius:var(--pill-radius);background:var(--field-ring-hover);
+  cursor:default;transition:width .15s cubic-bezier(.4,0,.2,1),height .15s cubic-bezier(.4,0,.2,1)}
+.ov-y .ovthumb{right:0;top:0;width:3px}
+.ov-x .ovthumb{left:0;bottom:0;height:3px}
+.ov-y:hover .ovthumb,.ov-y.dragging .ovthumb{width:6px}
+.ov-x:hover .ovthumb,.ov-x.dragging .ovthumb{height:6px}
+.ovtrack.page{position:fixed;top:0;bottom:0;right:0;z-index:91;pointer-events:none}
+@media (pointer:fine){.ovtrack.page .ovthumb{pointer-events:auto}}
+.ovtrack.page:hover .ovthumb{width:3px}
+.ovtrack.page .ovthumb:hover,.ovtrack.page.dragging .ovthumb{width:6px}
+/* 弹层盖住页面时整页那条轨道要收起来：页面已经 overflow:hidden，它拖不动也没有对应的
+   滚动可读，留着就是弹层旁边多一条竖线。判据跟着锁走——下面两个类就是加 overflow:hidden
+   的那两处，弹层自己那条轨道挂在卡片上，不受这条影响。 */
+body.settings-open>.ovtrack.page,body.photolight-open>.ovtrack.page{display:none}
+/* 原生滚动条在挂上覆盖式那条之后才藏：属性是 attachOverlayScrollbar() 挂上去的，
+   脚本没跑到的容器就还留着系统滚动条，不会变成一个既没有滑块也拖不动的死框。 */
+[data-overlay-scrollbar]{scrollbar-width:none}
+[data-overlay-scrollbar]::-webkit-scrollbar{display:none}
+/* 边缘只提示仍可滚动的方向；透明渐隐适配每一档底色，覆盖层不拦点击与滚轮。 */
+[data-scroll-edges]{mask-image:linear-gradient(to bottom,transparent,#000 var(--scroll-edge-top),#000 calc(100% - var(--scroll-edge-bottom)),transparent)}
+/* 横向行不显示滚动条（本来就能拖动/滚轮横滚） */
+.tier,.tagbar,.srow{scrollbar-width:none}
+.tier::-webkit-scrollbar,.tagbar::-webkit-scrollbar,
+.srow::-webkit-scrollbar{display:none}
+/* 横滚容器的 overflow-x:auto 会把计算后的 overflow-y 一起变成 auto，圆头像贴着容器
+   上沿时，:hover 和选中态那圈外扩 box-shadow 就被削平。留 3px 上方余量再用等量负
+   margin 抵掉，位置一点不动。头像圈被遮是同一个缺陷重犯多次，横向头像行统一走这
+   一条，不要再逐处补 padding。`.followauthors` 自带余量，不在此列。 */
+.tier,.relatedpeople{padding-top:3px;margin-top:-3px}
+
+/* 锚定菜单：无展开动画，固定在视口内，内容在菜单内滚动而不是把页面撑出滚动条。
+   2026-09-04 实测 vercel.com 后台的 Filter and Sort 菜单：底色是页面底色本身（浅色下
+   纯白），不是下一档面板灰；6px 内边距、12px 圆角、行高 36px；阴影是四层叠出来的
+   薄影加一圈 1px 描边，不是一大团黑。这里的描边由 border 给。 */
+.popmenu{position:fixed;z-index:var(--layer-popover);max-height:calc(100dvh - 16px);
+  padding:6px;border:1px solid var(--border-15);border-radius:var(--floating-radius);
+  background:var(--ground);display:grid;gap:2px;
+  box-shadow:var(--elevation-dropdown);
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.popmenu[hidden]{display:none}
+/* 进顶层的那几个要把 popover 的默认盒子拆掉：浏览器给 `[popover]` 的是 inset:0 加
+   margin:auto 的居中盒，菜单会被拉宽并落在屏幕正中，而定位算的是 left/top。 */
+.popmenu[popover]{inset:auto;margin:0}
+
+/* Geist Select：触发器穿输入框那身盒子，面板就是上面那个锚定菜单。为什么不用原生
+   下拉、几何取自哪里，见 frontend/src/ui-kit/select-field.ts 的头注释。 */
+.gselectfield{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:space-between;
+  gap:8px;width:100%;min-width:0;height:var(--control-h);padding:0 10px 0 12px;
+  border:1px solid var(--field-ring);border-radius:var(--control-radius);
+  background:var(--ground);color:var(--ink);font:inherit;font-size:var(--fs-md);line-height:20px;
+  text-align:left;cursor:pointer;transition:border-color .12s ease,background-color .12s ease,box-shadow .12s ease}
+.gselectfield>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gselectmenu [data-select-content]{display:flex;align-items:center;gap:8px;min-width:0}
+.gselectfield .gselectmark{vertical-align:-3px;margin-inline-end:8px}
+.gselectmark{width:16px;height:16px;flex:none;object-fit:contain;stroke:currentColor;fill:none;stroke-width:2}
+.gselectfield>svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;color:var(--muted)}
+.gselectfield:hover:not(:disabled){border-color:var(--field-ring-hover)}
+/* 展开时按住焦点态：菜单开着而触发器看起来没被点中，读起来像两个控件。 */
+.gselectfield[aria-expanded="true"]{box-shadow:inset 0 0 0 2px var(--color-border-button-active)}
+.gselectfield:disabled{background:var(--surface);color:var(--muted);cursor:not-allowed}
+.gselectfield:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+/* 行首是站标，不是勾：选中态只有填充，行里也就没有一枚勾要占位。几何以 board.css 那条
+   浮层菜单项为准，这里是遗留层自己的基线，两边的内边距写同一个值。 */
+.popmenu.gselectmenu button{display:flex;align-items:center;justify-content:flex-start;gap:8px;width:100%;min-height:var(--control-h);
+  padding:0 8px;border:0;border-radius:var(--control-radius);background:transparent;color:var(--ink-2);
+  font:inherit;font-size:var(--fs-md);text-align:left;cursor:pointer}
+.popmenu.gselectmenu button:hover{background:var(--hover);color:var(--ink)}
+.popmenu.gselectmenu button[aria-selected="true"]{background:var(--hover);color:var(--ink)}
+
+/* Geist Modal 的操作条；弹层本身、正文与表单的几何在 frontend/src/ui-kit/modal.css。 */
+.geist-modal-footer{position:sticky;bottom:0;display:flex;justify-content:space-between;gap:16px;
+  padding:12px;background:var(--surface)}
+.geist-modal-footer>div{display:flex;gap:16px}
+.modalfield{display:grid;gap:8px}
+.modalfield>span{color:var(--muted);font-size:var(--fs-xs)}
+/* 一排能撤掉的名牌。整块不是命中区，能点的只有每块右边那一枚——名字本身在这里
+   没有别的动作，让整行可点只会让人以为点了会发生什么。 */
+.aliaschips{display:flex;flex-wrap:wrap;gap:6px}
+.aliaschip{display:inline-flex;align-items:center;gap:2px;min-height:28px;padding:0 2px 0 10px;
+  border:1px solid var(--border-10);border-radius:var(--pill-radius);background:var(--overlay-5);
+  color:var(--ink-2);font-size:var(--fs-sm);overflow-wrap:anywhere}
+.aliaschip button{display:grid;place-items:center;width:24px;height:24px;flex:none;padding:0;border:0;
+  border-radius:50%;background:transparent;color:var(--muted);cursor:pointer}
+.aliaschip button:hover{background:var(--hover);color:var(--drop)}
+.aliaschip svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* 勾选一行等于选中它，所以整行都是命中区，勾选框在行首。 */
+.picklist{display:grid;gap:6px;max-height:280px;overflow-y:auto;overscroll-behavior:contain}
+.pickrow{display:flex;align-items:center;gap:11px;min-height:44px;padding:0 12px;
+  border:1px solid var(--border-10);border-radius:var(--control-radius);
+  background:var(--overlay-5);color:var(--ink);cursor:pointer}
+.pickrow:hover{background:var(--hover)}
+.pickrow:has(input:checked){border-color:var(--field-ring-focus)}
+.pickrowtext{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  min-width:0;flex:1}
+.pickrowtext b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pickrowtext small{flex:none;color:var(--muted)}
+
+/* 「图比框小就别放大」的共用摆法。索引页的厂牌大格和厂牌资料页的大位共用它：那两处
+   摆的都是标识，而标识的原始尺寸差得很远，实测 42 px 到 1378 px 都有。
+   度量由 fitNativeImage 在图片加载后写进 --markw / --markh，这里只负责摆：
+   没有变量时 min(100%,100%) 就是铺满，JS 没跑到的地方按 CSS 自己收场。
+   补底那一层是同一张图放大后模糊，往框外多铺一圈，让糊边落在 overflow 之外。 */
+[data-fit-native]{position:relative}
+/* 选择器点名名册那一格（React 的 `[data-person-ring]`，索引页与资料页名册共用）：它的 img
+   写着铺满和 object-fit:cover，光凭一个属性选择器压不过它。
+
+   尺寸走 `--markw` / `--markh` 而不是 `width:auto`：还没度量过的图按 auto 是 0×0，
+   而 `loading="lazy"` 见到 0×0 的框就认定它不在视口里，于是永远不去取这张图——
+   图不来就没有 load、没有 load 就没有度量，两边互相等着，格子一直空着。缺省值
+   仍是铺满，度量之后才换成那张图自己的像素数。 */
+[data-person-ring][data-fit-native="mark"] img,
+[data-person-ring][data-native-small="true"] img{
+  width:var(--markw,100%);height:var(--markh,100%);margin:auto;object-fit:contain;
+  max-width:100%;max-height:100%;z-index:1}
+[data-fit-native]::before{content:"";position:absolute;inset:-14%;z-index:0;
+  background:var(--markbg,none) center/cover no-repeat;filter:blur(16px) saturate(1.4);
+  opacity:.55;pointer-events:none}
+/* 首字母是取不到图时的垫底。图不再铺满框之后它会从旁边露出来，所以有图就收起来。
+   资料卡岛那一侧的大位与首字母由 `entity-hero.css` 自己收。 */
+[data-person-ring][data-fit-native]:has(img) .ini{display:none}

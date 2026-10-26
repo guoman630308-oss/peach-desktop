@@ -1,0 +1,7 @@
+/* 覆盖滚动条（`overlay-scrollbar.ts`）的上下边缘：只在那一侧还能滚时现形，覆盖层不拦点击与滚轮。 */
+.ui-ov-edges{position:absolute;pointer-events:none;z-index:1;overflow:hidden}
+.ui-ov-edges[hidden]{display:none}
+.ui-ov-edges>span{position:absolute;left:0;right:0;height:16px;visibility:hidden;backdrop-filter:blur(2px)}
+.ui-ov-edge-top{top:0;mask-image:linear-gradient(#000,transparent)}
+.ui-ov-edge-bottom{bottom:0;mask-image:linear-gradient(transparent,#000)}
+.ui-ov-edges.ui-can-scroll-top>.ui-ov-edge-top,.ui-ov-edges.ui-can-scroll-bottom>.ui-ov-edge-bottom{visibility:visible}

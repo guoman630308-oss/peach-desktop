@@ -1,0 +1,18 @@
+#!/bin/sh
+# 主检出只做集成（AGENTS.md「工作树」）。在这里往 master 直接提交或手工 merge，
+# 就跳过了 ready / integrate 对测试记录、署名和提交主题的检查。
+# master 上该落提交的只有 agent_worktree.py integrate 与 release_tag.py，
+# 它们调用 git 时带 -c peach.masterWriter=<入口名>；工作树里的提交不受影响。
+if [ -n "$(git config --get peach.masterWriter)" ]; then
+    exit 0
+fi
+if [ "$(git rev-parse --absolute-git-dir)" != "$(git rev-parse --path-format=absolute --git-common-dir)" ]; then
+    exit 0
+fi
+if [ "$(git branch --show-current)" != "master" ]; then
+    exit 0
+fi
+echo "拒绝提交：这是主检出的 master，主检出只做集成。" >&2
+echo "改动在 scripts/agent_worktree.py create 建的工作树里提交，再由 integrate 并进来；" >&2
+echo "发版提交走 scripts/release_tag.py。" >&2
+exit 1

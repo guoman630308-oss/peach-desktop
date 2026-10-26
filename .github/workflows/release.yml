@@ -1,0 +1,367 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PEACH_SENTRY_DSN: ${{ vars.PEACH_SENTRY_DSN }}
+  PEACH_LIBRARY_SENTRY_DSN: ${{ vars.PEACH_LIBRARY_SENTRY_DSN }}
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  validate:
+    name: 核对发布提交与版本
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: 核对标签提交的主线 CI
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/release_tag.py --repo "$GITHUB_REPOSITORY" --verify-sha "$GITHUB_SHA"
+          python -c 'import os; from pathlib import Path; from scripts.version_bump import read_version; assert os.environ["GITHUB_REF_NAME"] == "v" + read_version(Path.cwd()), "Tag 与版本不一致"'
+          python scripts/changelog.py --notes "${GITHUB_REF_NAME#v}" --to "$RUNNER_TEMP/release-notes.md"
+
+  ffmpeg:
+    name: Windows FFmpeg 与对应源码
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - name: 复用固定源码的媒体工具与对应源码包
+        id: media-cache
+        uses: actions/cache@v6.1.0
+        with:
+          key: windows-media-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build_ffmpeg_windows.sh', 'scripts/dav1d-mingw64.ini', 'scripts/build_untrunc_windows.sh', 'scripts/fetch_ffmpeg_sources.py', 'scripts/fetch_untrunc_sources.py', 'scripts/ffmpeg-sources.json', 'scripts/untrunc-sources.json') }}
+          path: |
+            build/ffmpeg-windows/ffmpeg
+            build/ffmpeg-windows/ffmpeg-corresponding-source.zip
+            build/untrunc-windows/untrunc
+            build/untrunc-windows/untrunc-corresponding-source.zip
+      - name: 安装交叉编译工具
+        if: steps.media-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix mingw-w64-x86-64-dev nasm pkg-config python3 clang meson ninja-build ca-certificates curl xz-utils
+      - name: 构建固定版本媒体工具
+        if: steps.media-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build_ffmpeg_windows.sh build/ffmpeg-windows
+      - name: 构建固定版本索引修复工具
+        if: steps.media-cache.outputs.cache-hit != 'true'
+        run: bash scripts/build_untrunc_windows.sh build/untrunc-windows
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-windows
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            build/ffmpeg-windows/ffmpeg/
+            build/ffmpeg-windows/ffmpeg-corresponding-source.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: untrunc-windows
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            build/untrunc-windows/untrunc/
+            build/untrunc-windows/untrunc-corresponding-source.zip
+
+  windows:
+    name: Windows x64 独立测试包
+    runs-on: windows-latest
+    needs: ffmpeg
+    timeout-minutes: 40
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 核对发布版本
+        id: version
+        shell: pwsh
+        run: |
+          $ReleaseVersion = (Select-String -Path src/peach/__init__.py -Pattern '__version__ = "(.*)"').Matches.Groups[1].Value
+          if (-not $ReleaseVersion) { throw '无法读取版本' }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v${ReleaseVersion}") { throw 'Tag 与版本不一致' }
+          "version=${ReleaseVersion}" >> $env:GITHUB_OUTPUT
+      - name: 安装构建依赖
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: 创建构建环境
+        shell: pwsh
+        run: |
+          uv sync --locked --all-extras --python python
+          if ($LASTEXITCODE -ne 0) { throw 'uv 安装依赖失败' }
+          uv pip check --python .venv/Scripts/python.exe
+          if ($LASTEXITCODE -ne 0) { throw 'uv 依赖检查失败' }
+      - name: 获取并校验 cloudflared 旁路文件
+        shell: pwsh
+        run: '& ./scripts/fetch_cloudflared.ps1 -OutputPath "$env:RUNNER_TEMP/cloudflared.exe"'
+      - uses: actions/download-artifact@v8
+        with:
+          name: ffmpeg-windows
+          path: ${{ runner.temp }}/ffmpeg-build
+      - uses: actions/download-artifact@v8
+        with:
+          name: untrunc-windows
+          path: ${{ runner.temp }}/untrunc-build
+      - name: 准备 Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --version 6.7.3 --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup 安装失败' }
+          }
+      - name: 验证安装目录选择与保护
+        shell: pwsh
+        run: '& ./scripts/test.ps1 -Scope packaging -Focus test_desktop_installer'
+      - name: 构建独立目录包与安装包
+        shell: pwsh
+        run: '& ./scripts/build_windows.ps1 -Installer -CloudflaredPath "$env:RUNNER_TEMP/cloudflared.exe" -FFmpegPath "$env:RUNNER_TEMP/ffmpeg-build/ffmpeg" -UntruncPath "$env:RUNNER_TEMP/untrunc-build/untrunc"'
+      - name: 生成完整包、应用更新包与工具包
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release | Out-Null
+          & ./.venv/Scripts/python.exe scripts/package_windows_release.py --source dist/Peach --output release --version '${{ steps.version.outputs.version }}' --lite-installer
+          if ($LASTEXITCODE -ne 0) { throw '发行包拆分失败' }
+          Copy-Item 'dist/Peach-${{ steps.version.outputs.version }}-windows-x64-setup.exe' release/
+          Copy-Item dist/ffmpeg-corresponding-source.zip release/
+          Copy-Item dist/untrunc-corresponding-source.zip release/
+          Copy-Item scripts/smoke_desktop.py release/smoke_desktop.py
+          Copy-Item scripts/smoke_update_tasks.py release/smoke_update_tasks.py
+          Copy-Item scripts/smoke_split_update.py release/smoke_split_update.py
+          python scripts/changelog.py --notes '${{ steps.version.outputs.version }}' --to release/RELEASE_NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'CHANGELOG.md 缺这一版的一节，不发没有说明的版本' }
+          Add-Content -LiteralPath release/RELEASE_NOTES.md -Value (Get-Content -Raw -Encoding utf8 release/DOWNLOADS.md) -Encoding utf8
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-candidate
+          path: release/*
+          if-no-files-found: error
+          retention-days: 7
+
+  desktop-smoke:
+    name: 仅下载制品验收
+    needs: windows
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: desktop-candidate
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: 在源码树外验证开箱配置与应用
+        shell: pwsh
+        run: |
+          Expand-Archive -Path 'Peach-${{ needs.windows.outputs.version }}-windows-x64.zip' -DestinationPath candidate
+          python smoke_desktop.py candidate/Peach/Peach.exe
+          if ($LASTEXITCODE -ne 0) { throw '制品验收失败' }
+      - name: 从应用更新包与独立工具包重建并验证运行
+        shell: pwsh
+        run: |
+          python smoke_split_update.py --version '${{ needs.windows.outputs.version }}' --destination split-candidate --prepare-with-app
+          if ($LASTEXITCODE -ne 0) { throw '拆分制品与完整包不一致' }
+          python smoke_desktop.py split-candidate/Peach/Peach.exe
+          if ($LASTEXITCODE -ne 0) { throw '拆分制品运行验收失败' }
+      - name: 静默安装、验收并卸载安装包
+        shell: pwsh
+        run: |
+          $Installed = Join-Path $env:RUNNER_TEMP 'Peach 安装验收\自定义目录'
+          $Setup = Start-Process -FilePath './Peach-${{ needs.windows.outputs.version }}-windows-x64-setup.exe' `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$Installed`"" -Wait -PassThru
+          if ($Setup.ExitCode -ne 0) { throw "安装包退出码 $($Setup.ExitCode)" }
+          $Key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{02D9748A-78F6-4866-AC75-918177194DAB}_is1'
+          $Menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Peach.lnk'
+          if (-not (Test-Path -LiteralPath $Key) -or -not (Test-Path -LiteralPath $Menu)) { throw '安装包没有登记卸载项或开始菜单项' }
+          python smoke_desktop.py (Join-Path $Installed 'Peach.exe')
+          if ($LASTEXITCODE -ne 0) { throw '安装包验收失败' }
+          # 卸载程序会把自己复制到临时目录再运行，原进程立即返回，按目录消失判断完成。
+          Start-Process -FilePath (Join-Path $Installed 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+          $Deadline = (Get-Date).AddSeconds(120)
+          while ((Test-Path -LiteralPath $Installed) -and (Get-Date) -lt $Deadline) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath $Installed) { throw '卸载后程序目录仍在' }
+          if ((Test-Path -LiteralPath $Key) -or (Test-Path -LiteralPath $Menu)) { throw '卸载后仍留有登记项或开始菜单项' }
+      - name: 安装并验收轻量安装包
+        shell: pwsh
+        run: |
+          $Installed = Join-Path $env:RUNNER_TEMP 'Peach 轻量安装验收\自定义目录'
+          $Setup = Start-Process -FilePath './Peach-${{ needs.windows.outputs.version }}-windows-x64-lite-setup.exe' `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$Installed`"" -WindowStyle Hidden -Wait -PassThru
+          if ($Setup.ExitCode -ne 0) { throw "轻量安装包退出码 $($Setup.ExitCode)" }
+          python smoke_desktop.py (Join-Path $Installed 'Peach.exe')
+          if ($LASTEXITCODE -ne 0) { throw '轻量安装包运行验收失败' }
+          Start-Process -FilePath (Join-Path $Installed 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -WindowStyle Hidden -Wait
+          $Deadline = (Get-Date).AddSeconds(120)
+          while ((Test-Path -LiteralPath $Installed) -and (Get-Date) -lt $Deadline) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath $Installed) { throw '轻量安装包卸载后程序目录仍在' }
+      - name: 验证在途任务保护与覆盖安装后的恢复
+        shell: pwsh
+        run: |
+          python smoke_update_tasks.py candidate/Peach/Peach.exe --installer './Peach-${{ needs.windows.outputs.version }}-windows-x64-setup.exe' --apply
+          if ($LASTEXITCODE -ne 0) { throw '任务保护与恢复验收失败' }
+      - name: 保留制品验收失败日志
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-smoke-failure
+          path: smoke-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  macos:
+    name: macOS ${{ matrix.arch }} 独立测试包
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+      ARCHFLAGS: '-arch ${{ matrix.arch }}'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: 创建原生架构构建环境
+        run: |
+          uv sync --locked --all-extras --python python
+          uv pip check --python .venv/bin/python
+          npm ci --prefix frontend
+      - name: 构建独立应用与拖放安装镜像
+        run: .venv/bin/python scripts/build_macos_standalone.py --target-arch '${{ matrix.arch }}' --destination release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-candidate-${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            release/*.dmg
+            scripts/smoke_macos.py
+            scripts/smoke_desktop.py
+            scripts/MACOS_DOWNLOADS.md
+
+  macos-smoke:
+    name: macOS ${{ matrix.arch }} 仅下载制品验收
+    needs: macos
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos-candidate-${{ matrix.arch }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: 挂载镜像并在源码树外验证应用
+        shell: bash
+        run: |
+          set -euo pipefail
+          image=(release/*-macos-${{ matrix.arch }}.dmg)
+          test "${#image[@]}" -eq 1
+          mount="$RUNNER_TEMP/Peach-install"
+          mkdir -p "$mount"
+          hdiutil verify "${image[0]}"
+          hdiutil attach "${image[0]}" -readonly -nobrowse -mountpoint "$mount"
+          trap 'hdiutil detach "$mount"' EXIT
+          test "$(readlink "$mount/Applications")" = /Applications
+          test -s "$mount/Peach.app/Contents/Resources/LICENSE"
+          codesign --verify --deep --strict "$mount/Peach.app"
+          lipo -verify_arch '${{ matrix.arch }}' "$mount/Peach.app/Contents/MacOS/Peach"
+          python scripts/smoke_macos.py "$mount/Peach.app"
+
+  release:
+    name: GitHub 预发布
+    if: github.ref_type == 'tag'
+    needs: [windows, desktop-smoke, macos-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: desktop-candidate
+          path: release
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: macos-candidate-*
+          merge-multiple: true
+          path: macos-candidates
+      - name: 创建预发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.windows.outputs.version }}
+        run: |
+          cd release
+          cp ../macos-candidates/release/*.dmg .
+          tail -n +4 ../macos-candidates/scripts/MACOS_DOWNLOADS.md >> RELEASE_NOTES.md
+          sha256sum ./*.zip ./*-setup.exe ./*.dmg > SHA256SUMS.txt
+          gh release create "$GITHUB_REF_NAME" ./*.zip ./*-setup.exe ./*.dmg SHA256SUMS.txt --verify-tag --prerelease --title "Peach $VERSION · Windows / macOS 测试版" --notes-file RELEASE_NOTES.md
+
+  project-board:
+    name: 同步已发布版本到看板
+    if: github.ref_type == 'tag'
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: 请求项目看板同步
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run project-board.yml --ref master

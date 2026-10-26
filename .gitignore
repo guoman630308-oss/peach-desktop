@@ -1,0 +1,55 @@
+.venv*/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+.claude/worktrees/
+# Codex 每次在这台机器上开工都会重写这份环境描述，它记的是本机怎么起项目，
+# 不是项目本身的约定。`.codex/hooks.json` 是约定，留在仓库里。
+.codex/environments/
+*.log
+*.bak
+
+# Peach 的代码仓库不保存真实数据库、媒体、凭据、缓存或生成物。
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+data/
+runtime/
+bin/
+/peach-data/
+/peach-sync/
+/peach-worktrees/
+/secrets/
+/generated/
+/review/
+/attic/
+
+# 私有交接、运行记录、个人待办与一次性审计保存在数据根，不进入公开仓库。
+docs/HANDOFF.md
+docs/STATUS.md
+docs/PRODUCT_BACKLOG.md
+docs/VERIFICATION_EFFICIENCY.md
+docs/UI_REUSE_REVIEW.md
+docs/SCRAPING_AUDIT.md
+docs/reference-snapshots/tag-vocabulary-audit.md
+docs/scraping-audit.csv
+resources/seed/entities.json
+
+# frontend/：island 构建产物进 Git（运行时和打包都没有 Node，见 ADR-0022），
+# 但依赖与构建缓存不进。上面的 `dist/` 会连 web/dist 一起排除，这里放回来。
+!web/dist/
+frontend/node_modules/
+frontend/.vite/
+frontend/vite.config.ts.timestamp-*
+frontend/vitest.config.ts.timestamp-*

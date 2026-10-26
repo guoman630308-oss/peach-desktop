@@ -1,0 +1,8 @@
+[
+  {"id":"local","name":"本地磁盘","label":"本地磁盘","default_cost":"free","cloud":false,"icon":"hard-drive"},
+  {"id":"115","name":"115","label":"CloudDrive · 115","default_cost":"free","cloud":true,"icon":"database"},
+  {"id":"pikpak","name":"PikPak","label":"CloudDrive · PikPak","default_cost":"metered","cloud":true,"icon":"database"},
+  {"id":"guangya","name":"光鸭云盘","label":"光鸭云盘","default_cost":"free","cloud":true,"icon":"database"},
+  {"id":"onedrive","name":"OneDrive","label":"OneDrive","default_cost":"metered","cloud":true,"icon":"database"},
+  {"id":"mounted","name":"其他已挂载网盘","label":"其他已挂载网盘","default_cost":"metered","cloud":true,"icon":"database"}
+]

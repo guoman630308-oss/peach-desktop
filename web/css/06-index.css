@@ -1,0 +1,60 @@
+/* 索引页整页在 React（`frontend/src/react/index/`）。这里留下的是壳铺的那张骨架（页头、
+   头像格、标签行与标签云的占位）。资料页骨架里事务所名册那一块也是这张头像格；真格子
+   在 React 里（`PeopleGrid`，索引页与资料页正文共用）。
+   不裁横向溢出：筛选玻璃的三层投影要往左右各洒出几十像素，资料页吸顶栏也用负边距把
+   分隔线铺到 main 左右边缘；横滚的行各自 `overflow-x:auto`，页面本身不会被撑出横向滚动。 */
+.index{padding:4px 0 20px;min-width:0;max-width:100%}
+.index .ihead{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.index .ihead h2{margin:0}
+.indexheading{display:inline-flex;align-items:center}
+.index .ihead .geist-search{flex:1;max-width:320px;margin-left:auto}
+#indexCount{color:var(--muted)}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px 10px}
+.icell{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;
+  background:none;border:0;color:inherit;padding:8px 4px;border-radius:var(--surface-radius)}
+.icell:hover{background:var(--hover)}
+.icell .ring{display:block;width:70px;height:70px;border-radius:50%;overflow:hidden;
+  background:var(--sunk);position:relative}
+.icell .nm{font-size:var(--fs-xs);text-align:center;line-height:1.3;word-break:break-all}
+.icell .n{font-size:var(--fs-xs);color:var(--muted)}
+/* 大图版式照 JAV 大图那条规矩：列宽和列数一个字都不动，只把圆框拉成 3:4 竖幅，
+   于是每屏人数不变、每张脸更大，窄屏也不会突然掉成一列。 */
+.igrid[data-layout="big"] .icell{padding:6px 4px 10px}
+.igrid[data-layout="big"] .icell .ring{width:100%;height:auto;aspect-ratio:3/4;
+  border-radius:var(--surface-radius)}
+.igrid[data-layout="big"] .icell .nm{font-size:var(--fs-sm)}
+/* 公司那一格里是一枚标识。竖幅是给脸留的形状：方标铺进 3:4 的框，`object-fit:cover`
+   左右各裁掉四分之一，SOD 和 S1 的字就顶在边上。方框一个像素都不裁，同一列宽下
+   标识反而更大；列也放宽一档，省下的高度换成宽度。 */
+.igrid[data-cells="company"]{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.igrid[data-cells="company"][data-layout="big"] .icell .ring{aspect-ratio:1}
+.index .ihead .iconswitch{flex:none}
+/* 骨架里的版式开关是接管后那枚 BoardUI 分段器的替身：每格 28px 见方、图标 16px，整枚宽度对得上。 */
+.index .ihead .iconswitch>label{width:28px;height:28px}
+.index .ihead .iconswitch svg{width:16px;height:16px}
+.tagwall{display:flex;flex-wrap:wrap;gap:7px}
+/* 标签行骨架前面那枚色点，占的是真标签类型色点的位置。 */
+.alphatag::before{content:"";width:7px;height:7px;border-radius:50%;
+  background:var(--tag-color,var(--muted));flex:none}
+.index-tags .tg,.alphatag{--tag-color:#7A91A8}
+/* 标签云骨架与真标签同一档身量：这一页标签是主体，比卡片上的大一档。 */
+.index .index-tags .tg{border-color:color-mix(in srgb,var(--tag-color) 32%,transparent);color:var(--ink-2);
+  background:color-mix(in srgb,var(--tag-color) 7%,transparent);padding:5px 12px;font-size:var(--fs-sm)}
+/* 一行一枚标签：36px 高、控件圆角，取的是排名行那一档身量。 */
+.alphatag{display:flex;align-items:center;justify-content:flex-start;gap:9px;height:36px;border:0;background:transparent;
+  color:var(--ink-2);padding:0 10px;border-radius:var(--control-radius);text-align:left;cursor:pointer;min-width:0}
+.alphatag span:first-of-type{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.alphatag .n{color:var(--muted);font-size:var(--fs-xs);flex:none}
+/* 表头一行放不下四样东西：标题、计数、版式开关、过滤框。挤在一行时每样都被压到
+   竖排两行，过滤框直接被压成 0 宽。窄屏改成标题与过滤框一行、开关另起一行；
+   开关自己 flex:none，宁可整组换行也不把它拆成两行。 */
+@media (max-width:760px){
+  .index .ihead{flex-wrap:wrap}
+  .indexheading,#indexCount{white-space:nowrap}
+  .index .ihead .geist-search{order:1}
+  .index .ihead::after{content:"";order:2;flex-basis:100%;height:0}
+  .index .ihead .iconswitch{order:3;flex:none}
+  /* 公司格放宽一档是给标识换宽度，手机上 343px 只装得下一列，整块卡横着铺满，
+     标识却还是那 70px：这一档换不来更大的标识，只换来一屏三家。收回人格那一档，两列。 */
+  .igrid[data-cells="company"]{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+}

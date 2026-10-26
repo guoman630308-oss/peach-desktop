@@ -1,0 +1,18 @@
+/* 页面分区：遗留页签与 React BoardTabs 共享中性填充选中态。 */
+.ui-board-local-nav{display:flex;gap:4px;overflow-x:auto;flex:none;margin:0 0 24px;padding:0;scrollbar-width:none}
+.ui-board-local-nav button{flex:none;background-color:transparent;background-image:none;border:0;border-radius:var(--control-radius);padding:8px 12px;font-family:inherit;font-size:14px;font-weight:400;line-height:20px;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.ui-board-local-nav button:hover{background:none;color:var(--ink)}
+.ui-board-local-nav button[aria-selected="true"]{background:var(--hover);color:var(--ink)}
+.ui-board-local-nav button:focus-visible{outline:2px solid var(--tungsten);outline-offset:-3px}
+/* 计数徽标使用中性底与正文色；字母表分组标题旁共用这一枚。 */
+.ui-board-tab-count{display:inline-block;margin-left:6px;padding:1px 4px;border-radius:4px;font:var(--board-caption);font-weight:500;line-height:16px;
+  background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--ink);opacity:.5;vertical-align:1px}
+.ui-board-local-nav button[aria-selected="true"] .ui-board-tab-count{opacity:1}
+/* 前置字形 16px。 */
+.ui-board-tabs button svg{width:16px;height:16px;margin-right:6px;vertical-align:-3px;stroke:currentColor;fill:none;stroke-width:2}
+@media(max-width:760px){.ui-board-local-nav{gap:0}.ui-board-local-nav button{padding:8px 9px;font-size:13px;line-height:18px}}
+/* 控件悬停提示（`initBoardControls` 建在 body 上的那一枚 popover）：替掉原生 title，跟按钮同一套描边与阴影。 */
+.ui-board-tooltip{box-sizing:border-box;max-width:240px;padding:6px 10px;border:1px solid var(--color-border-button-default);border-radius:8px;background:var(--color-background-primary-default);color:var(--color-text-primary);font:var(--board-caption);white-space:normal;box-shadow:var(--elevation-dropdown)}
+.ui-board-tooltip{position:fixed;inset:auto;margin:0;width:max-content;max-width:min(240px,calc(100vw - 16px));z-index:var(--layer-tooltip);pointer-events:none}
+.ui-board-tooltip[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.ui-board-tooltip{transition:none}}

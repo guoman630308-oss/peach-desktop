@@ -1,0 +1,158 @@
+/* Geist Skeleton：整页／大区块等待内容结构时先占住稳定区域。 */
+.skeletonpanel{min-height:240px;padding:0}
+.skeletonpanel>div{display:grid;gap:12px}
+.index-skeleton .icell .ring{background:var(--hover)}
+.index-skeleton .icell .nm{width:60%;height:1.3em}
+.index-skeleton .icell .n{width:30%;height:1.3em}
+.index-skeleton .alphatag{pointer-events:none}
+.index-skeleton .alphatag::before{background:var(--hover)}
+.index-skeleton .alphatag .skeleton:first-of-type{width:65%;height:1.3em}
+.index-skeleton .alphatag .n{width:24px;height:1.3em}
+/* 字头占位照页面那行 26px 的标题加 8px 下边距，一组卡的高度才和落地后的一样。 */
+.index-skeleton .indexletterskeleton{display:block;width:48px;height:26px;margin:0 0 8px}
+.index-skeleton .tagwall .tg{height:auto;border-color:transparent;background:var(--hover)}
+/* 标签页骨架里的视图切换靠在读数行右缘，同页面落地后那一枚的位置。 */
+.index .board-filter-frame .count>.iconswitch{margin:0 0 0 auto}
+.skeleton{display:block;height:18px;border-radius:var(--control-radius);background:var(--hover)}
+[data-jav-skeleton-cover]{height:auto}
+.board-page-skeleton[data-skeleton="board/jav"]{max-width:none}
+/* 读数占位是行内的一截：它坐在最终那枚 `b`、`strong`、说明行里，行高仍由那枚元素自己给，
+   数字一到这一行不长不缩。它和 `.skeleton` 挂在同一个元素上、同一档特指度，靠排在后面压住。 */
+.skeleton-text{display:inline-block;vertical-align:middle;height:1em;width:12em;max-width:70%}
+/* 整理卡的来源下拉按「本地」那一档的宽度画。它挂在 `.gselectfield` 上、同一档特指度，
+   靠排在 01-base.css 后面压住那条 `width:100%`。 */
+.organize-source-skeleton{width:100px}
+.skeletoncard{display:grid;gap:10px;min-width:0}
+.skeletoncard i,.skeletoncard b,.skeletoncard em{display:block;
+  border-radius:var(--control-radius);background:var(--hover)}
+.skeletoncard i{aspect-ratio:var(--skeleton-card-ratio,16/9)}.skeletoncard b{width:72%;height:18px}.skeletoncard em{width:46%;height:14px}
+/* 头像格与标签格只有海报网格用得上，行政界面的骨架照 fieldset 排，多出来的两格
+   会在一列长条中间凭空插两块灰。默认关掉，由用得上的那张骨架自己打开。 */
+.skeletoncard s,.skeletoncard u{display:none}
+.grid>.skeletonpanel{grid-column:1/-1;width:100%;min-width:0}
+/* 海报卡骨架照 .card 的实测轮廓画：列宽、列距和行距直接沿用 .grid 的算式，
+   卡内每一格的高度都由真实卡片同一枚 token 算出——标题是 .meta .t 的 2.7em、
+   归属行是 .mono 的一行 1.45em、标签行再加上 .tg 的内边距与描边。这样一行骨架
+   和一行真卡等高，数据到位那一下下面的内容不会往上跳。
+   封面与下面那组之间是 8px：行距 3px 由 .mtext 的行距定，剩下 5px 记在头像格和
+   标题格的上边距里，两格一起加才不会把头像顶偏。
+   首页和关注页是同一种卡，所以共用这一块；关注页只差归属行高一点，见下面那条。 */
+.postercard-skeleton>div{grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--tile)),1fr));gap:24px 16px}
+.postercard-skeleton .skeletoncard{grid-template-columns:38px minmax(0,1fr);column-gap:10px;row-gap:3px;
+  align-content:start}
+/* 封面格的圆角与真卡的 `.pic` 同一枚 token，到货那一下角不变形。 */
+.postercard-skeleton .skeletoncard i{grid-column:1/-1;border-radius:var(--surface-radius)}
+.postercard-skeleton .skeletoncard s{display:block;grid-column:1;grid-row:2/span 3;align-self:start;
+  width:38px;height:38px;margin-top:5px;border-radius:50%;background:var(--hover)}
+.postercard-skeleton .skeletoncard b,
+.postercard-skeleton .skeletoncard em,
+.postercard-skeleton .skeletoncard u{grid-column:2}
+.postercard-skeleton .skeletoncard b{width:100%;margin-top:5px;font-size:var(--fs-md);height:2.7em}
+.postercard-skeleton .skeletoncard em{width:58%;font-size:var(--fs-xs);height:1.45em}
+.postercard-skeleton .skeletoncard u{display:block;width:64%;font-size:var(--fs-xs);
+  height:calc(1.45em + var(--tag-pad-y) * 2 + 2px);
+  border-radius:var(--tag-radius);background:var(--hover)}
+/* 关注卡和首页卡差两处，一页十来行叠起来就是一屏的错位：归属行有 min-height，
+   高 3.6px；末尾还有一条报状态的 aria-live 行，本身没高度，却照样占掉一格 8px 的
+   卡内间距。 */
+.follow-content-skeleton .skeletoncard em{height:21px}
+.follow-content-skeleton .skeletoncard{padding-bottom:8px}
+/* 数据管理是一列 fieldset，不是海报网格：骨架照 fieldset 的轮廓排，
+   否则整页刷新先看到三列 16:9 占位，加载完又整个换成一列长条。
+   底部那条是操作条的位置，不参与微光——它是框体，不是待填的内容。 */
+.cleanup-skeleton>div{grid-template-columns:minmax(0,1fr);gap:16px}
+.cleanup-skeleton .skeletoncard{gap:0;overflow:hidden;border:1px solid var(--line-soft);
+  border-radius:var(--floating-radius);background:var(--ground)}
+.cleanup-skeleton .skeletoncard i{aspect-ratio:auto;width:38%;height:20px;margin:20px 20px 0}
+.cleanup-skeleton .skeletoncard b{width:26%;height:16px;margin:12px 20px 20px}
+.cleanup-skeleton .skeletoncard em{width:100%;height:var(--fieldset-bar-h);margin:0;
+  border-radius:0;border-top:1px solid var(--border-10);background:var(--overlay-5)}
+/* 人工复核是左边一列分类、右边工具条加一格一格等高的卡片。骨架直接用最终容器
+   那几个类名（`.review-workspace`、`.reviewcontrols`、`.reviewbulktoolbar`、`.reviewlist`），
+   分栏、列宽和间距就都由页面自己那套规则给，这里只补占位件的尺寸——版面从占位到到货
+   一格不挪，靠的是两边根本是同一套规则，不是两处抄同样的数字。
+   分类名是静态文案，直接显示；等的是每类多少条，所以只有计数是占位。
+   框体（工具条、操作条）不参与微光，它不是待填的内容。 */
+.reviewcountskeleton{flex:none;width:28px;height:14px}
+.reviewtoolskeleton{width:120px;height:36px}
+.review-skeleton .reviewtabs button{color:var(--muted)}
+.review-skeleton .skeletoncard{display:grid;gap:16px;box-sizing:border-box;height:var(--review-card-height);
+  grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;padding:20px;
+  border:1px solid var(--line-soft);border-radius:var(--surface-radius);background:var(--surface)}
+.review-skeleton .skeletoncard i{aspect-ratio:auto;width:56%;height:22px;margin:0}
+.review-skeleton .skeletoncard b{width:auto;height:auto;margin:0}
+.review-skeleton .skeletoncard em{width:100%;height:36px;margin:0;border-radius:var(--control-radius);background:var(--overlay-5)}
+/* 微光取代整块呼吸。2026-09-04 实测 vercel.com/geist/skeleton：Geist 不改元素自己的
+   不透明度，而是在 `::after` 上铺一条比容器宽三倍的横向渐变，靠 `transform` 左右扫，
+   容器 `overflow:hidden` 裁掉溢出。渐变只在 gray-100 与 gray-200 之间走（明度 10%
+   与 12%），也就是说它靠移动被看见，不靠明暗跳变；原来的呼吸是整块 .55↔1 的透明度
+   变化，一屏十几块同时喘，比内容本身还抢眼。节奏照抄实测值：1.5s ease-in-out
+   infinite reverse，位移半个自身宽度。全局的 prefers-reduced-motion 规则会关掉它。 */
+@keyframes skeleton-sweep{to{transform:translateX(-50%)}}
+/* 本地读取在 180ms 内完成时不展示骨架；JS 到门槛后直接移除这一类，不依赖动效偏好。 */
+.skeleton-awaiting{visibility:hidden}
+.skeleton,.skeletoncard i,.skeletoncard b,.skeletoncard em,
+.skeletoncard s,.skeletoncard u,
+.countskeleton,.avskeleton .ring,.avskeleton .nm,.brandskeleton,.tagskeleton{position:relative;overflow:hidden}
+.skeleton::after,.skeletoncard i::after,.skeletoncard b::after,.skeletoncard em::after,
+.skeletoncard s::after,.skeletoncard u::after,
+.countskeleton::after,.avskeleton .ring::after,.avskeleton .nm::after,
+.brandskeleton::after,.tagskeleton::after{content:'';position:absolute;inset:0;right:-200%;
+  visibility:visible;border-radius:inherit;
+  background:linear-gradient(to right,var(--hover),var(--skeleton-sheen) 50%,var(--hover));
+  background-size:50% 100%;
+  animation:skeleton-sweep 1.5s ease-in-out infinite reverse}
+/* 框体不是待填的内容，本来就不参与呼吸，也不参与微光。 */
+.cleanup-skeleton .skeletoncard em::after,
+.review-skeleton .skeletoncard em::after{content:none}
+/* 封面与头像还在路上：框上铺同一条微光，到手后淡出并糊掉，和换头像那一格
+   （`reveal-skeleton`）同一形态。类名由 app.js 的 `watchPendingImages` 标、`settleImage`
+   收。微光晚 180ms 才淡入，门槛与 `.skeleton-awaiting` 同一个数：本地图多半在这之前
+   就到了，那种一帧都不该看见它。底色垫 `--ground`，否则半透明的微光落在 `.pic` 的
+   黑底上只剩一片黑。收尾那一段（`.ui-imgdone`）在 frontend/src/card-art/card-art.css。 */
+.imgwait::after{content:'';position:absolute;inset:0;right:-200%;z-index:5;
+  pointer-events:none;border-radius:inherit;
+  background:linear-gradient(to right,var(--hover),var(--skeleton-sheen) 50%,var(--hover)) 0 0/50% 100%,
+    var(--ground);
+  opacity:0;filter:blur(2px);visibility:hidden;
+  transition:opacity var(--motion-reveal),filter var(--motion-reveal),visibility 0s var(--motion-reveal)}
+.imgwait::after{opacity:1;filter:none;visibility:visible;transition-delay:180ms;
+  animation:skeleton-sweep 1.5s ease-in-out infinite reverse}
+@starting-style{.imgwait::after{opacity:0;filter:blur(2px)}}
+/* 封面和带脸框的头像取景完才露面：大图边下边画，取景要等 `load`，之前画出来的是几何居中，
+   取景那一下画面会跳。缓存图在插入时就取景（`frameCachedImages`）；回落图摘掉脸框后不再等。 */
+img.cover:not([data-frame]),img[data-facebox]:not([data-face-framed]){visibility:hidden}
+
+/* 计数骨架的宽高定死：跟着真实文本走的话，数字回来那一刻整行会横向弹一下。
+   14px 远低于筛选条按钮的 32px，而 `.count` 有 min-height 兜底，所以换成真数字
+   不改变行高。 */
+.countskeleton{display:inline-block;width:150px;height:14px;border-radius:var(--control-radius);
+  background:var(--hover)}
+/* 索引页这一枚等的是「118 项」，四五个字。150px 是照筛选条那句长读数定的，摆到
+   标题右边就是一条明显长过答案的灰条，看着像还有一整句没回来。 */
+.index .ihead .countskeleton{width:54px}
+
+/* 顶部三层与标签条的首屏骨架。形状照 Geist 的判据选：头像走 pill（圆），
+   胶囊走 rounded。几何不另算一套，直接套 .av/.ring/.nm、.brandpill、.pill 本身，
+   这样骨架的宽高就是最终内容的宽高，数据到位那一下不可能位移。 */
+.avskeleton{display:block}
+.avskeleton .ring,.avskeleton .nm{background:var(--hover)}
+.avskeleton .nm{width:52px;margin:0 auto;border-radius:var(--control-radius);color:transparent}
+.brandskeleton{background:var(--hover);border-color:transparent}
+.brandskeleton .mk{background:transparent}
+.tagskeleton{background:var(--hover);border-color:transparent;padding:0}
+/* 顶部三层第一次填内容之前只有 18px 的内边距，内容到位后长到一百多，
+   每次冷启动都把整页往下推一截；标签条有固定高度不塌，但空着一整条。 */
+.tagbar[aria-busy="true"]{pointer-events:none}
+/* 占位不是控件：整块骨架和每一枚占位都不接指针，套在最终形状上的 hover 描边、底色和
+   手型光标也就一条都触发不了，点下去落到后面的页面上。占位直接借用 `.av`、`.pill` 这些
+   最终类名画形状，所以只能在这里一处关掉，不能逐条给 hover 规则补 `:not()`。
+   分层骨架只认每一枚占位：`data-skeleton-tier` 那一排数据到了还留在原地装真头像。
+   等数据的键（`data-skeleton-action`）是例外，它要亮出 not-allowed 光标说明「现在按不了」。 */
+:is([data-skeleton],.avskeleton,.brandskeleton),:is([data-skeleton],.avskeleton,.brandskeleton) *,.tagskeleton,.countskeleton,.skeletoncard,.skeleton{pointer-events:none}
+[data-skeleton-action]:disabled{pointer-events:auto}
+
+.config-skeleton-card .skeleton{display:block;height:20px;width:60%}
+.config-skeleton-card .geist-fieldset-content>.skeleton:first-child{height:24px;width:35%}
+.config-skeleton-card .geist-fieldset-content>.skeleton:last-child{height:var(--control-h);width:100%}
+.config-skeleton-card .geist-fieldset-footer>.skeleton{width:100px;height:var(--control-h);margin:0}

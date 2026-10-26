@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "Stop": [{"hooks": [
+      {"type": "command", "command": "uv run --no-project python -X utf8 scripts/release_due.py --hook-event", "timeout": 30}
+    ]}]
+  }
+}

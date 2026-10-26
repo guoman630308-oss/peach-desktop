@@ -1,0 +1,74 @@
+# 每个生态的 minor 与 patch 合成一个 PR：同一份清单里相邻两行的升级由 Dependabot 一次
+# 解完，本地 `adopt_dependency_bump.py --all-open` 接管时不再在它们之间撞冲突。
+# semver-major 不进组，照常一个包一个 PR，接管前单独看变更说明。
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /.github/actions/actionlint
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:45"
+      timezone: Asia/Taipei
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:45"
+      timezone: Asia/Taipei
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 10
+    groups:
+      uv-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:15"
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 10
+    groups:
+      web-vendor-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # frontend/ 有自己的 manifest：根 package.json 只登记手工 vendor 的四个包，
+  # island 层的构建依赖不能混进去（tests/test_dependency_policy.py 卡着那份清单）。
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:20"
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 10
+    groups:
+      frontend-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

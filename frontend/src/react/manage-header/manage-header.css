@@ -1,0 +1,69 @@
+/* 管理区页头（常驻组件 `manage-header`，`frontend/src/react/manage-header/`）：管理条、面包屑、页面标题与回收站说明行。
+ *
+ * 标题、导航与说明行跟随正文的 `--board-content` 宽度。
+ * `peach-app.css` 先于 `/app.css` 加载，遗留层里同权重的规则会压过这里，所以选择器都比遗留层的
+ * 元素规则多一级。与遗留层同名的类一条不写（`test/legacy-class-names.test.ts`）；扫光占位沿用全站的
+ * `.skeleton`，只在这里定尺寸与底色。 */
+
+[data-manage-header]{display:contents}
+:is([data-manage-bar],[data-manage-crumb],[data-manage-title],[data-manage-lede]){box-sizing:border-box;width:100%;max-width:var(--board-content);margin-left:auto;margin-right:auto}
+
+/* ── 管理条 ──
+   一排页面去处，当前项使用中性填充。超宽时横滚，
+   两端渐隐与滚轮转横向由壳的横滚层清单接（`src/ui-kit/scroll.ts` 的 `BOARD_EDGE_SCROLLERS`）。 */
+[data-manage-bar]{display:block;margin-top:0;margin-bottom:24px}
+[data-manage-menu]{position:relative;display:flex;flex-wrap:nowrap;gap:4px;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}
+[data-manage-menu]::-webkit-scrollbar{display:none}
+[data-manage-menu]>button{position:relative;display:inline-flex;flex:none;align-items:center;gap:7px;margin:0;padding:8px 12px;min-height:36px;border:0;border-radius:var(--control-radius);background:none;color:var(--ink-2);font-size:14px;font-weight:400;white-space:nowrap;cursor:pointer}
+[data-manage-menu]>button svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[data-manage-menu]>button:hover{color:var(--ink)}
+[data-manage-menu]>button[aria-pressed="true"]{background:var(--hover);color:var(--ink)}
+
+/* ── 面包屑 ──
+   Geist Breadcrumbs（vercel.com/geist/breadcrumbs 实测）：上一级与分隔符 `--muted`、当前页 `--ink`，
+   悬停同样升亮；分隔符是 16px chevron，钉在 `--muted` 上不随当前项提亮；项与项、字与分隔符都留 6px。 */
+[data-manage-crumb]{display:block;margin-top:0;margin-bottom:12px}
+[data-manage-crumb] ol{display:flex;align-items:center;gap:6px;margin:0;padding:0;list-style:none}
+[data-manage-crumb] li{display:flex;align-items:center;gap:6px;font-size:var(--fs-md);line-height:20px;color:var(--muted);transition:color .2s ease}
+[data-manage-crumb] li[aria-current]{color:var(--ink)}
+[data-manage-crumb] li:not([aria-current]):hover{color:var(--ink)}
+[data-manage-crumb] a{color:inherit;text-decoration:none}
+[data-manage-crumb] li svg{width:16px;height:16px;flex:none;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── 页面标题 ──
+   字形同全站页面标题（Board Title，窄屏 Board Figure）；正文是 812px 窄列的那几页在窄屏上再收一档。 */
+h2[data-manage-title]{margin-top:0;margin-bottom:24px;font:var(--board-title);letter-spacing:0}
+@media(max-width:760px){
+  h2[data-manage-title]{font:var(--board-figure)}
+  h2[data-manage-title][data-compact]{font-size:22px}
+}
+
+/* ── 回收站说明行 ──
+   左边读数、右端「清空回收站」，是一行不是两行。底色取管理区填充卡那一档：浅色下 primary 就是页面的
+   纯白，计数栏会化进页面，换成 secondary 的浅灰；选择器照 Geist token 自己的切法。 */
+p[data-manage-lede]{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-top:0;margin-bottom:16px;padding:20px 24px;border-radius:var(--surface-radius);background:var(--color-background-primary-default);color:var(--muted);font-size:var(--fs-sm);line-height:1.5}
+:root[data-theme="light"] p[data-manage-lede]{background:var(--color-background-secondary-default)}
+@media(prefers-color-scheme:light){:root:not([data-theme]) p[data-manage-lede]{background:var(--color-background-secondary-default)}}
+[data-manage-lede]>[data-lede-text]{font:var(--board-heading)}
+[data-manage-lede]>[data-trash-lede-skeletons]{display:contents}
+/* 读数到之前的同形占位：读数一格按「161 个符合 · 显示 60」的宽，右端是那颗键的尺寸。栏底与卡面都是
+   primary 那一档，骨架条的 tertiary 在深色下正是同一个 #262626，条会化进面里；这里改成随正文色走的一层
+   薄叠色，深浅两种底上都看得出。 */
+[data-manage-lede] [data-trash-lede-skeleton]{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+[data-manage-lede] [data-trash-lede-skeleton="text"]{width:180px;max-width:60%;height:20px}
+[data-manage-lede] [data-trash-lede-skeleton="action"]{width:88px;height:32px;max-width:none}
+
+/* 「清空回收站」：危险档，红色读 `../styles.css` 里全站那一份 `[data-danger]` 规则；这里只写尺寸，
+   是说明行里的 32px 小键。 */
+[data-manage-lede]>button[data-empty-trash]{box-sizing:border-box;display:inline-flex;flex:none;align-items:center;min-height:32px;padding:0 14px;border-radius:var(--control-radius);font:inherit;font-size:var(--fs-xs);font-weight:500;cursor:pointer}
+[data-manage-lede]>button[data-empty-trash]:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px}
+
+/* 窄屏：管理条不再留左右中线，间距收一档、页签不带字形；说明行右端那颗键按本项目 44px 命中区来。 */
+@media(max-width:760px){
+  [data-manage-bar]{margin-top:0;margin-bottom:24px}
+  [data-manage-menu]{gap:0}
+  [data-manage-menu]>button{padding:10px 9px;font-size:13px}
+  [data-manage-menu]>button svg{display:none}
+  [data-manage-lede]>button[data-empty-trash]{height:44px;padding-inline:16px}
+  [data-manage-lede] [data-trash-lede-skeleton="action"]{width:92px;height:44px}
+}
