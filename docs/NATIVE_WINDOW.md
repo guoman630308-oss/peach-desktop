@@ -1,5 +1,9 @@
 # Windows 独立窗口测试版
 
+本修改版由 guoman630308-oss 独立维护，基于 [peach-mitao/peach](https://github.com/peach-mitao/peach)，原版权为 Copyright (C) 2026 longmeidao，修改声明日期为 2026-10-26。应用代码采用 [AGPL-3.0-or-later](https://github.com/guoman630308-oss/peach-desktop/blob/master/LICENSE)，按现状提供、无担保；可依许可证复制、修改和再分发。
+
+本修改版的对应源码、构建方法和修改说明由[源码仓库](https://github.com/guoman630308-oss/peach-desktop)提供。第三方组件保留各自许可，见本文末尾。安装包随附的「开始使用.md」保留本声明。
+
 独立窗口使用 WebView2 显示原版 Peach 页面，由原版托盘持有本机服务。保留扫描、番号、人物、资料来源、关注、云下载、播放和配置入口。联网功能由用户在原版设置中选择启用。
 
 ## 安装与使用
