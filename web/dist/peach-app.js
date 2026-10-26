@@ -76157,69 +76157,67 @@ function aLe({ host: e, props: t, epoch: n }) {
 	] });
 }
 function oLe({ host: e, epoch: t, version: n }) {
-	let r = KG(e.store), i = e.store.value.sidebarOrder, a = new Map(e.navCatalog.map((e) => [e[0], e])), o = i.map((e) => a.get(e)).filter((e) => e !== void 0), s = o.map(([t]) => e.navOn(t)), c = (0, S.useRef)(null), l = (0, S.useRef)(null), u = Tj(l, c, "[data-nav][aria-pressed=\"true\"]", `${t}:${n}:${o.map(([e], t) => s[t] ? e || cK : "").join(",")}`, { axis: "y" }), { sync: d } = u;
+	let r = KG(e.store), i = e.store.value.sidebarOrder, a = new Map(e.navCatalog.map((e) => [e[0], e])), o = i.map((e) => a.get(e)).filter((e) => e !== void 0), s = o.map(([t]) => e.navOn(t)), c = (0, S.useRef)(null), l = (0, S.useRef)(null), { sync: u } = Tj(l, c, "[data-nav][aria-pressed=\"true\"]", `${t}:${n}:${o.map(([e], t) => s[t] ? e || cK : "").join(",")}`, { axis: "y" });
 	(0, S.useEffect)(() => {
-		let t = e.scroll, n = t.parentElement, r = t.querySelector(":scope > [data-sidebar-head]"), i = new ResizeObserver(() => d());
+		let t = e.scroll, n = t.parentElement, r = t.querySelector(":scope > [data-sidebar-head]"), i = new ResizeObserver(() => u());
 		return [
 			n,
 			t,
 			r
 		].forEach((e) => {
 			e && i.observe(e);
-		}), document.addEventListener("board:sidebar", d), () => {
-			i.disconnect(), document.removeEventListener("board:sidebar", d);
+		}), document.addEventListener("board:sidebar", u), () => {
+			i.disconnect(), document.removeEventListener("board:sidebar", u);
 		};
-	}, [e, d]);
-	let [f, p] = (0, S.useState)(null), [m, h] = (0, S.useState)(null), g = () => {
-		p(null), h(null);
-	}, _ = (e) => ({
+	}, [e, u]);
+	let [d, f] = (0, S.useState)(null), [p, m] = (0, S.useState)(null), h = () => {
+		f(null), m(null);
+	}, g = (e) => ({
 		draggable: !0,
 		onDragStart: (t) => {
-			p(e), t.dataTransfer.effectAllowed = "move", t.dataTransfer.setData("text/plain", e || cK);
+			f(e), t.dataTransfer.effectAllowed = "move", t.dataTransfer.setData("text/plain", e || cK);
 		},
 		onDragOver: (t) => {
-			if (f === null || f === e) return;
+			if (d === null || d === e) return;
 			t.preventDefault(), t.dataTransfer.dropEffect = "move";
 			let n = t.clientY > t.currentTarget.getBoundingClientRect().top + t.currentTarget.offsetHeight / 2;
-			(m?.key !== e || m.after !== n) && h({
+			(p?.key !== e || p.after !== n) && m({
 				key: e,
 				after: n
 			});
 		},
 		onDrop: (t) => {
 			t.preventDefault();
-			let n = f, a = m?.key === e && m.after;
-			g();
+			let n = d, a = p?.key === e && p.after;
+			h();
 			let o = n === null ? null : qG(i, n, e, a);
 			o && r(o);
 		},
-		onDragEnd: g
-	}), v = e.scroll.parentElement;
+		onDragEnd: h
+	}), _ = e.scroll.parentElement;
 	return /* @__PURE__ */ (0, C.jsxs)(C.Fragment, { children: [/* @__PURE__ */ (0, C.jsx)("div", {
 		"data-sidebar-nav": "",
 		ref: c,
-		onPointerLeave: u.leave,
 		children: o.map(([t, n, r], i) => /* @__PURE__ */ (0, C.jsxs)("button", {
 			type: "button",
 			"data-nav": t,
 			"aria-pressed": s[i],
 			"aria-label": n,
-			"data-dragging": f === t ? "" : void 0,
-			"data-drop": m?.key === t ? m.after ? "after" : "before" : void 0,
+			"data-dragging": d === t ? "" : void 0,
+			"data-drop": p?.key === t ? p.after ? "after" : "before" : void 0,
 			onClick: () => e.navTo(t),
-			onPointerEnter: u.hover,
-			..._(t),
+			...g(t),
 			children: [t === "" ? /* @__PURE__ */ (0, C.jsx)("img", {
 				"data-sidebar-home-logo": "",
 				src: "/peach-logo.png",
 				alt: ""
 			}) : /* @__PURE__ */ (0, C.jsx)(lO, { name: r }), /* @__PURE__ */ (0, C.jsx)("span", { children: n })]
 		}, t || cK))
-	}), v ? (0, vt.createPortal)(/* @__PURE__ */ (0, C.jsx)("span", {
+	}), _ ? (0, vt.createPortal)(/* @__PURE__ */ (0, C.jsx)("span", {
 		"data-sidebar-glide": "",
 		"aria-hidden": "true",
 		ref: l
-	}), v) : null] });
+	}), _) : null] });
 }
 var mK = (e, t) => String(e[t] ?? "").split(",").filter(Boolean);
 function sLe(e) {

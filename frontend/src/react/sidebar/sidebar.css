@@ -104,8 +104,7 @@ html[data-theme-snapshot] :is([data-sidebar-drawer],[data-sidebar-glide]){backdr
 [data-sidebar-nav] button:active{scale:.96;transition:scale .06s ease-out}
 [data-sidebar-drawer][data-sidebar-drawer]{border-radius:26px}
 [data-sidebar-drawer][data-sidebar-drawer] [data-sidebar-nav] button:not([aria-pressed="true"]){color:var(--glass-text)}
-/* 按钮自己只管字色，填充归那块滑动的玻璃：两边都铺的话，静止态是一块不动的底压在滑过来的玻璃上。悬停也归
-   它，指到哪一格滑过去，离开这一列再滑回当前项。`filter:none` 压掉后面那条当前项的 `brightness(1.08)`，
+/* 按钮自己只管字色，填充归当前项的玻璃，悬停保持当前项的落点。`filter:none` 压掉后面那条当前项的 `brightness(1.08)`，
    否则这块玻璃连同身后的内容一起被推亮一档。 */
 [data-sidebar-drawer][data-sidebar-drawer][data-sidebar-drawer] [data-sidebar-nav] button[aria-pressed="true"],[data-sidebar-drawer][data-sidebar-drawer][data-sidebar-drawer] [data-sidebar-nav] button[aria-pressed="true"]:hover,[data-sidebar-drawer][data-sidebar-drawer][data-sidebar-drawer] [data-sidebar-nav] button[aria-pressed="true"]:active{background:none;backdrop-filter:none;color:var(--glass-text);filter:none;box-shadow:none}
 [data-sidebar-drawer][data-sidebar-drawer][data-sidebar-drawer] [data-sidebar-nav] button:hover{background:none;color:var(--glass-text)}
@@ -143,7 +142,7 @@ body[class~=drawer-open]{--railW:296px}
 @media (min-width:761px){
   html>body{transition:padding-left var(--board-motion)}
 }
-[data-sidebar-drawer] [data-sidebar-head] :is(#filterBtn,#navigationBack){display:grid;place-items:center;padding:0;width:36px;height:36px;flex:none;border-radius:var(--control-radius);background:transparent}
+[data-sidebar-drawer] [data-sidebar-head] :is(#filterBtn,#navigationBack){display:grid;place-items:center;padding:0;width:36px;height:36px;flex:none;border:0;border-radius:var(--control-radius);background:transparent;box-shadow:none}
 [data-sidebar-drawer] [data-sidebar-head] :is(#filterBtn,#navigationBack) svg{width:20px;height:20px;margin:0}
 [data-sidebar-drawer] [data-sidebar-head]{gap:8px;min-height:36px}
 [data-sidebar-drawer] [data-sidebar-nav] button span{white-space:nowrap;min-width:0;max-width:190px;overflow:hidden;opacity:1;filter:blur(0);transition:max-width var(--board-motion),opacity var(--board-motion),filter var(--board-motion)}
@@ -245,7 +244,7 @@ body :is([data-sidebar-range] input)::-moz-range-thumb{width:18px;height:18px;bo
 [data-sidebar-drawer] [data-sidebar-nav]{margin-top:12px;gap:4px}
 [data-sidebar-drawer] #brandHome{height:36px;min-height:36px;box-sizing:border-box}
 [data-sidebar-drawer] [data-sidebar-nav] button{height:36px;min-height:36px}
-[data-sidebar-drawer] [data-sidebar-head] #filterBtn{border-radius:0;color:var(--color-text-secondary);transition:color .15s ease}
+[data-sidebar-drawer] [data-sidebar-head] :is(#filterBtn,#navigationBack){border-radius:0;color:var(--color-text-secondary);transition:color .15s ease}
 [data-sidebar-drawer] [data-sidebar-head] #filterBtn:hover{background:var(--color-background-primary-hover);color:var(--color-text-primary)}
 @media (min-width:761px){
   [data-sidebar-drawer]:not([class~=open]) [data-sidebar-head]{gap:10px}
@@ -258,7 +257,7 @@ body :is([data-sidebar-range] input)::-moz-range-thumb{width:18px;height:18px;bo
 [data-sidebar-head] #brandHome [class~=mark]{width:32px;height:32px;border-radius:50%;background:var(--color-background-tertiary-default)}
 [data-sidebar-head] #brandHome [class~=sub]{display:none}
 [data-sidebar-drawer] [data-sidebar-head] #filterBtn{width:20px;height:20px;padding:0;background:none;box-shadow:none}
-[data-sidebar-drawer] [data-sidebar-head] #filterBtn:hover{background:none;color:var(--color-text-primary)}
+[data-sidebar-drawer] [data-sidebar-head] :is(#filterBtn,#navigationBack):hover{background:none;color:var(--color-text-primary)}
 @media (min-width:761px){
   [data-sidebar-drawer]:not([class~=open]) [data-sidebar-head]{min-height:0;gap:10px}
   [data-sidebar-drawer]:not([class~=open]) [data-sidebar-head] #filterBtn{width:36px;height:20px}
