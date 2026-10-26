@@ -86,7 +86,7 @@ describe('关注详情岛', () => {
     }
   });
 
-  it('筛过一档再进详情：后退回到详情再关掉，回到同一档筛选', { timeout: 60_000 }, async () => {
+  it('筛过一档再进详情：关闭后前进恢复详情，关闭回到同一档筛选', { timeout: 60_000 }, async () => {
     const opened = await openFollowFeed(browser, '/follow?status=new', DESKTOP);
     try {
       const page = opened.page;
@@ -97,7 +97,7 @@ describe('关注详情岛', () => {
       await page.locator(DETAIL_READY).waitFor();
       await page.locator('#closeStage').click();
       await filtered();
-      await page.goBack();
+      await page.goForward();
       await pathIs(page, '/posts/1002');
       await page.locator(DETAIL_READY).waitFor();
       await page.locator('#closeStage').click();

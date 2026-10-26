@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Button } from '@/components/base/buttons/button';
 import { apiSend } from '../../api';
 import { localPlayerPolicy } from '../../local-player';
+import { peachHistory } from '../../history';
 import { busyProps, useAction } from '../settings/use-action';
 import type { StagePlayerOptions } from './stage-player';
 
@@ -15,6 +16,7 @@ export function LocalPlayerControls({ options, onInternal, onExternal, isRelease
   const action = useAction();
   const [internal, setInternal] = useState(false);
   const [message, setMessage] = useState('');
+  const [autostart] = useState(() => options.externalAutoplay ?? (peachHistory.navigation.action !== 'POP' || peachHistory.navigation.claimed));
   const started = useRef(false);
   const disc = options.kind === 'item' && String(options.item.name || '').toLowerCase().endsWith('.iso');
   const play = () => {
@@ -25,7 +27,7 @@ export function LocalPlayerControls({ options, onInternal, onExternal, isRelease
     }, 'POST', signal), result => setMessage(`已打开 ${result.player}`));
   };
   useEffect(() => {
-    if (!started.current && !isReleased()) { started.current = true; play() }
+    if (!started.current && !isReleased()) { started.current = true; if (autostart) play() }
   }, []);
   return <div data-local-player-controls="" aria-label="播放方式">
     {!internal ? <p role="status">{action.busy ? `正在打开 ${localPlayerPolicy.label}…` : message || '外部播放'}</p> : null}

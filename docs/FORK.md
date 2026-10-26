@@ -30,7 +30,7 @@ PeachDesktop 在本机管理影片、人物、番号、标签和观看相关资�
 | JavLibrary 资料 | 搜索与详情解析、完整番号校验、标题/人物等字段映射、封面与来源记录；验证由使用者在浏览器完成 | `src/peach/sources/javlibrary.py`、`src/peach/metadata_routes.py`、[复用依据](REUSE.md#javlibrary-浏览器来源) |
 | 来源与采集边界 | JavLibrary 进入既有社区来源链；人工验证等待计入可豁免时间；已改变文件路径的旧候选不阻止重新采集 | `src/peach/community_catalog.py`、`src/peach/library_processing.py`、`src/peach/scraping_access.py` |
 | 资料目录与 Windows 选取器 | 窗口资料落点和重定向复用原版目录机制，文件选取适配 Windows 路径 | `src/peach/settings_file.py`、`src/peach/folder_picker.py` |
-| 返回与阅读位置 | 返回按钮、按历史条目保存名册页数与滚动位置、返回时恢复筛选和已加载内容 | `frontend/src/history/index.ts`、`frontend/src/react/index/index-data.ts`、`frontend/src/react/index/index-page.tsx` |
+| 返回与阅读位置 | 关闭视频回到原页面条目；按历史条目保存名册页数与滚动位置，返回时恢复筛选和已加载内容；历史恢复的视频由按钮启动外部播放 | `frontend/src/history/index.ts`、`frontend/src/application/media.js`、`frontend/src/application/follow.js`、`frontend/src/react/stage/local-player.tsx`、`frontend/src/react/index/index-data.ts` |
 | 侧栏外观与高亮 | 返回图标无常态边框，颜色复用侧栏开合按钮；灰色高亮标记当前选中项，悬停及离开保持落点 | `frontend/src/application/chrome.js`、`frontend/src/react/sidebar/sidebar-island.tsx`、`frontend/src/react/sidebar/sidebar.css` |
 
 ## 资源使用与性能
@@ -54,7 +54,7 @@ JavLibrary、其他资料站与网盘服务需要有效网络和相应访问权�
 
 - 当前重点验证 Windows x64；macOS 与 Docker 代码入口来自上游，需针对修改版自行验收。
 - 外部播放器不回传观看状态，无法用播放器关闭事件推断已看完。
-- 返回历史再次进入视频详情时可能重新触发外部播放；侧栏外观与名册位置恢复使用当前导航机制。
+- 刷新或深链进入详情时没有当前会话可验证的原页面条目，关闭详情会替换为默认返回页。主动打开视频按默认方式播放；历史恢复的详情保留手动播放入口。
 - 窗口更新只接受配套 `PeachDesktop-<版本>-windows-x64.zip` 资产；没有窗口版资产时使用窗口安装包。发行页实际制品是下载依据。
 - Windows 安装包未代码签名；WebView2、可选采集桥及来源凭据要求见[窗口说明](NATIVE_WINDOW.md)。
 

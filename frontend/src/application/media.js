@@ -7,7 +7,7 @@ import { cancelQueueRequest, navigationState, openRoutedPage, requestOverlay } f
 import { activeQueue, barsContext, detailOriginAbove, detailOriginAnchor, detailReturnBarsContext, detailReturnNeedsRestore, detailReturnPath, pageOpens, pendingQueueRoute, presentedItem, queueOpens, selectMode, selected, state, writeShell } from './../shell/index';
 import { scheduleStickySurfaces } from './layout.js';
 import { clearOverlayBackground, holdOverlayBackground, overlayState, takeOverlayReturn } from './../history/overlay';
-import { peachHistory, shellNavigate } from './../history/index';
+import { peachHistory, returnToHistoryPage, shellNavigate } from './../history/index';
 import { $, DURATION_TAGS } from '../core';
 import { apiGet } from '../api';
 import { javDisplayName, javTitleHtml } from '../core/jav-title';
@@ -36,7 +36,7 @@ export function disposeStage(push=false,preserveInlineOrigin=false,{miniplayer=t
     writeShell({detailOriginAnchor:null,detailOriginAbove:false,detailReturnNeedsRestore:false});
   }
   scheduleStickySurfaces();
-  if(push)navigationState.route(detailReturnPath||'/');
+  if(push&&!returnToHistoryPage(detailReturnPath||'/'))navigationState.route(detailReturnPath||'/',true);
 }
 
 export function repaintDetailPoster(){stageApi()?.repaintPoster()}
@@ -113,6 +113,7 @@ export async function openItem(id,push=true,queue=null,anchor=null,queuePush=fal
   }:mediaState.itemDetailActions;
   await stage.open({kind:'item',
     id,queue,relatedLimit:preferencesState.appSettings.relatedLimit>0?+preferencesState.appSettings.relatedLimit:0,
+    externalAutoplay:queuePush||peachHistory.navigation.action!=='POP'||peachHistory.navigation.claimed,
     helpers:mediaState.itemDetailHelpers,actions,
     grid:{helpers:catalogState.gridHelpers,actions:catalogState.gridActions},
     layout:catalogGridLayout(),selectMode,selected:new Set(selected),seekSeconds:preferencesState.appSettings.seekSeconds,
@@ -127,9 +128,10 @@ export async function closeItemDetail(){
   await stageExit();
   disposeStage(false,false,{miniplayer:false});writeShell({detailReturnBarsContext:null});clearOverlayBackground();
   writeShell({barsContext:restore||{type:'home',filters:state}});
+  if(returnToHistoryPage(returnPath,{reopen:new URL(returnPath,location.href).pathname==='/playlists'})){buildBars();return}
   /* 下面没有那一屏、要照地址重建时，管理区不认领写地址、领一个页面打开序号重开，其余认领写地址后要路由树从头重开。 */
-  if(restoreSurface&&navigationState.managedPagePath(new URL(returnPath,location.href).pathname)){navigationState.navigatePath(returnPath);return}
-  navigationState.route(returnPath);
+  if(restoreSurface&&navigationState.managedPagePath(new URL(returnPath,location.href).pathname)){navigationState.navigatePath(returnPath,true);return}
+  navigationState.route(returnPath,true);
   if(restoreSurface)writeShell({pageOpens:pageOpens+1});
   // 播放列表页回来就从头重开、取最新的那一份（详情里可能刚加进或移出了一条）。
   else{buildBars();if(location.pathname==='/playlists')writeShell({pageOpens:pageOpens+1})}

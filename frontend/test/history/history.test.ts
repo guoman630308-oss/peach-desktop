@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import * as sharedHistory from '@peach/history';
 import { canGoBack, historyPagePosition, peachHistory, rememberHistoryPages, restoreHistoryPage,
-  routeMetaOf, shellNavigate, type Navigation } from '../../src/history';
+  returnToHistoryPage, routeMetaOf, shellNavigate, type Navigation } from '../../src/history';
 
 let seen: Navigation[] = [];
 let stop = () => {};
@@ -13,7 +13,7 @@ beforeEach(() => {
   seen = [];
   stop = peachHistory.listen((navigation) => { seen.push(navigation) });
 });
-afterEach(() => { stop(); vi.unstubAllGlobals() });
+afterEach(() => { stop(); vi.restoreAllMocks(); vi.unstubAllGlobals() });
 
 /** 浏览器自己的后退前进：地址先变，再派发 `popstate`。 */
 function pop(path: string) {
@@ -60,6 +60,35 @@ it('没有站内上一条历史时返回不可用', () => {
   expect(canGoBack()).toBe(false);
   shellNavigate('/performers');
   expect(canGoBack()).toBe(true);
+});
+
+it('关闭连续播放详情回到原始页面条目，不把中间视频当作上一页', () => {
+  shellNavigate('/performers/7?tag=return');
+  const original = window.history.state;
+  shellNavigate('/assets/11?parts=11');
+  shellNavigate('/assets/12?parts=11');
+  shellNavigate('/assets/12?parts=11&t=10', { replace: true });
+  const go = vi.spyOn(peachHistory, 'go').mockImplementation(() => {});
+  expect(returnToHistoryPage('/performers/7?tag=return')).toBe(true);
+  expect(go).toHaveBeenCalledExactlyOnceWith(-2);
+  const epoch = peachHistory.navigation.openEpoch;
+  window.history.replaceState(original, '', '/performers/7?tag=return');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: original }));
+  expect(peachHistory.navigation).toMatchObject({ action: 'POP', claimed: true, openEpoch: epoch });
+});
+
+it('关闭详情只回到紧邻的已知背景，不穿过别的列表或跨越刷新前的未知条目', () => {
+  shellNavigate('/performers');
+  shellNavigate('/tags');
+  shellNavigate('/assets/11');
+  const go = vi.spyOn(peachHistory, 'go').mockImplementation(() => {});
+  expect(returnToHistoryPage('/performers')).toBe(false);
+  expect(returnToHistoryPage('https://example.com/tags')).toBe(false);
+  const unknown = { key: 'unknown-history', idx: 10_000, usr: null };
+  window.history.replaceState(unknown, '', '/assets/11');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: unknown }));
+  expect(returnToHistoryPage('/tags')).toBe(false);
+  expect(go).not.toHaveBeenCalled();
 });
 
 it('路径照 pushState 的规则按当前地址解析：只带查询串或只带锚点时其余部分不丢', () => {

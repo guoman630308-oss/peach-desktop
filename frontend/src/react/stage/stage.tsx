@@ -175,7 +175,7 @@ function contentFor(request: StageRequest): Content {
   /* 原地换条沿用浮窗开着时的代次（dialog 不重建），所以按这一次打开的 request 认：换条与重开都换一份新的。 */
   const live = () => view?.request === request;
   if (request.kind === 'item') {
-    const { kind: _kind, resume: _resume, actions: base, ...props } = request;
+    const { kind: _kind, resume: _resume, externalAutoplay, actions: base, ...props } = request;
     const actions: ItemDetailActions = {
       ...base,
       close: requestClose,
@@ -187,7 +187,7 @@ function contentFor(request: StageRequest): Content {
         queueMicrotask(() => { if (live()) base.present(item, queue) });
       },
       mountPlayer: (frame, item, _media, options) => player.attachStagePlayer(frame, {
-        kind: 'item', item, autoplay: options?.autoplay, resume: takeResume(item.id), id: 'vid',
+        kind: 'item', item, autoplay: options?.autoplay, externalAutoplay, resume: takeResume(item.id), id: 'vid',
       }),
     };
     return { kind: 'item', props: { ...props, actions } };

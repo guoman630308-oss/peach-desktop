@@ -118,6 +118,7 @@ export interface StagePlayerOptions {
   item: PlayerItem;
   media?: PlayerMedia | null | undefined;
   autoplay?: boolean | undefined;
+  externalAutoplay?: boolean | undefined;
   resume?: PlayerResume | null | undefined;
   /** `<video>` 的 id：作品详情那一枚是 `vid`，键盘与 e2e 按它找播放区。 */
   id?: string | undefined;

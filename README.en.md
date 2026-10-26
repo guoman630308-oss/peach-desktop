@@ -38,7 +38,7 @@ https://github.com/user-attachments/assets/a5610874-e611-41bb-be22-7d99f0d64b62
 - **Playback-aware previews**: local cards do not start hover video previews in external-player mode, reducing background conversion and cache writes while browsing.
 - **Single-file import**: select one video inside a configured media directory and register, probe and collect metadata for that file.
 - **JavLibrary source**: search and parse matching titles, preserve exact code checks and reuse manual browser verification within the existing source chain and cooldown policy.
-- **Navigation**: return to a directory index with filters, loaded pages and scroll position preserved. The back icon has no normal border and shares sidebar icon colors; the gray marker stays on the selected navigation item.
+- **Navigation**: closing a video returns to its original page. Directory indexes preserve filters, loaded pages and scroll position; videos restored through history require the external play button. The back icon has no normal border and shares sidebar icon colors; the gray marker stays on the selected navigation item.
 
 Scanning, performer/code relationships, tags, favorites, follows, cloud downloads and the built-in player originate from Peach. See the [module reference and known limitations](docs/FORK.md) for the full scope. Windows x64 is this fork's validated platform. A general movie/TV/season/episode data model remains future work.
 

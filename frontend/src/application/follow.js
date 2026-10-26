@@ -23,6 +23,7 @@ import { releaseHoverPreviews } from './../card-art/hover';
 import { loadStage, stageApi } from '../react/application-residents';
 import { disposeStage, mediaState, stageExit, urlResume } from './media.js';
 import { clearOverlayBackground, holdOverlayBackground, overlayState, takeOverlayReturn } from './../history/overlay';
+import { returnToHistoryPage } from './../history/index';
 export const followState = { followFilter: undefined, followAuthors: undefined, followProviders: undefined, followTags: undefined, followWorks: undefined, followMediaView: undefined, FOLLOW_FEED_SORTS: undefined, FOLLOW_RANDOM_SORT: undefined, followSort: undefined, followDir: undefined, followSeed: undefined, followDurMin: undefined, followDurMax: undefined, followContentSkeletonHtml: undefined, followSkeletonHtml: undefined, followFeedHelpers: undefined, followFeedActions: undefined, followFeedProps: undefined, followFeedShell: undefined, followDetailActions: undefined, FOLLOW_MANAGE_TABS: undefined, followSidebarFilters: undefined };
 
 export function followCheckToast(report){
@@ -95,7 +96,8 @@ export async function openFollowDetail(id,push=true,mediaIndex=null,preserveRetu
 export async function closeFollowDetail(){
   await stageExit();
   disposeStage(false,false,{miniplayer:false});clearOverlayBackground();
-  navigationState.route(followDetailReturnPath||'/follow');
+  if(returnToHistoryPage(followDetailReturnPath||'/follow'))return;
+  navigationState.route(followDetailReturnPath||'/follow',true);
   /* 从资料页在线视图点进来的：资料页一直画在下面，筛选、已加载的几页与滚动位置原样接着看，不从头重开。 */
   if(entityState.entityPageView&&entityState.entityPageCurrent()&&!$('#index').hidden)return;
   if(location.pathname!=='/follow'){writeShell({pageOpens:pageOpens+1});return}

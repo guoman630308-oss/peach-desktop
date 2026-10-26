@@ -2,11 +2,25 @@ import { act } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { rememberLocalPlayerPolicy, resetLocalPlayerPolicy } from '../../src/local-player';
 import { LocalPlayerControls, mountLocalPlayer } from '../../src/react/stage/local-player';
+import { shellNavigate } from '../../src/history';
 import { buttonNamed, click, mount, settle } from './render';
 
-afterEach(resetLocalPlayerPolicy);
+afterEach(() => { resetLocalPlayerPolicy(); shellNavigate('/', { replace: true }) });
 const options = { kind: 'item' as const, item: { id: 7 }, media: null };
 const preference = () => rememberLocalPlayerPolicy({ available: true, mode: 'external', executable: 'player.exe', label: 'PotPlayer' });
+
+it('历史恢复的视频由按钮启动外部播放器', async () => {
+  preference();
+  const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ opened: true, player: 'PotPlayer' }) }));
+  vi.stubGlobal('fetch', fetcher);
+  window.history.replaceState(window.history.state, '', '/assets/7');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+  const host = await mount(<LocalPlayerControls options={options} onInternal={() => {}} onExternal={() => {}} isReleased={() => false} />);
+  await settle();
+  expect(fetcher).not.toHaveBeenCalled();
+  await click(buttonNamed('PotPlayer 播放', host));
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 
 it('默认只交给外部播放器，内置播放由按钮明确启动', async () => {
   preference();

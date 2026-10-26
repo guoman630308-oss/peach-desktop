@@ -236,7 +236,7 @@ describe('作品详情岛', () => {
     }
   });
 
-  it('后退回到详情再关掉：回到这一条打开时压着的那一页，地址与画面一致', { timeout: 90_000 }, async () => {
+  it('关闭后前进恢复详情：回到这一条打开时压着的那一页，地址与画面一致', { timeout: 90_000 }, async () => {
     const opened = await openItemPage(browser, '/trash', DESKTOP, { ready: `#grid [data-media-card][data-id="${ITEM.plain}"]` });
     try {
       const page = opened.page;
@@ -248,17 +248,22 @@ describe('作品详情岛', () => {
       await openCard(ITEM.plain);
       await page.locator('#closeStage').click();
       await pathIs(page, '/trash');
+      await page.goForward();
+      await pathIs(page, `/assets/${ITEM.plain}`);
+      await page.locator(DETAIL_READY).waitFor();
+      await page.locator('#closeStage').click();
+      await pathIs(page, '/trash');
       await page.locator('[data-nav=""]:visible').first().click();
       await pathIs(page, '/');
       await page.locator(`#grid [data-media-card][data-id="${ITEM.cast}"]`).first().waitFor({ timeout: 15_000 });
       await openCard(ITEM.cast);
-      for (const path of ['/', '/trash', `/assets/${ITEM.plain}`]) {
-        await page.goBack();
-        await pathIs(page, path);
-      }
+      await page.locator('#closeStage').click();
+      await pathIs(page, '/');
+      await page.goForward();
+      await pathIs(page, `/assets/${ITEM.cast}`);
       await page.locator(DETAIL_READY).waitFor();
       await page.locator('#closeStage').click();
-      await pathIs(page, '/trash');
+      await pathIs(page, '/');
       await page.locator('#stage[open]').waitFor({ state: 'detached', timeout: 10_000 }).catch(() => {});
       assert.equal(await page.locator('#stage[open]').count(), 0);
       await page.locator(`#grid [data-media-card][data-id="${ITEM.plain}"]`).first().waitFor();
