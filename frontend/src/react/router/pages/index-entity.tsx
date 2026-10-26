@@ -20,7 +20,7 @@ import { useContext, useEffect, useLayoutEffect, useRef, useSyncExternalStore } 
 import { useLocation } from 'react-router';
 
 import { appSettingsStore } from '@peach/appearance';
-import { isOverlayPath, managedEntry, openManagedRoute, peachHistory, shellNavigate, updateManagedRoute } from '@peach/history';
+import { isOverlayPath, managedEntry, openManagedRoute, peachHistory, restoreHistoryPage, shellNavigate, updateManagedRoute } from '@peach/history';
 import { ROUTE_ENTITIES, entityPath } from '@peach/legacy/core';
 import { apiGet } from '../../../api';
 import { queryClient } from '../../query';
@@ -102,7 +102,10 @@ async function openIndex(actions: ShellActions, kind: IndexPageKind, search: str
      选择键和配置权限。 */
   const painted = await openManagedRoute(path,
     { ...params, layout, selectMode, configurable: !!actions.configurable?.() }, { container: host, isCurrent: live });
-  if (painted && live()) actions.surfaceShown?.('index', path);
+  if (painted && live()) {
+    actions.surfaceShown?.('index', path);
+    if (!restoreHistoryPage()) window.scrollTo({ top: 0, behavior: 'instant' });
+  }
 }
 
 /* `#index` 里画着、露着的是这一页索引。 */
@@ -207,7 +210,7 @@ async function openEntity(
   });
   if (!painted || !live() || !entityShown()) return;
   actions.surfaceShown?.('entity', pathname);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!restoreHistoryPage()) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function EntityOpen({ target }: { target: { segment: string; kind: string; name: string } }) {

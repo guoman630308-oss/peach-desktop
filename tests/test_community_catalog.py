@@ -402,10 +402,10 @@ class SourceChoiceTests(unittest.TestCase):
         self.assertEqual(community_sources_for("FC2-PPV-1233719"), ("javdb",))
         self.assertEqual(community_sources_for("fc2-ppv-1233719"), ("javdb",))
 
-    def test_a_studio_code_still_goes_to_all_three(self):
-        """厂牌番号三家都有产出，顺序也要保持 javdb 最后；三家都登记在契约的 `SITE_SOURCES` 里。"""
-        self.assertEqual(community_sources_for("ORETD-615"), ("avbase", "javbus", "javdb"))
-        self.assertEqual(COMMUNITY_SOURCES, ("avbase", "javbus", "javdb"))
+    def test_a_studio_code_uses_the_registered_community_catalogs(self):
+        """厂牌番号按来源链顺序查询，JavLibrary 是有码链的备用来源。"""
+        self.assertEqual(community_sources_for("ORETD-615"), ("avbase", "javbus", "javdb", "javlibrary"))
+        self.assertEqual(COMMUNITY_SOURCES, ("avbase", "javbus", "javdb", "javlibrary"))
         self.assertTrue(set(COMMUNITY_SOURCES) <= set(SITE_SOURCES))
 
     def test_a_row_without_a_code_asks_nobody(self):

@@ -1,7 +1,7 @@
-"""采集任务的社区来源：AVBase、JavBus 与 javdb 三家问哪几家、按什么顺序，以及社区封面的互相比对。
+"""采集任务的社区来源：AVBase、JavBus、javdb 与 JavLibrary 的顺序及封面互证。
 
-官方渠道（r18.dev、DMM CDN、MGS、Prestige）落空时才问这三家，决策见 ADR-0030 与 ADR-0032。
-三家各是 `peach.sources` 契约下的一个站（`sources/avbase.py`、`sources/javbus.py`、`sources/javdb.py`）：
+官方渠道（r18.dev、DMM CDN、MGS、Prestige）落空时才问社区来源，决策见 ADR-0030 与 ADR-0032。
+各家都是 `peach.sources` 契约下的一个站：
 取页、解析、防封间隔、Cookie 与页面上限都在那里，`LibraryMetadataProvider.community` 与
 `scripts/scrape_codes.py` 按 `SITE_SOURCES` 取站。几家的值常有出入：ABW-358 在 javdb 上发行日期是
 MGS 的 5/23、标题带 MGS 附注、演员里有男优，所以社区来源的资料一律要两家一致才免复核。
@@ -25,15 +25,16 @@ from .jav_cover_fetch import (SMALL_MIN_WIDTH, Candidate, NotFound, Unavailable,
                               is_cross_product_cover, is_javdb_image)
 from .scraping_access import SourcePaused
 from .scripting import host_under, hostname_of
-from .sources import AVBASE, JAVBUS, JAVDB
+from .sources import AVBASE, JAVBUS, JAVDB, JAVLIBRARY
 
 IMAGE_LIMIT = 16 * 1024 * 1024
 
 #: 图源按店铺算，不按主机名：`pics.dmm.co.jp` 与 `awsimgsrc.dmm.co.jp` 是同一家的两条路径。
 IMAGE_ORIGINS = (("dmm", ("dmm.co.jp", "dmm.com")), ("duga", ("duga.jp",)),
-                 ("mgstage", ("mgstage.com",)), (JAVBUS.name, JAVBUS.domains), (JAVDB.name, JAVDB.domains))
+                 ("mgstage", ("mgstage.com",)), (JAVBUS.name, JAVBUS.domains), (JAVDB.name, JAVDB.domains),
+                 (JAVLIBRARY.name, JAVLIBRARY.domains))
 #: 社区站自己的图要带站内 Referer；店铺的图按 `candidate_for` 取官方 Referer。
-ORIGIN_REFERERS = {JAVBUS.name: JAVBUS.referer, JAVDB.name: JAVDB.referer}
+ORIGIN_REFERERS = {JAVBUS.name: JAVBUS.referer, JAVDB.name: JAVDB.referer, JAVLIBRARY.name: JAVLIBRARY.referer}
 ASPECT_TOLERANCE = 0.04
 HASH_DISTANCE = 10
 #: 两张图按一个相似变换对上的特征点至少这么多才算同一张。
@@ -41,14 +42,14 @@ SCENE_INLIERS = 60
 #: 算特征点前把长边缩到这么长：几百像素已经够认，原图 3000 多像素只是白算。
 SCENE_SIDE = 400
 
-#: 采集任务问社区来源的顺序。AVBase 与 JavBus 各一次请求，javdb 两次且配额紧，排在最后。
-COMMUNITY_SOURCES = (AVBASE.name, JAVBUS.name, JAVDB.name)
+#: 社区来源按顺序补齐；JavLibrary 的人工验证会话在有码链中作为备用。
+COMMUNITY_SOURCES = (AVBASE.name, JAVBUS.name, JAVDB.name, JAVLIBRARY.name)
 
 
 def community_sources_for(code: str, *hints: str, route=None):
     """这个番号问社区里的哪几家，顺序同这个番号的来源链。
 
-    成员与顺序的真相在 `metadata_routes`：有码与素人问 AVBase、JavBus 与 javdb，
+    成员与顺序的真相在 `metadata_routes`：有码问四个目录，素人问 AVBase、JavBus 与 javdb，
     FC2 的商品号只问 javdb，韩国 MIB 一家都不问。`route` 是调用方已经算好的那一档成员
     （算它要本机路径与厂牌证据，这里手上没有），给了就直接用。
 

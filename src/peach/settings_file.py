@@ -474,6 +474,11 @@ def _apply_environment(config: PeachConfig, environ: dict[str, str]) -> PeachCon
         field_name: environ[name]
         for name, field_name in _SERVER_ENV.items() if environ.get(name)
     }
+    bootstrap_port = environ.get('PEACH_WINDOW_BOOTSTRAP_PORT')
+    if bootstrap_port and not config.present:
+        if not bootstrap_port.isdecimal() or not 1024 <= int(bootstrap_port) <= 65535:
+            raise _fail(config.path, '独立窗口首启端口无效')
+        server_changes['port'] = int(bootstrap_port)
     replication_changes = {
         field_name: environ[name]
         for name, field_name in _REPLICATION_ENV.items() if environ.get(name)

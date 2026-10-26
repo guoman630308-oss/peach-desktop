@@ -58,7 +58,7 @@ SCOPES: dict[str, tuple[str, ...]] = {
                 "test_web_review.py", "test_web_settings.py"),
     # 任务中心的两个文件跟着 `test_jobs.py` 走：`jobs.py` 与 `task_runs.py` 是同一条
     # 接线的两端，改哪一端都要两边一起验。
-    "media": ("test_external_playback.py", "test_runtime_consistency.py", "test_endcard.py", "test_fastapi_api.py", "test_jobs.py",
+    "media": ("test_external_playback.py", "test_local_player.py", "test_runtime_consistency.py", "test_endcard.py", "test_fastapi_api.py", "test_jobs.py",
               "test_task_runs.py", "test_followups.py", "test_task_center_integration.py",
               "test_frame_capture.py", "test_timeline_sheets.py", "test_processing_control.py",
               "test_web_timeline_thumbnails.py",
@@ -68,7 +68,7 @@ SCOPES: dict[str, tuple[str, ...]] = {
               "test_providers.py", "test_segments.py", "test_streaming.py",
               "test_subtitles.py", "test_transcodes.py", "test_hardware_transcode.py", "test_strm.py",
               "test_guangya_sources.py", "test_media_sources.py"),
-    "sync": ("test_sync*.py", "test_platform.py", "test_mount.py", "test_tray*.py", "test_macos_standalone.py", "test_log_retention.py",
+    "sync": ("test_sync*.py", "test_platform.py", "test_mount.py", "test_tray*.py", "test_native*.py", "test_macos_standalone.py", "test_log_retention.py",
              "test_mdns.py", "test_netwatch.py", "test_certs.py",
              "test_review_mirror.py", "test_runtime_prepare.py"),
     "metadata": ("test_custom_metadata.py", "test_scraping_access.py", "test_browser_transport.py", "test_metadata*.py", "test_genre_taxonomy.py", "test_processing_control.py",
@@ -147,7 +147,7 @@ SCOPES: dict[str, tuple[str, ...]] = {
              "test_subprocess_encoding.py", "test_windows_update.py", "test_buildinfo.py"),
     "packaging": ("test_dependency_policy.py", "test_buildinfo.py", "test_onboarding.py", "test_macos_standalone.py",
                   "test_cli.py", "test_server.py", "test_versioning.py", "test_frontend_build.py",
-                  "test_cloudflared_packaging.py", "test_desktop_installer.py",
+                  "test_cloudflared_packaging.py", "test_desktop_installer.py", "test_native*.py",
                   "test_ffmpeg_build.py", "test_ffmpeg_bundle.py", "test_untrunc_build.py"),
 }
 
@@ -266,6 +266,7 @@ AUTO_SCOPE_FILES: dict[str, tuple[str, ...]] = {
 # tooling 里的脚本策略门槛验它的形态。
 AUTO_SCOPE_PREFIXES: tuple[tuple[str, str | tuple[str, ...]], ...] = (
     ("src/peach/media.py", "media"),
+    ("src/peach/local_player.py", "media"),
     ("src/peach/hardware_transcode.py", "media"),
     # 关键帧与 ctts 都从 moov 读，测试住在 `test_segments.py` 里。
     ("src/peach/mp4index.py", "media"),

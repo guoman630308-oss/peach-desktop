@@ -1,5 +1,7 @@
 """统一处理任务的启动、只读状态查询与失败项重试。"""
 import json
+import os
+from pathlib import Path, PureWindowsPath
 
 from . import settings_file
 from .library_processing import (ALL_STAGES, COLLECT_STAGE, SCAN_STAGE, STAGES,
@@ -8,6 +10,58 @@ from .library_processing import (ALL_STAGES, COLLECT_STAGE, SCAN_STAGE, STAGES,
 from .processing_control import control_for, initial_estimate, valid_mode, mode_ratio
 
 ACTIVE = ('running', 'pausing', 'paused')
+
+
+def _import_path(config, raw):
+    """将本机选中的文件映射到已配置的媒体根，拒绝越界与未完成的下载。"""
+    from .push_discovery import IGNORED_NAMES, ignored
+    from .scan import medium_of
+    if (not isinstance(raw, str) or not raw.strip() or len(raw) > 32767
+            or any(ord(char) < 32 for char in raw) or not Path(raw).is_absolute()):
+        raise ValueError('请选择视频文件的完整路径')
+    try:
+        target = Path(raw).resolve(strict=True)
+    except OSError as error:
+        raise ValueError('视频文件不存在或无法读取') from error
+    if not target.is_file() or medium_of(target.name) != 'video':
+        raise ValueError('请选择一个视频文件')
+    if ignored(target.name) or any(part.casefold() in IGNORED_NAMES | {'$recycle.bin', 'system volume information', '#recycle'}
+                                   for part in target.parts):
+        raise ValueError('请选择已下载完成且不在系统目录中的视频')
+    matches = []
+    for location, declared in config.locations.items():
+        mounted = config.mounts.get(location, declared if os.name == 'nt' else ())
+        for index, root in enumerate(mounted):
+            if index >= len(declared):
+                continue
+            try:
+                local_root = Path(root).resolve(strict=True)
+            except OSError:
+                continue
+            if target.is_relative_to(local_root):
+                path = str(PureWindowsPath(declared[index]).joinpath(*target.relative_to(local_root).parts))
+                matches.append((len(local_root.parts), location, path))
+    if not matches:
+        raise ValueError('此文件不在媒体目录内，请先在 Peach 配置中添加它所在的文件夹')
+    _, location, path = max(matches)
+    return location, path
+
+
+def w_library_import_file(contract, body):
+    """登记所选视频，然后用同一处理任务只补全这一条资产。"""
+    from .scan import ingest_path
+    config = settings_file.active()
+    _processing_request(contract, config, _current(contract), {'stage': COLLECT_STAGE})
+    if _current(contract).get('status') in ACTIVE:
+        raise ValueError('请等待当前扫描与采集任务完成，或先停止该任务')
+    mode = valid_mode(body.get('speed_mode') or control_for(config).mode)
+    location, path = _import_path(config, body.get('path'))
+    result = ingest_path(contract.db_path, location, path,
+                         declared_roots=config.locations, mounts=config.mounts)
+    if not result.found or result.sidecar or result.asset_id is None:
+        raise ValueError('视频文件不可访问，请检查文件后重试')
+    contract.cache_bust()
+    return w_library_processing(contract, {'stage': COLLECT_STAGE, 'asset_ids': [result.asset_id], 'speed_mode': mode})
 
 
 def _current(contract):

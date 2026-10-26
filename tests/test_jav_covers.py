@@ -32,6 +32,47 @@ class _Response:
 
 
 class FetchRetryTests(unittest.TestCase):
+    def test_a_cooled_image_host_does_not_block_the_next_candidate_probe(self):
+        blocked, available = 'https://one.example/high.jpg', 'https://two.example/cover.jpg'
+        fallback = transport_for({available: (200, jpeg(1000, 674))})
+        def transport(request, timeout, limit):
+            if request.url == blocked:
+                raise covers.SourcePaused('来源正在冷却')
+            return fallback(request, timeout, limit)
+        winner, size, _ = covers.best_cover(transport, 'FC2-PPV-123456', 0,
+            prior_candidates=tuple(map(covers.candidate_for, (blocked, available))))
+        self.assertEqual((winner.url, size), (available, (1000, 674)))
+
+    def test_a_cooled_full_download_uses_the_next_measured_image(self):
+        blocked, available = 'https://one.example/high.jpg', 'https://two.example/cover.jpg'
+        def transport(request, timeout, limit):
+            if 'Range' in request.headers:
+                return _Response(200, jpeg(1200, 800) if request.url == blocked else jpeg(1000, 674))
+            if request.url == blocked:
+                raise covers.SourcePaused('来源正在冷却')
+            return _Response(200, jpeg(1000, 674))
+        winner, size, _ = covers.best_cover(transport, 'FC2-PPV-123456', 0,
+            prior_candidates=tuple(map(covers.candidate_for, (blocked, available))))
+        self.assertEqual((winner.url, size), (available, (1000, 674)))
+
+    def test_all_cooled_images_remain_retryable_instead_of_becoming_missing(self):
+        candidate = covers.candidate_for('https://one.example/cover.jpg')
+        for phase in ('probe', 'download'):
+            with self.subTest(phase=phase):
+                def transport(request, timeout, limit, phase=phase):
+                    if phase == 'download' and 'Range' in request.headers:
+                        return _Response(200, jpeg(1000, 674))
+                    raise covers.SourcePaused('来源正在冷却')
+                with self.assertRaises(covers.SourcePaused):
+                    covers.best_cover(transport, 'FC2-PPV-123456', 0, prior_candidates=(candidate,))
+
+    def test_catalog_cooldown_preserves_a_known_usable_image(self):
+        url = 'https://one.example/cover.jpg'
+        with patch.object(covers, 'prestige_group_images', side_effect=covers.SourcePaused('来源正在冷却')):
+            winner, _, _ = covers.best_cover(transport_for({url: (200, jpeg(1000, 674))}), 'ABW-232', 0,
+                prior_candidates=(covers.candidate_for(url),))
+        self.assertEqual(winner.url, url)
+
     def test_larger_official_cover_beats_a_smaller_product_image(self):
         large = covers.candidate_for('https://official.example/full.jpg')
         small = covers.candidate_for('https://image.mgstage.com/pb_e_product.jpg')
@@ -513,6 +554,34 @@ class OfficialSourceTests(unittest.TestCase):
             actual = covers.prestige_group_images(object(), "ABW-232")
         self.assertEqual(actual, fallback)
         mgstage.assert_called_once_with(unittest.mock.ANY, "ABW-232", deadline=None)
+
+    def test_prestige_cooldown_queries_mgstage_with_the_same_deadline(self):
+        fallback = [covers.candidate_for('https://image.mgstage.com/pb_e_abw-232.jpg')]
+        with patch.object(covers, 'prestige_images', side_effect=covers.SourcePaused('地区限制')), \
+                patch.object(covers, 'mgstage_images', return_value=fallback) as mgstage:
+            actual = covers.prestige_group_images(object(), 'ABW-232', deadline=123)
+        self.assertEqual(actual, fallback)
+        mgstage.assert_called_once_with(unittest.mock.ANY, 'ABW-232', deadline=123)
+
+    def test_mgstage_cooldown_keeps_the_prestige_candidate(self):
+        official = [covers.candidate_for('https://www.prestige-av.com/api/media/package.jpg')]
+        with patch.object(covers, 'prestige_images', return_value=official), \
+                patch.object(covers, 'mgstage_images', side_effect=covers.SourcePaused('来源正在冷却')):
+            self.assertEqual(covers.prestige_group_images(object(), 'ABW-232'), official)
+
+    def test_both_group_sites_cooled_preserves_the_cooldown(self):
+        with patch.object(covers, 'prestige_images', side_effect=covers.SourcePaused('地区限制')), \
+                patch.object(covers, 'mgstage_images', side_effect=covers.SourcePaused('来源正在冷却')) as mgstage:
+            with self.assertRaises(covers.SourcePaused):
+                covers.prestige_group_images(object(), 'ABW-232')
+        mgstage.assert_called_once()
+
+    def test_group_deadline_stops_dispatching_sources(self):
+        with patch.object(covers, 'prestige_images', side_effect=covers.DeadlineExceeded('动作预算已用尽')), \
+                patch.object(covers, 'mgstage_images') as mgstage:
+            with self.assertRaises(covers.DeadlineExceeded):
+                covers.prestige_group_images(object(), 'ABW-232')
+        mgstage.assert_not_called()
 
     def test_standard_flow_never_requests_blocked_avbase(self):
         with tempfile.TemporaryDirectory() as tmp:

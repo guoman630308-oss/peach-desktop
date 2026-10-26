@@ -9,6 +9,7 @@ import { preferencesState } from './preferences.js';
 import { applyTheme } from './../appearance/theme';
 import { wireGlowButton } from './../appearance/glow';
 import { loadGlowPicker } from '../react/application-residents';
+import { canGoBack, peachHistory } from '../history';
 export const chromeState = {  };
 
 
@@ -94,6 +95,12 @@ api('/api/libraries',{signal:effects.signal}).then(data=>{
   syncLibraryGlide(false);
 }).catch(()=>{if(effects.isActive)libraryPicker.hidden=true});
 const boardToggle=document.querySelector('#filterBtn'),toggleHome=document.createComment('sidebar toggle');boardToggle.before(toggleHome);
+const backButton=document.createElement('button');backButton.type='button';backButton.id='navigationBack';
+backButton.className='ic';backButton.setAttribute('aria-label','返回上一页');backButton.title='返回上一页';
+backButton.innerHTML=icon('chevron-left');
+const syncBack=()=>{backButton.disabled=!canGoBack()};syncBack();
+effects.own(()=>backButton.remove());effects.own(peachHistory.listen(syncBack));
+effects.handler(backButton,'onclick',()=>{if(canGoBack()){if(narrowShell())openDrawer(false);peachHistory.go(-1)}});
 effects.own(()=>toggleHome.remove());
 const boardFoot=document.createElement('div');boardFoot.className='board-sidebar-foot';
 effects.own(()=>boardFoot.remove());
@@ -136,6 +143,7 @@ function placeBrand(){
   if(!head)return;
   boardBrand.setAttribute('aria-label','选择媒体库');
   if(boardBrand.parentElement!==head)head.prepend(boardBrand);
+  if(backButton.parentElement!==head)head.append(backButton);
   const expanded=drawer.classList.contains('open'),desktop=!narrowShell();
   if(desktop||expanded){if(boardToggle.parentElement!==head)head.append(boardToggle)}else if(boardToggle.parentElement!==toggleHome.parentElement)toggleHome.after(boardToggle);
   drawer.inert=!desktop&&!expanded;

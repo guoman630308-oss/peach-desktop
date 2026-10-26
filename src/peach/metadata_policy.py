@@ -27,7 +27,7 @@ class SourceSpec:
         return self.kind in {"official", "official_mirror"}
 
 
-#: 历史来源身份。这八家当年经 Javinizer-Go 取回过资料，账本里仍有
+#: 历史来源身份。这几家当年经 Javinizer-Go 取回过资料，账本里仍有
 #: `javinizer:<站>:<字段>` 的 provenance（libredmm 的厂牌一百多行），旧快照也还在
 #: `sources/metadata/javinizer-go/` 下。当前链不再向它们发请求（ADR-0044），名字留着是
 #: 让结算与复核页仍认得这些行的级别；删掉名字的表现是已落库的官方值在复核页变成
@@ -35,7 +35,7 @@ class SourceSpec:
 #: dmm 当年也在这批里，现在由 Peach 自写的 GraphQL 解析器在有码链上回答（ADR-0059）。
 HISTORICAL_SOURCES = (
     "libredmm", "tokyohot", "aventertainment", "caribbeancom",
-    "dlgetchu", "javlibrary", "jav321", "javstash",
+    "dlgetchu", "jav321", "javstash",
 )
 
 SOURCE_SPECS = {
@@ -53,9 +53,9 @@ SOURCE_SPECS = {
         "tokyohot": "official",
         "aventertainment": "official", "caribbeancom": "official",
         "dlgetchu": "official",
-        "javlibrary": "community", "jav321": "community", "javstash": "community",
+        "jav321": "community", "javstash": "community",
         # Peach 自写解析器的社区站（`peach.sources.javdb`、`peach.sources.javbus`）。
-        "javdb": "community", "javbus": "community",
+        "javdb": "community", "javbus": "community", "javlibrary": "community",
         # Seesaa 作品表（`peach.sources.seesaa`，`scrape_codes --profile seesaa`）。
         "sougouwiki": "community",
         # Seesaa 上的两个认人 Wiki（同一模块，`scrape_codes --sources av_neme,av_name`）。

@@ -11,6 +11,7 @@
  * `attached`（展开），不会同时在两处。 */
 import { api, fmtClock, realDuration } from '@peach/legacy/core';
 import { iconSwapHtml, setIconSwap } from '@peach/legacy/ui';
+import { prefersExternalPlayer } from '../../local-player';
 
 import {
   attachPlayerChrome, cancelDetailStream, closePlayerMenu, configurePlayer, configurePlayerMenu, detailPlayer,
@@ -76,14 +77,17 @@ let requested = false;
 let token = 0;
 let requestClose: (() => void) | null = null;
 let stageOpen: () => boolean = () => false;
+type ExternalMount = (frame: HTMLElement, options: StagePlayerOptions, internal: () => () => void) => () => void;
+let externalMount: ExternalMount | null = null;
 
 export const playerKey = (kind: StageKind, id: number, mediaIndex: number | null): string =>
   `${kind}:${id}:${mediaIndex ?? ''}`;
 
 export function configureStagePlayer(next: StagePlayerHost, stage: {
   isOpen(): boolean; requestClose(): void;
-}): void {
+}, external?: ExternalMount): void {
   host = next;
+  externalMount = external ?? null;
   stageOpen = () => stage.isOpen();
   requestClose = () => stage.requestClose();
   configurePlayer({ ...next.player, stage: () => document.getElementById('stage') });
@@ -114,6 +118,7 @@ export interface StagePlayerOptions {
   item: PlayerItem;
   media?: PlayerMedia | null | undefined;
   autoplay?: boolean | undefined;
+  externalAutoplay?: boolean | undefined;
   resume?: PlayerResume | null | undefined;
   /** `<video>` 的 id：作品详情那一枚是 `vid`，键盘与 e2e 按它找播放区。 */
   id?: string | undefined;
@@ -128,6 +133,14 @@ export interface StagePlayerOptions {
  *  这块框，读数重新接上，播放不断。否则新建一个 `<video>` 交给 `mountPlayer`。卸下时这个实例
  *  已经被小窗接走就只摘读数，没被接走就连流会话一起拆掉。 */
 export function attachStagePlayer(frame: HTMLElement, options: StagePlayerOptions): () => void {
+  if (prefersExternalPlayer() && externalMount) {
+    closeMiniplayer();
+    return externalMount(frame, options, () => attachInternalStagePlayer(frame, { ...options, autoplay: true }));
+  }
+  return attachInternalStagePlayer(frame, options);
+}
+
+function attachInternalStagePlayer(frame: HTMLElement, options: StagePlayerOptions): () => void {
   const { kind, item, media = null } = options;
   const key = playerKey(kind, item.id, media?.index ?? null);
   if (held && held.key === key) return claimHeld(frame, held);
@@ -414,6 +427,7 @@ export function miniplayerTakesCard(item: PlayerItem | null | undefined): boolea
 /** 在小窗里换一条作品。换片就是一条新视频，重新挂一个播放器最干净：上一条的错误兜底、观看
  *  上报和清晰度表都绑在旧实例的闭包里，复用它只会把新片的行为记到旧片头上。 */
 export async function miniplayerPlay(id: number): Promise<void> {
+  if (prefersExternalPlayer()) { closeMiniplayer(); stageHost().openItem(id); return }
   if (!miniplayerActive() || !held || !dom) return;
   const mine = ++token;
   const item = await (api(`/api/item?id=${id}`) as Promise<(PlayerItem & { error?: unknown }) | null>).catch(() => null);

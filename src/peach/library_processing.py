@@ -74,8 +74,9 @@ MISS_TTL_SECONDS = 7 * 24 * 3600
 #: 每分钟 20 页）。参照面：每分钟 40～50 页实测会招来 3～7 天的封 IP，`harvest_directory_links`
 #: 那条批量线仍按 5 秒跑。撞上 403 不再是盲等 24 小时——`scraping_access.FIRST_BLOCKED_PAUSE`
 #: 先停 15 分钟，连着再撞才翻倍，所以这一档收紧的代价是有限且可观测的（docs/SOURCING.md）。
-SOURCE_INTERVALS = {'javdb.com': 3.0, 'jdbstatic.com': 3.0}
+SOURCE_INTERVALS = {'javdb.com': 3.0, 'jdbstatic.com': 3.0, 'javlibrary.com': 3.0}
 SOURCE_LABELS = {'r18dev': 'r18.dev', 'dmm': 'DMM / FANZA', 'avbase': 'AVBase', 'javbus': 'JavBus', 'javdb': 'javdb',
+                 'javlibrary': 'JavLibrary',
                  'fc2': 'FC2', 'fc2cmadb': 'FC2CMADB', 'fc2ppvdb': 'FC2PPV-DB', 'javten': 'JAVten',
                  'javarchive': 'JavArchive',
                  '1pondo': '一本道', 'local_nfo': '本地 NFO',
@@ -88,6 +89,7 @@ SOURCE_LABELS = {'r18dev': 'r18.dev', 'dmm': 'DMM / FANZA', 'avbase': 'AVBase', 
                  'sougouwiki': '素人系総合 Wiki', 'av_neme': 'このAV女優の名前教えてwiki',
                  'av_name': 'AV女優の名前特定wiki'}
 PROVIDER_NAMES = {'local_nfo': 'local-nfo', 'r18dev': 'r18-json', 'dmm': 'dmm-graphql', 'avbase': 'avbase-search',
+                  'javlibrary': 'javlibrary-page',
                   'javbus': 'javbus-page', 'javdb': 'javdb-page', 'fc2': 'fc2-article',
                   'fc2cmadb': 'fc2cmadb-article', 'fc2ppvdb': 'fc2ppvdb-page', 'javten': 'javten-page',
                   'javarchive': 'javarchive-page',
@@ -411,7 +413,7 @@ class LibraryMetadataProvider:
         """官方渠道落空时问综合索引那一档，返回 `[(来源, 资料)]`。
 
         问哪几家按 `community_catalog.community_sources_for`，它转手问
-        `metadata_routes.community_route`：有码与素人问 AVBase、JavBus 与 javdb，
+        `metadata_routes.community_route`：有码问四个目录，素人问 AVBase、JavBus 与 javdb，
         FC2 的商品号只问 javdb。`route` 是调用方已经算好的那一档成员，给了就不再算
         （那一步要本机证据，provider 手上没有）。资料和封面两步都可能要它，同一个
         番号只问一次：javdb 的配额经不起每部片问两遍。`known` 是调用方手上已有的几家快照
@@ -438,9 +440,10 @@ class LibraryMetadataProvider:
         from .jav_cover_fetch import Unavailable
         from .scraping_access import SourcePaused
         found, problems, said_no, held = [], [], [], 0
+        mark = self.excused
         for source in sources:
             try:
-                payload = self.site(source, code, deadline=deadline)
+                payload = self.site(source, code, deadline=_extended(deadline, self.excused - mark))
             except DeadlineExceeded:
                 if found:
                     return found
@@ -601,7 +604,11 @@ class LibraryMetadataProvider:
         写成一句。冷却、动作预算与连接失败由传输层抛出、原样放过。
         """
         from .sources import SITE_SOURCES, Session
-        return SITE_SOURCES[source]().query(code, session=Session(self.transport, deadline)).payload()
+        started = time.monotonic()
+        try:
+            return SITE_SOURCES[source]().query(code, session=Session(self.transport, deadline)).payload()
+        finally:
+            self._excuse(source, started)
 
     def query(self, code, source='r18dev', *, deadline=None):
         """有码与素人链上逐个成档的官方来源：默认是 r18.dev（`sources/r18dev.py`），有码链上它之后是 DMM 的
@@ -1845,6 +1852,14 @@ def _candidate_scope(groups, asset_ids):
             if str(value.get('asset_id') or '') in chosen}
 
 
+def _current_candidate_groups(groups, rows):
+    """只保留仍绑定当前文件的候选，其他资产的候选保持独立。"""
+    paths = {str(row['id']): row['path'] for row in rows}
+    return {key: group for key, group in groups.items()
+            if not group.get('asset_path') or str(group.get('asset_id')) not in paths
+            or group['asset_path'] == paths[str(group['asset_id'])]}
+
+
 def _finish_collection(config, database, candidate_root, cover_root, groups, remote, *,
                        asset_ids, active, update, issue, watermark, covered):
     """结算本趟候选并补人物资料，全库任务同时推进存量后继。"""
@@ -2346,11 +2361,13 @@ def process_library(config, db_path, candidate_root, cover_root, *, location='co
                        completed_at=time.time(), error=issue_summary(state['issue_count'], state['paused_count']))
                 return state
             output = candidate_root / 'library-metadata-field-candidates.csv'
-            groups = {row['item_key']: row for row in read_rows(output, missing_ok=True)}
+            loaded_groups = {row['item_key']: row for row in read_rows(output, missing_ok=True)}
+            # 旧路径的候选不能阻止当前文件重新采集，也不能作为写入当前文件的证据。
+            groups = _current_candidate_groups(loaded_groups, rows)
             scoped_groups = lambda: _candidate_scope(groups, scope_ids)
             listing = _DirectoryIndex()
             local_evidence = _LocalEvidenceCache(config, db_path, cover_root, listing, state, path)
-            csv_dirty = False
+            csv_dirty = len(groups) != len(loaded_groups)
             csv_written_at = time.monotonic()
 
             def flush_candidates(force=False):

@@ -3,6 +3,7 @@
     [switch]$Standalone,
     # 在独立目录包之上再编一个 Inno Setup 安装包，放在输出目录的上一层。
     [switch]$Installer,
+    [switch]$EmbeddedWindow,
     [string]$CloudflaredPath = '',
     [string]$FFmpegPath = '',
     [string]$UntruncPath = ''
@@ -10,6 +11,7 @@
 
 $ErrorActionPreference = 'Stop'
 if ($Installer) { $Standalone = $true }
+if ($EmbeddedWindow) { $Standalone = $true }
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $Python = Join-Path $ProjectRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $Python)) {
@@ -88,6 +90,15 @@ Set-Content -LiteralPath $SentryConfigPath -Value (ConvertTo-Json @{
 }) -Encoding utf8
 
 $BuildMode = @('--onefile')
+$WindowArguments = @()
+if ($EmbeddedWindow) {
+    & $Python -c "import webview, pythonnet"
+    if ($LASTEXITCODE -ne 0) { throw '请先同步 desktop-window 构建依赖。' }
+    $WindowArguments = @('--collect-all', 'webview', '--collect-all', 'pythonnet', '--collect-all', 'clr_loader',
+        '--copy-metadata', 'bottle', '--copy-metadata', 'proxy-tools',
+        '--hidden-import', 'peach.native_shell', '--hidden-import', 'System',
+        '--add-data', "$(Join-Path $PSScriptRoot 'native-window.txt');.")
+}
 $BuildDestination = $OutputPath
 if ($Standalone) {
     $BuildMode = @('--onedir', '--add-data', "$(Join-Path $PSScriptRoot 'standalone.txt');.")
@@ -128,7 +139,7 @@ if ($Standalone) {
         throw "cloudflared SHA-256 mismatch: expected $($CloudflaredManifest.sha256), got $CloudflaredHash"
     }
 }
-& $Python -m PyInstaller --noconfirm --clean @BuildMode --windowed --name Peach `
+& $Python -m PyInstaller --noconfirm --clean @BuildMode @WindowArguments --windowed --name Peach `
     --distpath $BuildDestination --workpath $WorkPath --specpath $BuildPath `
     --paths (Join-Path $ProjectRoot 'src') --python-option 'X utf8' `
     --collect-all curl_cffi --collect-all resvg_py `
@@ -145,7 +156,13 @@ if ($Standalone) {
     (Join-Path $ProjectRoot 'scripts\build_app_entry.py')
 if ($LASTEXITCODE -ne 0) { throw 'Peach build failed.' }
 if ($Standalone) {
-    Copy-Item -LiteralPath (Join-Path $ProjectRoot 'docs/TESTING_DESKTOP.md') -Destination (Join-Path $OutputPath '开始使用.md')
+    $BridgeDestination = Join-Path $OutputPath 'tools\amane-bridge'
+    New-Item -ItemType Directory -Path $BridgeDestination -Force | Out-Null
+    foreach ($BridgeFile in @('bridge.py', 'pyproject.toml', 'uv.lock')) {
+        Copy-Item -LiteralPath (Join-Path $ProjectRoot "tools\amane-bridge\$BridgeFile") -Destination (Join-Path $BridgeDestination $BridgeFile) -Force
+    }
+    $UsageDocument = if ($EmbeddedWindow) { 'docs/NATIVE_WINDOW.md' } else { 'docs/TESTING_DESKTOP.md' }
+    Copy-Item -LiteralPath (Join-Path $ProjectRoot $UsageDocument) -Destination (Join-Path $OutputPath '开始使用.md')
     Copy-Item -LiteralPath (Join-Path $ProjectRoot 'LICENSE') -Destination (Join-Path $OutputPath 'LICENSE.txt')
     Copy-Item -LiteralPath $CloudflaredSource -Destination (Join-Path $OutputPath 'cloudflared.exe') -Force
     $CloudflaredManifest | Add-Member -NotePropertyName packaged_sha256 -NotePropertyValue $CloudflaredHash -Force
@@ -164,10 +181,18 @@ if ($Standalone) {
     if (Test-Path -LiteralPath $PackagedUntrunc) { Remove-Item -LiteralPath $PackagedUntrunc -Recurse -Force }
     & $Python -X utf8 (Join-Path $PSScriptRoot 'media_tool_bundle.py') --tool untrunc --source $UntruncPath --destination $PackagedUntrunc
     if ($LASTEXITCODE -ne 0) { throw 'untrunc packaging failed.' }
+    if ($EmbeddedWindow) {
+        foreach ($WindowSourceArchive in @('ffmpeg-corresponding-source.zip', 'untrunc-corresponding-source.zip')) {
+            Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $OutputPath) $WindowSourceArchive) -Destination (Join-Path $OutputPath $WindowSourceArchive) -Force
+        }
+    }
 }
 
 # 工作目录只服务这一次构建：`--clean` 已让下一次不复用它，留着只是几十 MB 的中间产物。
 if (Test-Path -LiteralPath $WorkPath) {
+    if (-not ([IO.Path]::GetFullPath($WorkPath)).StartsWith(([IO.Path]::GetFullPath($BuildPath)).TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw '构建清理目录必须位于本项目构建目录内。'
+    }
     Remove-Item -LiteralPath $WorkPath -Recurse -Force
 }
 
@@ -181,10 +206,12 @@ if ($Installer) {
         throw 'Inno Setup 6 not found. Install it with: winget install JRSoftware.InnoSetup, or set PEACH_ISCC.'
     }
     $InstallerOutput = Split-Path -Parent $OutputPath
+    $InstallerScript = if ($EmbeddedWindow) { 'installer\native-window.iss' } else { 'installer\peach.iss' }
     & $Iscc /Q "/DAppVersion=$($BuildInfo.version)" "/DSourceDir=$OutputPath" "/DOutputDir=$InstallerOutput" `
-        (Join-Path $PSScriptRoot 'installer\peach.iss')
+        (Join-Path $PSScriptRoot $InstallerScript)
     if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
     $InstallerPath = Join-Path $InstallerOutput "Peach-$($BuildInfo.version)-windows-x64-setup.exe"
+    if ($EmbeddedWindow) { $InstallerPath = Join-Path $InstallerOutput "PeachDesktop-$($BuildInfo.version)-windows-x64-setup.exe" }
 }
 
 [pscustomobject]@{

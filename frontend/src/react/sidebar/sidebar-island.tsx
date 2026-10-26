@@ -106,7 +106,7 @@ function Navigation({ host: at, epoch, version }: { host: SidebarHost; epoch: nu
   const { sync } = glide;
 
   /* 抽屉开合（桌面上宽度在 60 与 260 之间过渡）、滚动层改尺寸、标题行里品牌挪进来，都只重量、
-     不动画；开合之后悬停的那一格不算数，回到当前项。 */
+     不动画，玻璃始终对齐当前项。 */
   useEffect(() => {
     const scroll = at.scroll, drawer = scroll.parentElement;
     const head = scroll.querySelector<HTMLElement>(':scope > [data-sidebar-head]');
@@ -146,12 +146,12 @@ function Navigation({ host: at, epoch, version }: { host: SidebarHost; epoch: nu
   const drawer = at.scroll.parentElement;
   return (
     <>
-      <div data-sidebar-nav="" ref={column} onPointerLeave={glide.leave}>
+      <div data-sidebar-nav="" ref={column}>
         {items.map(([key, label, glyph], index) => (
           <button type="button" key={key || HOME} data-nav={key} aria-pressed={pressed[index]} aria-label={label}
             data-dragging={dragging === key ? '' : undefined}
             data-drop={drop?.key === key ? (drop.after ? 'after' : 'before') : undefined}
-            onClick={() => at.navTo(key)} onPointerEnter={glide.hover} {...drag(key)}>
+            onClick={() => at.navTo(key)} {...drag(key)}>
             {key === '' ? <img data-sidebar-home-logo="" src="/peach-logo.png" alt="" /> : <Icon name={glyph} />}
             <span>{label}</span>
           </button>

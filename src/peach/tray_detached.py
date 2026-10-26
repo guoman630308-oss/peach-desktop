@@ -87,7 +87,7 @@ def in_job() -> bool:
     return _in_job(_kernel(), wintypes.HANDLE(-1))
 
 
-def handoff_tray(arguments, root) -> bool:
+def handoff_tray(arguments, root, *, module="peach.tray") -> bool:
     """托盘取得单实例锁前完成独立启动；保留参数、Peach 数据目录与源码路径。"""
     handed_off = os.environ.pop(_HANDOFF_ENV, None) == "1"
     if handed_off or not in_job():
@@ -98,7 +98,7 @@ def handoff_tray(arguments, root) -> bool:
         command = [sys.executable, *arguments]
     else:
         environment["PYTHONPATH"] = os.fspath(root / "src")
-        command = [sys.executable, "-m", "peach.tray", *arguments]
+        command = [sys.executable, "-m", module, *arguments]
     child = launch_detached(command, cwd=root, env=environment)
     child.close()
     return True

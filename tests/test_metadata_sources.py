@@ -422,15 +422,16 @@ class ConfigConsistencyTests(unittest.TestCase):
         limiter.assert_called_once_with({}, default_interval=SEESAA.interval)
         self.assertIs(pages.config, SEESAA)
 
-    def test_javdb_keeps_the_user_set_interval_and_the_other_sites_the_default(self):
+    def test_browser_catalogs_keep_their_interval_and_the_other_sites_the_default(self):
         self.assertEqual(SITE_SOURCES["javdb"].DEFAULT.interval, 3.0)
+        self.assertEqual(SITE_SOURCES["javlibrary"].DEFAULT.interval, 3.0)
         for name in ("javbus", "avbase", "r18dev", "1pondo", "fc2", "fc2cmadb", "fc2ppvdb", "javten", "javarchive",
                      *WIKI_SOURCES):
             self.assertEqual(SITE_SOURCES[name].DEFAULT.interval, 2.0, name)
-        self.assertEqual({host for host in SOURCE_INTERVALS if scraping_access.source_for("https://" + host + "/") == "javdb"},
-                         set(SOURCE_INTERVALS), "SOURCE_INTERVALS 里只有 javdb 的主机单独设间隔")
+        self.assertEqual({scraping_access.source_for("https://" + host + "/") for host in SOURCE_INTERVALS},
+                         {"javdb", "javlibrary"})
 
-    def test_the_fourteen_sites_are_registered_with_their_stage_cookie_and_page_limit(self):
+    def test_registered_sites_have_their_stage_cookie_and_page_limit(self):
         shape = {name: (site.DEFAULT.stage, site.DEFAULT.cookie, site.DEFAULT.page_limit)
                  for name, site in SITE_SOURCES.items()}
         self.assertEqual(shape, {"r18dev": ("official_mirror", False, 2 * 1024 * 1024),
@@ -444,6 +445,7 @@ class ConfigConsistencyTests(unittest.TestCase):
                                  "avbase": ("community", False, 4 * 1024 * 1024),
                                  "javbus": ("community", True, 4 * 1024 * 1024),
                                  "javdb": ("community", True, 4 * 1024 * 1024),
+                                 "javlibrary": ("community", True, 4 * 1024 * 1024),
                                  "sougouwiki": ("community", False, 4 * 1024 * 1024),
                                  "av_neme": ("community", False, 4 * 1024 * 1024),
                                  "av_name": ("community", False, 4 * 1024 * 1024)})
@@ -452,7 +454,7 @@ class ConfigConsistencyTests(unittest.TestCase):
         self.assertEqual(tuple(name for name in SITE_SOURCES if name in FC2_STAGE), FC2_STAGE,
                          "FC2 五站按链上先后登记")
         # 在 Cloudflare 验证后面的两站：公开采集带用户贴的 Cookie，403 时整站冷却。
-        for name in ("fc2ppvdb", "javten"):
+        for name in ("fc2ppvdb", "javten", "javlibrary"):
             self.assertEqual({key: scraping_access.SOURCES[name].get(key) for key in ("cookie", "session")},
                              {"cookie": True, "session": True}, name)
             self.assertTrue(scraping_access.SOURCES[name]["blocked_pause"], name)

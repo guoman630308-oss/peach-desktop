@@ -8,6 +8,8 @@ import { elapsedText, progressText } from '../activity/tasks';
 import { queryClient } from '../query';
 
 export const LIBRARY_PROCESSING_URL = '/api/library-processing';
+export const LIBRARY_PROCESSING_IMPORT_URL = '/api/library-processing/import-file';
+export const PICK_MEDIA_FILE_URL = '/api/pick-media-file';
 
 /** 卡片与常驻任务面共用这一个键。 */
 export const LIBRARY_PROCESSING_KEY = ['library-processing'] as const;

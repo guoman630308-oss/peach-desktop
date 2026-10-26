@@ -9,7 +9,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { refitNativeImages } from '@peach/card-art';
 
-import { indexKey, indexRoute, type IndexProps, type IndexRoute } from '../../src/react/index/index-data';
+import { indexKey, indexRoute, prefetchIndex, type IndexProps, type IndexRoute } from '../../src/react/index/index-data';
+import { rememberHistoryPages, shellNavigate } from '../../src/history';
 import { IndexPage } from '../../src/react/index/index-page';
 import { onlineAuthorsKey, onlineTagsKey } from '../../src/react/follow/online-vocab';
 import { queryClient } from '../../src/react/query';
@@ -41,6 +42,33 @@ function serve(answer: (url: string) => unknown) {
 }
 
 const urls = (fetcher: ReturnType<typeof serve>) => fetcher.mock.calls.map(([url]) => String(url));
+
+it('历史返回复用分页缓存，缓存过期时取齐原有页数', async () => {
+  shellNavigate('/performers?q=return');
+  const original = window.history.state;
+  rememberHistoryPages(3);
+  shellNavigate('/performers/7');
+  window.history.replaceState(original, '', '/performers?q=return');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: original }));
+  const key = indexKey('performers', 'return', 'all');
+  const cached = { pages: [{ items: [person('A')], has_more: true }], pageParams: [0] };
+  queryClient.setQueryData(key, cached);
+  const fetcher = serve(url => {
+    const offset = Number(new URL(url, 'https://peach.test').searchParams.get('offset'));
+    return { items: [person(String(offset)), person(String(offset + 1))], has_more: offset < 4 };
+  });
+  const route = { kind: 'performers', q: 'return', scope: 'local', view: 'alphabet', category: 'all' } as const;
+  await prefetchIndex(route, new AbortController().signal);
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(queryClient.getQueryData(key)).toEqual(cached);
+  await queryClient.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' });
+  await prefetchIndex(route, new AbortController().signal);
+  expect(urls(fetcher).map(url => new URL(url, 'https://peach.test').searchParams.get('offset'))).toEqual(['0', '2', '4']);
+  fetcher.mockClear();
+  queryClient.removeQueries({ queryKey: key, exact: true });
+  await prefetchIndex(route, new AbortController().signal);
+  expect(urls(fetcher).map(url => new URL(url, 'https://peach.test').searchParams.get('offset'))).toEqual(['0', '2', '4']);
+});
 
 function props(route: Partial<IndexRoute> = {}, patch: Partial<IndexProps> = {}): IndexProps {
   return {

@@ -1310,7 +1310,7 @@ class LibraryNfoTests(unittest.TestCase):
     def test_javdb_keeps_its_own_host_interval_on_both_of_its_hosts(self):
         """这一档的节奏由用户定，改动要连图床一起改：页面与图分别落在两个主机上。"""
         from peach.library_processing import SOURCE_INTERVALS
-        self.assertEqual(SOURCE_INTERVALS, {'javdb.com': 3.0, 'jdbstatic.com': 3.0})
+        self.assertEqual(SOURCE_INTERVALS, {'javdb.com': 3.0, 'jdbstatic.com': 3.0, 'javlibrary.com': 3.0})
 
     def test_community_sources_are_asked_once_per_code_and_say_why_they_failed(self):
         """资料和封面两步都要社区来源的结果，javdb 的配额经不起同一部片问两遍。"""
@@ -2247,7 +2247,7 @@ class LibraryNfoTests(unittest.TestCase):
 
     @windows_ledger_roots
     def test_a_stage_asks_only_the_sites_that_have_not_said_no(self):
-        """综合索引那一档里 AVBase 与 JavBus 说过没有，javdb 没说过：这一档只问 javdb。"""
+        """已明确无结果的来源不再请求，尚未查询的 JavDB 与 JavLibrary 保留在链上。"""
         from peach.library_processing import _MissCache, misses_path
         media = self.root / 'media'
         media.mkdir()
@@ -2263,7 +2263,7 @@ class LibraryNfoTests(unittest.TestCase):
         provider.cover.return_value = False
         process_library(config, db, self.root / 'generated', self.root / 'covers',
                         provider_factory=Mock(return_value=provider))
-        self.assertEqual(provider.community.call_args.kwargs['route'], ('javdb',))
+        self.assertEqual(provider.community.call_args.kwargs['route'], ('javdb', 'javlibrary'))
         self.assertTrue(_MissCache(misses_path(config)).fresh('javdb', 'DASS-468'))
 
     def test_management_controls_keep_credentials_and_empty_sections_visible(self):
@@ -2727,6 +2727,67 @@ class LibraryWatchdogTests(unittest.TestCase):
         self.assertLessEqual(timeout, 5)
 
 
+class SingleFileImportTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.media = self.root / 'media'
+        self.media.mkdir()
+        declared = str(self.media) if os.name == 'nt' else r'R:\media'
+        self.config = PeachConfig(self.root, self.root / 'config.toml', present=True,
+            locations={'local': (declared,)}, mounts={'local': (str(self.media),)})
+        directory = self.root / 'database'
+        directory.mkdir()
+        self.db = fresh_ledger(directory)
+        self.database = LedgerDatabase(self.db)
+        self.selected = self.media / 'ABC-101.mp4'
+        self.selected.write_bytes(b'selected video')
+        (self.media / 'ABC-102.mp4').write_bytes(b'other video')
+        self.contract = SimpleNamespace(db_path=self.db, database=self.database,
+            library_processing_job=SimpleNamespace(snapshot=lambda: {'status': 'idle'}), cache_bust=Mock())
+
+    def import_file(self, path, **kwargs):
+        from peach.web_library_processing import w_library_import_file
+        with patch('peach.web_library_processing.settings_file.active', return_value=self.config), \
+                patch('peach.web_library_processing.w_library_processing', return_value={'status': 'running'}) as run:
+            result = w_library_import_file(self.contract, {'path': path, **kwargs})
+            return result, run.call_args
+
+    def test_only_the_selected_file_is_registered_and_scoped_for_collection(self):
+        with patch('peach.library_processing.scan_location') as scan:
+            result, call = self.import_file(str(self.selected))
+        self.assertEqual(result['status'], 'running')
+        scan.assert_not_called()
+        with self.database.read_connection() as connection:
+            rows = connection.execute('SELECT id,name FROM asset').fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['name'], self.selected.name)
+        self.assertEqual(call.args[1]['asset_ids'], [rows[0]['id']])
+        self.assertEqual(call.args[1]['stage'], 'collect')
+        _, repeated = self.import_file(str(self.selected))
+        self.assertEqual(repeated.args[1]['asset_ids'], [rows[0]['id']])
+        with self.database.read_connection() as connection:
+            self.assertEqual(connection.execute('SELECT count(*) FROM asset').fetchone()[0], 1)
+
+    def test_invalid_inputs_do_not_register_any_file(self):
+        outside = self.root / 'outside.mp4'
+        outside.touch()
+        nonvideo = self.media / 'readme.txt'
+        nonvideo.touch()
+        for path in (None, '', 'relative.mp4', str(self.media), str(outside), str(nonvideo),
+                     str(self.media / 'missing.mp4')):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.import_file(path)
+        with self.assertRaises(ValueError):
+            self.import_file(str(self.selected), speed_mode='invalid')
+        self.contract.library_processing_job.snapshot = lambda: {'status': 'running'}
+        with self.assertRaises(ValueError):
+            self.import_file(str(self.selected))
+        with self.database.read_connection() as connection:
+            self.assertEqual(connection.execute('SELECT count(*) FROM asset').fetchone()[0], 0)
+
+
 class LibraryPreviewCompletionTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -2757,6 +2818,33 @@ class LibraryPreviewCompletionTests(unittest.TestCase):
     def run_processing(self, **options):
         return process_library(self.config, self.db, self.root / 'candidates', self.root / 'covers',
                                database=self.database, **options)
+
+    def test_selected_collection_rebuilds_stale_path_candidates_and_keeps_other_rows(self):
+        from peach.library_processing import FIELDS, _merge_candidates
+        from peach.review_csv import write_rows
+        with self.database.write_transaction() as connection:
+            connection.execute("UPDATE asset SET code='ABC-101' WHERE id=1")
+        groups = {}
+        document = {'id': 'ABC-101', 'title': '资料标题'}
+        for asset_id in (1, 2):
+            _merge_candidates(groups, {'id': asset_id, 'name': 'ABC-101.mp4', 'path': r'G:\old\ABC-101.mp4',
+                'size': 123}, 'ABC-101', 'r18dev', document, self.root / 'evidence.json', {})
+        untouched = dict(groups['asset:2:title'])
+        candidates = self.root / 'candidates' / 'library-metadata-field-candidates.csv'
+        candidates.parent.mkdir()
+        write_rows(candidates, FIELDS, groups.values())
+        covers = self.root / 'covers'
+        covers.mkdir()
+        Image.new('RGB', (2000, 1000)).save(covers / 'ABC-101.jpg')
+        provider = stub_provider()
+        provider.query.return_value = document
+        result = self.run_processing(stage='metadata', asset_ids=[1], provider_factory=lambda: provider,
+                                     route_overrides={'censored': ('r18dev',)})
+        provider.query.assert_called_once()
+        self.assertEqual(result['status'], 'complete')
+        rebuilt = {row['item_key']: row for row in read_rows(candidates)}
+        self.assertEqual(rebuilt['asset:1:title']['asset_path'], str(self.media / 'clip-1.mp4'))
+        self.assertEqual(rebuilt['asset:2:title'], {key: str(value) for key, value in untouched.items()})
 
     @staticmethod
     def make_tile(_ffmpeg, _pattern, _columns, _rows, destination):

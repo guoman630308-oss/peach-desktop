@@ -23,7 +23,7 @@ from typing import Iterable
 from urllib.parse import quote, urlsplit
 
 import httpx
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import (
     FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response,
 )
@@ -50,7 +50,7 @@ from .platform import within_root
 from .previews import ENTITY_THUMB_TYPE, PreviewUnavailable, entity_image_key
 from .remote_media_cache import AVATAR_REFRESH_SECONDS, FAVICON_REFRESH_SECONDS, cache_for
 from .preview_cache import PreviewCache
-from .routes_auth import require_auth
+from .routes_auth import require_auth, require_loopback_client
 from .segments import SegmentCancelled, SegmentUnavailable, build_hls_playlist
 from .streaming import BufferedFileResponse, CancellableFileResponse, SplicedMp4Response
 from .transcodes import TranscodeCancelled, TranscodeUnavailable
@@ -206,6 +206,63 @@ def external_playback(request: Request, id: int, args: dict[str, str] = Depends(
     playlist = f"/external-playlist/{id}.m3u?{query}"
     return JSONResponse({"url": path, "playlist": playlist, "expires_in": TTL_SECONDS},
                         headers={"Cache-Control": "no-store"})
+
+
+@router.post("/api/local-player/play")
+def launch_local_player(request: Request, body: dict = Body(default_factory=dict),
+                        _args=Depends(require_auth)):
+    from . import local_player, strm
+    from .external_playback import issue
+    require_loopback_client(request)
+    state = request.app.state
+    kind, item_id, media = body.get("kind"), body.get("id"), body.get("media")
+    if not isinstance(kind, str) or kind not in {"item", "follow"} or type(item_id) is not int or item_id < 1:
+        raise HTTPException(400, "播放条目无效")
+    if media is not None and (type(media) is not int or media < 0):
+        raise HTTPException(400, "媒体序号无效")
+    try:
+        preference = local_player.read(state.settings.follow_state_root)
+        if not preference["available"]:
+            raise HTTPException(501, "本机播放器启动仅适用于 Windows")
+        if kind == "item":
+            asset = state.media_engine.asset(item_id)
+            if asset.location == "online":
+                with state.database.read_connection() as connection:
+                    follow = connection.execute("SELECT id FROM follow_item WHERE asset_id=? ORDER BY id LIMIT 1",
+                                                (item_id,)).fetchone()
+                if not follow:
+                    raise HTTPException(404, "这条作品没有可播放的视频")
+                kind, item_id = "follow", int(follow[0])
+            else:
+                source = state.media_engine.filesystem.file_for(asset)
+                with state.database.read_connection() as connection:
+                    row = connection.execute("SELECT medium FROM asset WHERE id=?", (item_id,)).fetchone()
+                if not row or row[0] != "video":
+                    raise HTTPException(400, "这条作品没有可播放的视频")
+                if strm.is_pointer(source):
+                    links = json.loads(external_playback(request, item_id, {}).body)
+                    source = str(request.base_url).rstrip("/") + links["url"]
+        if kind == "follow":
+            with state.database.read_connection() as connection:
+                item = FollowStore(lambda: connection).item(item_id)
+            if item is None:
+                raise HTTPException(404, "关注条目不存在")
+            subject = f"follow:{item_id}:{media}"
+            ticket = issue(state.external_playback_key, subject)
+            source = (str(request.base_url).rstrip("/") + f"/external-follow-stream/{item_id}"
+                      + f"?ticket={ticket}" + (f"&media={media}" if media is not None else ""))
+        local_player.launch(preference, source)
+        return {"opened": True, "player": preference["label"]}
+    except (ValueError, OSError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@router.api_route("/external-follow-stream/{id}", methods=["GET", "HEAD"])
+def external_follow_stream(request: Request, id: int, ticket: str, media: int | None = None):
+    from .external_playback import valid
+    if not valid(request.app.state.external_playback_key, f"follow:{id}:{media}", ticket):
+        raise HTTPException(401, "播放链接已失效，请重新打开外部播放器")
+    return follow_stream(request, id, media=media, args={})
 
 
 def _external_asset(request: Request, asset_id: int, ticket: str, origin: str):

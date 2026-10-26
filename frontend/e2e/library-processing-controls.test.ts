@@ -10,6 +10,40 @@ describe('扫描与采集控制', () => {
   before(async () => { browser = await launch() });
   after(async () => { await browser?.close() });
   for (const viewport of VIEWPORTS) {
+    it(`${viewport.name}：选择单个视频后只发起该文件的入库任务`, async () => {
+      const file = 'E:\\视频收藏\\新加入的视频\\ABC-101.mp4';
+      let state: Record<string, unknown> = { status: 'idle' };
+      const writes: unknown[] = [];
+      const opened = await visit(browser, '/data-cleanup', viewport, async page => {
+        await page.route('**/api/library-processing', route => route.fulfill({ json: state }));
+        await page.route('**/api/pick-media-file', route => route.fulfill({ json: { path: file } }));
+        await page.route('**/api/library-processing/import-file', async route => {
+          writes.push(route.request().postDataJSON());
+          state = { status: 'running', job_id: 'single-file', requested_stage: 'collect',
+            asset_ids: [17], total: 1, checked: 0, current_asset_name: 'ABC-101.mp4' };
+          await route.fulfill({ json: state });
+        });
+      });
+      try {
+        const { page } = opened;
+        await page.getByRole('button', { name: '添加单个视频', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: '添加单个视频', exact: true });
+        await dialog.getByRole('button', { name: '浏览', exact: true }).click();
+        await page.waitForFunction(expected => document.querySelector<HTMLInputElement>('[role="dialog"] input')?.value === expected, file);
+        assert.equal(await dialog.getByRole('textbox', { name: '视频文件路径' }).inputValue(), file);
+        const measured = await layout(page);
+        assert.ok(measured.scrollWidth <= measured.viewportWidth, JSON.stringify(measured));
+        assert.deepEqual(measured.offenders, []);
+        const artifacts = path.resolve('..', 'build', 'agent-verification', 'single-file-import');
+        await mkdir(artifacts, { recursive: true });
+        await dialog.screenshot({ path: path.join(artifacts, `${viewport.name}-dialog.png`) });
+        await dialog.getByRole('button', { name: '添加并采集', exact: true }).click();
+        await dialog.waitFor({ state: 'hidden' });
+        assert.deepEqual(writes, [{ path: file }]);
+        assert.deepEqual(opened.problems, []);
+      } finally { await opened.close() }
+    });
+
     it(`${viewport.name}：资源提示、粗估、模式切换与暂停继续`, async () => {
       let state = { status: 'idle', job_id: '', checked: 0, total: 100, speed_mode: 'standard',
         steps: [{ id: 'sources', label: '扫描文件', status: 'complete' },
@@ -199,7 +233,7 @@ describe('扫描与采集控制', () => {
         await page.evaluate(async () => {
           const entry = '/dist/peach-app.js', ui = await import(entry);
           ui.showToast(document.getElementById('toasts'), { success: '', error: '' }, 'processing-proof',
-            { html: '设置已保存', alert: false, timeout: 6000, action: null });
+            { html: '设置已保存', alert: false, timeout: 60000, action: null });
         });
         const receipt = page.locator('#toasts [data-sonner-toast]').filter({ hasText: '设置已保存' });
         await receipt.waitFor();
@@ -217,7 +251,13 @@ describe('扫描与采集控制', () => {
         assert.ok(homeLayout.scrollWidth <= homeLayout.viewportWidth, JSON.stringify(homeLayout));
         assert.deepEqual(homeLayout.offenders, []);
         await page.screenshot({ path: path.join(artifacts, `${viewport.name}-notice.png`) });
-        await page.waitForTimeout(6500);
+        // 先核对定位，再让回执超时；渲染耗时不占回执的可见窗口。
+        await page.evaluate(async () => {
+          const entry = '/dist/peach-app.js', ui = await import(entry);
+          ui.showToast(document.getElementById('toasts'), { success: '', error: '' }, 'processing-proof',
+            { html: '设置已保存', alert: false, timeout: 500, action: null });
+        });
+        await receipt.waitFor({ state: 'hidden' });
         assert.equal(await dock.isVisible(), true, '任务卡不会随普通回执超时消失');
         state = { ...state, stalled: true, current_action: 'reading_local_cover',
           current_asset_name: '2026-07-15 创作者合集 多机位完整版.mp4',

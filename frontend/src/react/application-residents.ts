@@ -7,6 +7,7 @@ export { mountToaster } from '../react/toaster';
 import { connectManagedRoutes, openManagedRoute } from '../history';
 import type * as Bundle from '../react/bundle';
 import type { ShellActions } from '../react/router/shell-actions';
+import { loadLocalPlayerPolicy, resetLocalPlayerPolicy } from '../local-player';
 
 let publish: ((actions: ShellActions) => void) | null = null;
 let publishedActions: ShellActions | null = null;
@@ -38,6 +39,7 @@ async function openApplicationResident(name: string, container: HTMLElement,
 }
 
 export function disposeApplicationResidents(): void {
+  resetLocalPlayerPolicy();
   residentEpoch += 1;
   publish = null; publishedActions = null;
   stage = null; stageReady = null; immerse = null; immerseReady = null;
@@ -52,6 +54,7 @@ let stage: Promise<Bundle.StageApi> | null = null;
 let stageReady: Bundle.StageApi | null = null;
 export function loadStage(host: Bundle.StageHost): Promise<Bundle.StageApi> {
   stage ??= (async () => {
+    await loadLocalPlayerPolicy();
     const api = configureStage(host), container = document.createElement('div');
     container.dataset.stageHost = '';
     await openApplicationResident('stage', container, node => { document.body.append(node); return node });

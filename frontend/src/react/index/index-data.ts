@@ -17,6 +17,7 @@ import {
   type OnlineAuthor, type OnlineTag,
 } from '../follow/online-vocab';
 import { queryClient } from '../query';
+import { historyPagePosition } from '@peach/history';
 
 export type IndexKind = 'performers' | 'creators' | 'studios' | 'agencies' | 'tags';
 export type IndexScope = 'local' | 'online';
@@ -206,16 +207,19 @@ export function indexQuery(source: IndexSource): IndexQuery {
   }
 }
 
-/** 首屏：遗留壳挂载前先取回第一页。每次进入都从第一页开始：缓存里上一次载入过几页，
- *  `fetchInfiniteQuery` 就会把那几页挨个重取一遍再返回，首屏等的是几个来回而不是一个。 */
+/** 首屏预取；历史返回复用已加载列表，缓存过期时按原页数取齐。 */
 export async function prefetchIndex(props: IndexRoute, signal: AbortSignal) {
   const query = indexQuery(indexSource(indexRoute(props)));
+  const position = historyPagePosition();
+  const cached = queryClient.getQueryState(query.queryKey);
+  if (position && cached?.data && !cached.isInvalidated) return;
   queryClient.removeQueries({ queryKey: query.queryKey, exact: true });
   await queryClient.fetchInfiniteQuery({
     queryKey: query.queryKey,
     queryFn: ({ pageParam }) => query.queryFn({ pageParam: pageParam as number, signal }),
     initialPageParam: 0,
     getNextPageParam: query.getNextPageParam,
+    pages: position?.pages || 1,
   });
 }
 

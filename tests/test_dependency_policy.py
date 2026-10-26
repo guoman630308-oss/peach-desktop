@@ -118,6 +118,8 @@ class DependencyPolicyTests(unittest.TestCase):
             "psutil": "psutil",
             "pydantic": "pydantic",
             "pystray": "pystray",
+            "webview": "pywebview",
+            "System": "pythonnet",
             "resvg_py": "resvg-py",
             "sentry_sdk": "sentry-sdk",
             "starlette": "starlette",

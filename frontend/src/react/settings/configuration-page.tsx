@@ -18,6 +18,7 @@ import { GeneralSettings } from './general-settings';
 import { MaintenanceSettings } from './maintenance-settings';
 import { MediaSettings } from './media-settings';
 import { MediaProcessingSettings } from './media-processing-settings';
+import { LocalPlayerSettings } from './local-player-settings';
 import { NetworkSettings } from './network-settings';
 import { SourceSettings } from './source-settings';
 import { groupRoot } from './configuration-panel';
@@ -83,6 +84,7 @@ function ConfigurationGroups(
   const groups: Group[] = [
     { title: '媒体库与入库', body: (panel) => <div {...groupRoot(panel)}>
       <MediaSettings {...group} /><MediaProcessingSettings receipt={receipt} />
+      <LocalPlayerSettings receipt={receipt} />
     </div> },
     { title: '来源与订阅', body: (panel) => <SourceSettings {...group} panel={panel} /> },
     ...(downloads ? [{

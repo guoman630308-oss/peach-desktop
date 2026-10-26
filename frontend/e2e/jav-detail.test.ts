@@ -383,7 +383,7 @@ describe('库外 JAV 作品详情', () => {
         await page.waitForURL(requiredEnv('PEACH_E2E_ORIGIN') + '/');
         await card.waitFor({ state: 'visible' });
         assert.equal(await page.locator('#stage').count(), 0);
-        await page.goBack();
+        await page.goForward();
         await page.locator('#stage [data-jav-detail] h1').waitFor({ state: 'visible' });
         await page.keyboard.press('Escape');
         await page.waitForURL(requiredEnv('PEACH_E2E_ORIGIN') + '/');

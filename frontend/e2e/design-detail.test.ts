@@ -808,7 +808,7 @@ describe('设计决定：关注详情、作品详情、播放器与侧栏', () =
     } };
   }
 
-  it('侧栏当前项自己不铺底，由挂在抽屉上的那块玻璃标出；悬停时玻璃跟过去，离开这一列回到当前项', { timeout: 60_000 }, async () => {
+  it('侧栏当前项由抽屉上的玻璃标出，悬停其他菜单或离开侧栏时保持落点', { timeout: 60_000 }, async () => {
     const opened = await openSidebar(DESKTOP);
     try {
       const { page } = opened;
@@ -837,11 +837,11 @@ describe('设计决定：关注详情、作品详情、播放器与侧栏', () =
 
       await page.locator('#drawer [data-sidebar-nav] [data-nav="studios"]').hover();
       const hovered = await read('studios');
-      assert.deepEqual(hovered.glide, hovered.button, '悬停时玻璃没有跟到指着的那一项');
+      assert.deepEqual(hovered.glide, current.glide, '悬停其他菜单时玻璃应保持当前项的落点');
       assert.deepEqual(hovered.fill, ['rgba(0, 0, 0, 0)', 'none', 'none'], '悬停的那一项自己铺了底');
       await page.mouse.move(900, 420);
       const back = await read('');
-      assert.deepEqual(back.glide, back.button, '指针离开这一列之后玻璃没有回到当前项');
+      assert.deepEqual(back.glide, current.glide, '指针离开侧栏时玻璃应保持原位');
       assert.deepEqual(opened.problems, []);
     } finally {
       await opened.close();

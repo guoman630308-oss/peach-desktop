@@ -2600,6 +2600,65 @@ class FastApiContractTests(unittest.IsolatedAsyncioTestCase):
             headers={'X-Token': 'secret', 'Origin': 'https://attacker.example'})
         self.assertEqual(cross_site.status_code, 403)
 
+    async def test_local_player_opens_only_the_resolved_video_without_watching_writes(self):
+        from peach import local_player
+        self.client.base_url = 'http://127.0.0.1'
+        self.app.state.settings = replace(self.app.state.settings, follow_state_root=self.root / "state")
+        executable = self.root / "PotPlayerMini64.exe"
+        executable.write_bytes(b"MZfixture")
+        headers = {"X-Token": "secret"}
+        before = (await self.client.get('/api/item?id=1', headers=headers)).json()
+        self.assertEqual(before['medium'], 'video')
+        with patch.object(local_player, "platform", "win32"), patch.object(local_player, "launch") as launch:
+            saved = await self.client.post('/api/configuration/local-player', headers=headers,
+                                           json={'mode': 'external', 'executable': str(executable)})
+            self.assertEqual(saved.status_code, 200, saved.text)
+            read = await self.client.get('/api/configuration/local-player', headers=headers)
+            self.assertEqual(read.json(), saved.json())
+            opened = await self.client.post('/api/local-player/play', headers=headers,
+                                            json={'kind': 'item', 'id': 1, 'path': 'untrusted.exe'})
+            self.assertEqual(opened.json(), {'opened': True, 'player': 'PotPlayer'})
+            self.assertEqual(launch.call_args.args[1], self.media_file)
+        after = (await self.client.get('/api/item?id=1', headers=headers)).json()
+        for key in ('play_count', 'play_seconds', 'leave_ratio', 'max_reached'):
+            self.assertEqual(after.get(key), before.get(key))
+        self.assertFalse(any(self.transcode_root.glob('*.mp4')))
+
+    async def test_local_player_rejects_remote_cross_origin_and_invalid_requests(self):
+        self.client.base_url = 'http://127.0.0.1'
+        headers = {'X-Token': 'secret'}
+        with patch('peach.local_player.launch') as launch:
+            self.assertEqual((await self.client.post('/api/local-player/play', json={'kind': 'item', 'id': 1})).status_code, 401)
+            cross = await self.client.post('/api/local-player/play', json={'kind': 'item', 'id': 1},
+                                          headers={**headers, 'Origin': 'https://attacker.example'})
+            self.assertEqual(cross.status_code, 403)
+            for extra in ({'Host': 'attacker.example'}, {'X-Forwarded-For': '192.0.2.10'}):
+                blocked = await self.client.post('/api/local-player/play', headers={**headers, **extra},
+                                                 json={'kind': 'item', 'id': 1})
+                self.assertEqual(blocked.status_code, 403)
+                blocked = await self.client.get('/api/configuration/local-player', headers={**headers, **extra})
+                self.assertEqual(blocked.status_code, 403)
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app, client=('192.0.2.10', 1234)),
+                                         base_url='http://test') as remote:
+                self.assertEqual((await remote.post('/api/local-player/play', headers=headers,
+                                  json={'kind': 'item', 'id': 1})).status_code, 403)
+            for body in ({'kind': [], 'id': 1}, {'kind': 'item', 'id': True}, {'kind': 'item', 'id': 1, 'media': -1}):
+                response = await self.client.post('/api/local-player/play', headers=headers, json=body)
+                self.assertEqual(response.status_code, 400)
+            launch.assert_not_called()
+
+    async def test_external_follow_stream_ticket_is_scoped_to_media_and_expiry(self):
+        from peach.external_playback import issue
+        from fastapi.responses import Response
+        key = self.app.state.external_playback_key
+        ticket = issue(key, 'follow:19:2')
+        with patch('peach.routes_media.follow_stream', return_value=Response(b'original-stream')) as stream:
+            response = await self.client.get(f'/external-follow-stream/19?media=2&ticket={ticket}')
+            self.assertEqual(response.content, b'original-stream')
+            self.assertEqual(stream.call_args.kwargs, {'media': 2, 'args': {}})
+            self.assertEqual((await self.client.get(f'/external-follow-stream/19?media=3&ticket={ticket}')).status_code, 401)
+            self.assertEqual((await self.client.get(f'/external-follow-stream/20?media=2&ticket={ticket}')).status_code, 401)
+
     async def test_external_playlist_binds_public_origin_behind_tunnel(self):
         from types import SimpleNamespace
         from urllib.parse import urlsplit, parse_qs, urlencode
@@ -3465,6 +3524,8 @@ PUBLIC_ROUTES = {
     # 绑定单个资产与公开 Origin，验证后仍逐次检查媒体根目录。
     ("GET,HEAD", "/external-stream/{id}"),
     ("GET", "/external-playlist/{id}.m3u"),
+    # 关注外部播放使用进程密钥签发的限时 HMAC，绑定条目和媒体序号，不接受上游地址。
+    ("GET,HEAD", "/external-follow-stream/{id}"),
     # STRM 的 HLS 子资源供浏览器和外部播放器共用：处理函数验证浏览器会话，
     # 或绑定资产与 Origin 的限时 HMAC；两条分支都检查媒体根目录及资源归属。
     ("GET,HEAD", "/strm-resource/{id}/{key}"),
@@ -3497,6 +3558,29 @@ class RouteAuthContractTests(unittest.TestCase):
     """
 
     GUARD_NAMES = ("require_auth", "require_page_auth", "require_asset_auth")
+
+    def test_single_file_import_requires_local_same_origin_and_a_writable_ledger(self):
+        from fastapi import HTTPException
+        from starlette.requests import Request
+        from peach.routes_api import api_post
+        def request(peer='127.0.0.1', headers=(), sync=None):
+            return Request({'type': 'http', 'method': 'POST', 'scheme': 'http',
+                'path': '/api/library-processing/import-file', 'query_string': b'',
+                'client': (peer, 12345), 'server': ('127.0.0.1', 8900),
+                'headers': [(b'host', b'127.0.0.1:8900'), *headers],
+                'app': SimpleNamespace(state=SimpleNamespace(sync=sync, web_contract=object()))})
+        with patch('peach.routes_api.web_contract.dispatch_api_post', return_value={'status': 'running'}) as dispatch:
+            for req in (request(peer='192.0.2.20'), request(headers=[(b'x-forwarded-for', b'127.0.0.1')]),
+                        request(headers=[(b'origin', b'https://example.invalid')])):
+                with self.subTest(request=req), self.assertRaises(HTTPException) as error:
+                    api_post(req, 'library-processing/import-file', {'path': r'E:\Media\one.mp4'})
+                self.assertEqual(error.exception.status_code, 403)
+            dispatch.assert_not_called()
+            sync = SimpleNamespace(read_only=True, detail='reader', read_only_message='只读')
+            self.assertEqual(api_post(request(sync=sync), 'library-processing/import-file', {}).status_code, 409)
+            dispatch.assert_not_called()
+            self.assertEqual(api_post(request(), 'library-processing/import-file', {'path': r'E:\Media\one.mp4'}),
+                             {'status': 'running'})
 
     @classmethod
     def setUpClass(cls):

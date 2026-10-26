@@ -33,7 +33,7 @@ from .jobs import TaskRunConflict
 from .update_tasks import UpdateBusy
 from .platform import is_unmapped, translate_ledger_path
 from .providers import ProviderUnavailable
-from .routes_auth import require_auth
+from .routes_auth import require_auth, require_loopback_client, same_origin
 from .task_runs import task_label
 from .taste_history import analyze_history, import_history_exports, write_manifest
 
@@ -325,6 +325,9 @@ def api_post(
 ):
     sync = request.app.state.sync
     route_path = f"/api/{route}"
+    if route_path == '/api/library-processing/import-file':
+        require_loopback_client(request)
+        same_origin(request)
     if (sync is not None and sync.read_only
             and route_path not in web_contract.READ_ONLY_POST_ROUTES):
         # 非写入端或冲突状态都只读；继续写只会产生无法自动合并的分叉。

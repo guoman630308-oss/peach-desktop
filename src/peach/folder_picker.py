@@ -21,7 +21,7 @@ import subprocess
 import sys
 import threading
 
-__all__ = ["PickerBusy", "PickerUnavailable", "command", "pick_folder"]
+__all__ = ["PickerBusy", "PickerUnavailable", "command", "pick_folder", "pick_file"]
 
 
 class PickerUnavailable(RuntimeError):
@@ -154,26 +154,30 @@ def _applescript_string(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def command(initial: str | None, platform: str = sys.platform) -> tuple[list[str], dict[str, str]]:
+def command(initial: str | None, platform: str = sys.platform, *, file: bool = False) -> tuple[list[str], dict[str, str]]:
     """这个平台弹对话框的命令行，以及要附加的环境变量。"""
     if platform == "win32":
-        encoded = base64.b64encode(_WINDOWS_SCRIPT.encode("utf-16-le")).decode("ascii")
+        script = _WINDOWS_SCRIPT
+        if file:
+            script = script.replace("0x8 | 0x20 | 0x40", "0x8 | 0x40 | 0x1000").replace(PROMPT, "选择视频文件")
+        encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
         argv = ["powershell.exe", "-NoProfile", "-NonInteractive", "-STA", "-EncodedCommand", encoded]
         return argv, {"PEACH_PICK_INITIAL": initial or ""}
     if platform == "darwin":
-        script = f'choose folder with prompt "{_applescript_string(PROMPT)}"'
+        script = ('choose file with prompt "选择视频文件"' if file
+                  else f'choose folder with prompt "{_applescript_string(PROMPT)}"')
         if initial and os.path.isdir(initial):
             script += f' default location POSIX file "{_applescript_string(initial)}"'
         return ["osascript", "-e", f"POSIX path of ({script})"], {}
     raise PickerUnavailable("这个系统上没有可用的文件夹对话框")
 
 
-def pick_folder(initial: str | None = None, *, platform: str = sys.platform,
-                run=subprocess.run) -> str | None:
+def _pick(initial: str | None = None, *, platform: str = sys.platform,
+          run=subprocess.run, file: bool = False) -> str | None:
     """弹对话框，返回选中的绝对路径；用户取消返回 None。"""
-    argv, extra = command(initial, platform)
+    argv, extra = command(initial, platform, file=file)
     if not _LOCK.acquire(blocking=False):
-        raise PickerBusy("已经有一个选择文件夹的窗口开着")
+        raise PickerBusy("已经有一个文件选择窗口开着")
     try:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if platform == "win32" else 0
         try:
@@ -188,8 +192,19 @@ def pick_folder(initial: str | None = None, *, platform: str = sys.platform,
         # osascript 在用户取消时以 1 退出，stderr 是 "User canceled."；这不是失败。
         if "canceled" in stderr.lower():
             return None
-        raise PickerUnavailable("没能打开文件夹对话框")
+        raise PickerUnavailable("没能打开文件选择窗口")
     text = (result.stdout or b"").decode("utf-8", "replace").strip()
     if platform == "darwin" and len(text) > 1:
         text = text.rstrip("/")
     return text or None
+
+
+def pick_folder(initial: str | None = None, *, platform: str = sys.platform,
+                run=subprocess.run) -> str | None:
+    return _pick(initial, platform=platform, run=run)
+
+
+def pick_file(initial: str | None = None, *, platform: str = sys.platform,
+              run=subprocess.run) -> str | None:
+    """选择一个现有文件；文件类型与媒体目录范围由入库入口检查。"""
+    return _pick(initial, platform=platform, run=run, file=True)

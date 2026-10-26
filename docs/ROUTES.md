@@ -109,3 +109,5 @@
 `/api/*`、`/stream`、`/follow-stream`、封面、图片及其他媒体端点使用各自的服务契约。实体只读接口 `/api/entity`、`/api/photos` 支持 `kind` 加 `id`，也接受 `kind` 加 `name`。鉴权与本机写入权限由服务端检查。
 
 启用接口文档时，`/docs`、`/docs/oauth2-redirect` 和 `/openapi.json` 是服务文档入口；首次运行表单由未配置状态下的首页展示。
+
+单文件入库使用本机 `POST /api/library-processing/import-file`，请求体为 `{"path":"视频完整路径"}`，可附 `speed_mode`。文件须在已配置媒体根内；登记后只处理返回任务中的该资产，进度仍由 `GET /api/library-processing` 查询。本机 `POST /api/pick-media-file` 打开系统文件选择窗口，返回 `{"path":null}` 表示取消。两条写请求均检查身份与来源；入库另受账本只读状态约束。

@@ -16,6 +16,11 @@
    主题标记是 `<html>` 上的 `.dark`，和 `color-scheme` 同进退。阴影颜色按主题分支给自定义属性，
    不用那个按配色方案取值的颜色函数，原因见 `test/react-color-scheme.test.ts`。 */
 :root{--stage-shadow:#0000000a;--miniplayer-shadow-near:rgba(0,0,0,.16);--miniplayer-shadow-far:rgba(0,0,0,.2)}
+[data-local-player-host]{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--surface);color:var(--ink);overflow:auto}
+[data-local-player-controls]{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:100%;overflow-wrap:anywhere;text-align:center}
+[data-local-player-controls] [role="alert"]{color:var(--drop)}
+[data-local-player-host][data-internal]{inset:12px auto auto 12px;padding:8px;border-radius:var(--radius);background:var(--surface)}
+[data-item-picture] [data-local-player-host]{display:none}
 .dark{--stage-shadow:#00000066;--miniplayer-shadow-near:rgba(0,0,0,.5);--miniplayer-shadow-far:rgba(0,0,0,.55)}
 /* ── 浮窗、骨架与队列 ── */
 /* ── 作品详情浮窗 ── */

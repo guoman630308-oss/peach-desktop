@@ -8,14 +8,14 @@ import time
 TTL_SECONDS = 6 * 60 * 60
 
 
-def issue(key: bytes, asset_id: int, *, origin: str = '', now: float | None = None) -> str:
+def issue(key: bytes, asset_id: int | str, *, origin: str = '', now: float | None = None) -> str:
     expires = int(time.time() if now is None else now) + TTL_SECONDS
     message = f"{asset_id}.{expires}.{origin}"
     signature = hmac.new(key, message.encode(), hashlib.sha256).hexdigest()
     return f"{expires}.{signature}"
 
 
-def valid(key: bytes, asset_id: int, ticket: str, *, origin: str = '', now: float | None = None) -> bool:
+def valid(key: bytes, asset_id: int | str, ticket: str, *, origin: str = '', now: float | None = None) -> bool:
     try:
         expires, signature = ticket.split(".")
         current = time.time() if now is None else now

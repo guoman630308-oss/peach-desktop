@@ -24,9 +24,9 @@ from filelock import FileLock, Timeout
 
 from . import (access, distribution, entry_links, folder_picker, media_libraries, onboarding,
                push_discovery, settings_file, media_configuration, tunnel, web_downloads)
-from .routes_auth import require_auth, require_authenticated_client, same_origin
+from .routes_auth import require_auth, require_authenticated_client, require_loopback_client, same_origin
 from .web_entry import runtime_fact_entries
-from . import release_updates, standalone_update, peach_proxy, desktop_startup, desktop_uninstall
+from . import release_updates, standalone_update, peach_proxy, desktop_startup, desktop_uninstall, local_player
 
 router = APIRouter()
 _SAVE_LOCK = threading.Lock()
@@ -779,6 +779,42 @@ def pick_folder(request: Request, body: dict[str, Any] = Body(default_factory=di
     except folder_picker.PickerUnavailable as exc:
         raise HTTPException(501, str(exc)) from exc
     return {"path": path}
+
+
+@router.post("/api/pick-media-file")
+def pick_media_file(request: Request, body: dict[str, Any] = Body(default_factory=dict),
+                    _args=Depends(require_auth)):
+    """在本机选择一个视频文件，取消时返回空路径。"""
+    local_only(request)
+    same_origin(request)
+    initial = body.get("initial")
+    try:
+        path = folder_picker.pick_file(initial if isinstance(initial, str) and initial else None)
+    except folder_picker.PickerBusy as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except folder_picker.PickerUnavailable as exc:
+        raise HTTPException(501, str(exc)) from exc
+    return {"path": path}
+
+
+@router.get("/api/configuration/local-player")
+def local_player_settings(request: Request, _args=Depends(require_auth)):
+    require_loopback_client(request)
+    try:
+        return local_player.read(request.app.state.settings.follow_state_root)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.post("/api/configuration/local-player")
+def save_local_player_settings(request: Request, body: dict[str, Any] = Body(default_factory=dict),
+                               _args=Depends(require_auth)):
+    require_loopback_client(request)
+    try:
+        return local_player.save(request.app.state.settings.follow_state_root,
+                                 body.get("mode"), body.get("executable"))
+    except (ValueError, OSError) as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.post("/api/configuration")

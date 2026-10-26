@@ -63,11 +63,11 @@ ROUTES: dict[str, tuple[str, ...]] = {
     # 二十九家片商官网，前缀不在它的表里就不发请求。官网没有或出错再问 r18.dev，一次请求
     # 给标题、厂牌、系列、发行日与演员；r18.dev 也没有再问 DMM 自己的 GraphQL 目录（ADR-0059）：
     # 它是 r18.dev 镜像的源头，2026-09-24 实测当月新片与 FKOS、FNS、SUKE 这些小厂 r18.dev 都是
-    # 404 而 DMM 有，一部片一到三次请求、不需要日本出口；再落空才到三家综合索引。AVBase 与
-    # JavBus 各一次请求，javdb 两次且按出口 IP 计配额（`SOURCE_INTERVALS` 里 3 秒一页），所以 javdb 排最后。
-    # 不进这条链：1pondo（无码片商，有码番号一律 404）、fc2（商品号体系不同）、mgstage
-    # （它同时卖有码号，但对有码号它是转售店，标题缀着店铺特典，片商官网才是发行方）。
-    "censored": ("prestige", "faleno", "dahlia", "makers", "r18dev", "dmm", "avbase", "javbus", "javdb"),
+    # 404 而 DMM 有，一部片一到三次请求、不需要日本出口；再落空才到综合索引。AVBase 与
+    # JavBus 在前，javdb 与需要人工验证的 JavLibrary 垫后，浏览器目录间隔为 3 秒。
+    # 1pondo 与 fc2 的发行体系不同，不进这条链。Prestige 系由 route_for_code 补入 MGStage
+    # 备用，官网冷却时仍有发行店资料可问；标题等字段继续按片商优先级结算。
+    "censored": ("prestige", "faleno", "dahlia", "makers", "r18dev", "dmm", "avbase", "javbus", "javdb", "javlibrary"),
     # 素人：MGStage 先问。MGS 素人系（`259LUXU`、`300MIUM`、`SIRO`……）由 MGS 自己发行，
     # mgstage 那一页就是发行方口径；amane 同样把 MGS 放素人第一源、不让它进有码默认表
     # （否则 MIDV 也会去问 MGS），Peach 的等价做法是把素人单列成一种类型。
@@ -111,7 +111,7 @@ ROUTES: dict[str, tuple[str, ...]] = {
 
 #: 片商官网与发行方自营店那一档，经 amane 桥（`metadata_amane.OFFICIAL_SITES`，ADR-0048）。一次
 #: 子进程并发问链上属于这一档的几站，所以合成一档 `amane_official`；按 `route_for_code` 裁过之后，
-#: 有码番号在这一档只剩一家片商，素人番号只剩 mgstage。
+#: 有码番号在这一档只剩一家片商，Prestige 系另有 MGStage 备用；素人番号只剩 mgstage。
 AMANE_OFFICIAL_STAGE = ("prestige", "faleno", "dahlia", "makers", "mgstage")
 #: 发行方与专站那一档。链上排在综合索引前面，取到必填标量字段就短路。FC2 的四个存档站
 #: 按来源分级是 community，但在链上属于这一档：它们只收 FC2，不是综合索引。
@@ -140,10 +140,10 @@ _LETTER_PREFIX = re.compile(r"^([A-Z]+)-?\d")
 #: 综合索引那一档。这一档**不**逐家短路：免复核要两家取值一致（ADR-0030、
 #: ADR-0034），封面互证要两个不同图源（ADR-0032），问到第一家就停等于把这两条
 #: 判据的样本降到一家。
-COMMUNITY_STAGE = ("avbase", "javbus", "javdb")
+COMMUNITY_STAGE = ("avbase", "javbus", "javdb", "javlibrary")
 #: 经 amane 桥问的转载站那一档（`metadata_amane.COMMUNITY_SITES`，ADR-0043）。一次子进程并发问链上属于
 #: 这一档的几站，所以合成一档 `amane`；分级上都是社区来源，但不占 `COMMUNITY_STAGE`
-#: 的 `LIST_FIELD_DEPTH` 名额——那三家的互证样本不该被转载站挤掉。链上放在综合索引之前
+#: 的 `LIST_FIELD_DEPTH` 名额——综合索引的互证样本不该被转载站挤掉。链上放在综合索引之前
 #: 还是之后由各类型的链自己定：默认链上只有无码的 avsox，垫在最后；其余三站只由整条覆盖点名。
 AMANE_STAGE = ("fc2club", "freejavbt", "airav", "avsox")
 
@@ -153,7 +153,7 @@ SCALAR_FIELDS = ("title", "performers", "studio", "release_date")
 LIST_FIELDS = ("tags", "cover_url")
 #: 列表字段在综合索引那一档最多问到第几家。3 是下限不是上限：两家一致才免复核、
 #: 两个图源才算互证，砍到 2 家就等于任何一家缺席都退回人工复核。
-LIST_FIELD_DEPTH = 3
+LIST_FIELD_DEPTH = 4
 
 
 def classify(code: str | None, *hints: str | None) -> str:
@@ -270,7 +270,9 @@ def route_for_code(code: str | None, *hints: str | None,
     有码链上的片商站同理：Prestige、FALENO、DAHLIA 只在本机证据认得是自家番号时才问
     （`maker_sites`），一个番号只属于一家片商，所以三家有一家认了就不再问 `makers`。
     """
-    chain = route(classify(code, *hints), overrides=overrides)
+    content_type = classify(code, *hints)
+    overrides = parse_route_overrides(overrides)
+    chain = route(content_type, overrides=overrides)
     if "1pondo" in chain:
         from .sources.onepondo import movie_id, names_this_studio
         if not (movie_id(str(code or "")) and names_this_studio(*hints)):
@@ -280,6 +282,9 @@ def route_for_code(code: str | None, *hints: str | None,
         chain = tuple(source for source in chain
                       if (source not in MAKER_EVIDENCE or source in claimed)
                       and not (source == "makers" and claimed))
+        if content_type == 'censored' and content_type not in overrides and 'prestige' in chain:
+            position = chain.index('prestige') + 1
+            chain = (*chain[:position], 'mgstage', *chain[position:])
     return chain
 
 

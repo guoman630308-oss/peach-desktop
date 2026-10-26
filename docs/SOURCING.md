@@ -21,6 +21,12 @@
 | 厂牌日文名、官网、Logo、小圆标 | 厂牌名与厂牌标识、站点圆标与图标合成 |
 | 订阅「最近出了哪些番号」 | 番号发现源（Feed） |
 
+## JavLibrary 浏览器来源
+
+在「来源和凭证」的 JavLibrary 卡片选择连接方式并保存，点击「检查连接」。需要人机验证时，Peach 打开浏览器窗口，由用户手动完成；验证成功后复用 `<数据根>/secrets/browser` 的浏览器会话。会话过期时需要再次手动验证，不自动解题或绕过验证。此入口不需要 JSON 接口地址或 API 密钥；自定义 JSON 来源表单不接受 JavLibrary 网页。
+
+JavLibrary 位于有码作品的社区来源链末尾，补充标题、演员、厂牌、发行商、导演、日期、时长、类别与封面地址。搜索结果与详情页都核对完整番号；单结果直接跳到详情页也能解析。未知页面结构、人机验证、登录限制与明确无结果分别处理，验证页不会记成「没有这部作品」。人工等待不占下一站查询预算。来源受限时沿用冷却与备用来源规则；返回的社区资料继续走候选复核，图片继续执行既有身份、来源与尺寸检查。
+
 ## 采集连接与网盘读取
 
 「同步媒体库」与 `scripts/scrape_codes.py` 共用正式来源链。来源设为「直连」时使用直连客户端；设为跟随 Peach 代理时，使用配置页保存的直连、自定义代理或跟随环境设置。在线封面使用同一来源传输，amane 桥把代理及逐站直连设置传给子进程。浏览器取页也遵循显式直连和自定义代理；代理地址带用户名时退回 HTTP 客户端。
@@ -127,7 +133,7 @@ Wiki 与视频作品资料无关。
 
 | 类型 | 判据 | 链（从左到右） | 这条链为什么不含 |
 | --- | --- | --- | --- |
-| censored | 其余厂牌番号 | （本机证据认得时）prestige／faleno／dahlia，都不认时 makers → r18dev → dmm → avbase → javbus → javdb | 1pondo（无码片商）、fc2（另一套商品号）、mgstage（对有码号是转售店） |
+| censored | 其余厂牌番号 | （本机证据认得时）prestige／faleno／dahlia，Prestige 系另有 mgstage 备用；都不认时 makers → r18dev → dmm → avbase → javbus → javdb → javlibrary | 1pondo（无码片商）、fc2（另一套商品号） |
 | amateur | `300MIUM-1239` 这类三位数字前缀，加 `SIRO`／`STP`／`STN`；本机证据写着带三位前缀的同一个号（`LUXU-688` 的文件是 `259LUXU-688.mp4`） | mgstage → avbase → javbus → javdb → r18dev | makers 与三家片商站（素人号不归它们）；dmm（搜 `MIUM 1239`、`LUXU 1475` 零结果）。r18dev 垫底：本机快照里它一份素人号都没给过 |
 | uncensored | 日期式番号、`HEYZO-1380`、Tokyo-Hot 的 `n0780` | （证据指着一本道时）1pondo → avbase → javbus → javdb → avsox | r18dev：无码番号在它上面没有 |
 | fc2 | `FC2` 开头的商品号，与没归一的 `FC-43768` 这种短写法 | fc2 → fc2cmadb → fc2ppvdb → javten → javarchive → javdb | r18dev（85 条全空）、avbase 与 javbus（对 FC2 零产出）、fc2club（本机快照零产出，还回 429 进冷却） |
@@ -146,7 +152,7 @@ Wiki 与视频作品资料无关。
   `makers` 按 amane 自带的片商表路由，前缀不在表里时桥内零 HTTP，只花一次子进程（约 0.8 秒）。
 - **国产、欧美归 `other`，一家都不问。** 认得出的停在这里，认不出的仍按有码问。里番没有判据，不单列。
 
-候选来源（未接入，等实际缺口出现再接）：sokmil、kingdom.vc、km-produce、fantia（要 Cookie）、jav321、javlibrary，
+候选来源（未接入，等实际缺口出现再接）：sokmil、kingdom.vc、km-produce、fantia（要 Cookie）、jav321，
 出自 2026-10-01 对 Javinizer-Go、mdcz、AMMDS 等元数据引擎的调研（ADR-0092）。
 
 ### 什么时候停

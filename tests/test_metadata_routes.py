@@ -78,14 +78,14 @@ class RouteTableTests(unittest.TestCase):
                 with self.subTest(content=content, source=source):
                     self.assertIn(source, SOURCE_SPECS)
 
-    def test_censored_asks_the_maker_then_the_official_mirror_then_dmm_and_javdb_last(self):
-        """片商官网是发行方口径，排在官方镜像前；镜像漏收的再问 DMM 自己；javdb 按出口 IP 计配额，排最后。"""
+    def test_censored_asks_the_maker_then_official_sources_then_community_catalogs(self):
+        """片商官网、镜像与 DMM 在前，社区索引按顺序补齐，JavLibrary 垫后。"""
         self.assertEqual(ROUTES['censored'],
-                         ('prestige', 'faleno', 'dahlia', 'makers', 'r18dev', 'dmm', 'avbase', 'javbus', 'javdb'))
+                         ('prestige', 'faleno', 'dahlia', 'makers', 'r18dev', 'dmm', 'avbase', 'javbus', 'javdb', 'javlibrary'))
         self.assertEqual(route_for_code('ABW-220'),
-                         ('prestige', 'r18dev', 'dmm', 'avbase', 'javbus', 'javdb'))
+                         ('prestige', 'mgstage', 'r18dev', 'dmm', 'avbase', 'javbus', 'javdb', 'javlibrary'))
         self.assertEqual(route_for_code('SSIS-057'),
-                         ('makers', 'r18dev', 'dmm', 'avbase', 'javbus', 'javdb'))
+                         ('makers', 'r18dev', 'dmm', 'avbase', 'javbus', 'javdb', 'javlibrary'))
 
     def test_amateur_asks_mgstage_first_and_never_the_makers_nor_dmm(self):
         """MGS 素人系由 MGS 自己发行；片商官网对素人号一个请求都不发，DMM 的目录上也没有它们。
@@ -105,11 +105,14 @@ class RouteTableTests(unittest.TestCase):
         self.assertEqual(ROUTES['censored'].index('dmm'), ROUTES['censored'].index('r18dev') + 1)
         self.assertIn('dmm', OFFICIAL_STAGE)
 
-    def test_mgstage_is_not_asked_for_censored_codes(self):
-        """mgstage 对有码号是转售店，标题缀着店铺特典，片商官网才是发行方。"""
-        for code in ('ABW-220', 'SSIS-057', 'FSDSS-437'):
+    def test_mgstage_is_scoped_to_prestige_series_on_the_censored_chain(self):
+        """Prestige 系有发行店备用，其余厂牌沿用专属来源。"""
+        for code in ('SSIS-057', 'FSDSS-437', 'DLDSS-480'):
             with self.subTest(code=code):
                 self.assertNotIn('mgstage', route_for_code(code))
+        for code in ('ABW-220', 'ABF-395', 'ABP-123'):
+            with self.subTest(code=code):
+                self.assertEqual(amane_sites(code)[0], ('prestige', 'mgstage'))
 
     def test_uncensored_never_asks_r18dev(self):
         """无码番号在 r18.dev 上没有，留着它等于每条白等一次主机间隔。"""
@@ -142,7 +145,7 @@ class RouteTableTests(unittest.TestCase):
 
     def test_the_amane_reprint_sites_are_not_on_the_censored_or_amateur_chains(self):
         """有码与素人的默认链只经桥问官方档：freejavbt 与 airav 只能由用户整条覆盖时点名。"""
-        self.assertEqual(amane_sites('ABW-220'), (('prestige',), ()))
+        self.assertEqual(amane_sites('ABW-220'), (('prestige', 'mgstage'), ()))
         self.assertEqual(amane_sites('300MIUM-1239'), (('mgstage',), ()))
         self.assertEqual(amane_sites('FC2-PPV-1812235'), ((), ()))
         self.assertEqual(amane_sites('HEYZO-1380'), ((), ('avsox',)))
@@ -165,7 +168,7 @@ class MakerEvidenceTests(unittest.TestCase):
 
     def test_a_claimed_code_skips_makers_and_an_unclaimed_one_asks_only_makers(self):
         """一个番号只属于一家片商：三家有一家认了，就不再起 amane 的片商表。"""
-        for code, official in (('ABW-032', ('prestige',)), ('FSDSS-437', ('faleno',)),
+        for code, official in (('ABW-032', ('prestige', 'mgstage')), ('FSDSS-437', ('faleno',)),
                                ('DLDSS-480', ('dahlia',)), ('SSIS-057', ('makers',)),
                                ('MIDE-845', ('makers',))):
             with self.subTest(code=code):

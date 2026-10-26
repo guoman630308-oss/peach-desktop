@@ -708,8 +708,15 @@ def prestige_images(transport: HttpTransport, code: str, *,
 def prestige_group_images(transport: HttpTransport, code: str, *,
                           deadline: float | None = None) -> list[Candidate]:
     """汇总 Prestige 与 MGS 的官方候选，尺寸由统一探测比较。"""
-    official = prestige_images(transport, code, deadline=deadline)
-    return _unique_candidates(official + mgstage_images(transport, code, deadline=deadline))
+    candidates, paused = [], []
+    for fetch in (prestige_images, mgstage_images):
+        try:
+            candidates.extend(fetch(transport, code, deadline=deadline))
+        except SourcePaused as error:
+            paused.append(error)
+    if not candidates and paused:
+        raise paused[0]
+    return _unique_candidates(candidates)
 
 
 def probe_size(transport: HttpTransport, candidate: Candidate, *,
@@ -827,8 +834,14 @@ def best_cover(transport: HttpTransport, code: str, delay: float, *,
     source_transport.inner = transport
 
     first = usable([*prior_candidates, *evidence.candidates])
-    asked = usable([*first, *_site_candidates(source_transport, code, evidence, delay=delay,
-                                            deadline=deadline, record=record)])
+    try:
+        discovered = _site_candidates(source_transport, code, evidence, delay=delay,
+                                      deadline=deadline, record=record)
+    except SourcePaused:
+        if not first:
+            raise
+        discovered = []
+    asked = usable([*first, *discovered])
     if not asked:
         if diagnostics.get('source_unanswered'):
             raise Unavailable('官方目录查询未完成，尚未取得封面候选')
@@ -855,6 +868,7 @@ def _measure(transport: HttpTransport, candidates, record, *, minimum_width: int
     """
     measured: list[tuple[int, Candidate, tuple[int, int]]] = []
     unreachable = answered = 0
+    paused = []
     try:
         for candidate in candidates:
             try:
@@ -863,6 +877,10 @@ def _measure(transport: HttpTransport, candidates, record, *, minimum_width: int
                 record(_probe_failure(error))
                 record("unanswered")
                 unreachable += 1
+                continue
+            except SourcePaused as error:
+                paused.append(error)
+                record("unanswered")
                 continue
             except Unavailable as error:
                 record(_probe_failure(error))
@@ -887,6 +905,8 @@ def _measure(transport: HttpTransport, candidates, record, *, minimum_width: int
         raise
     if unreachable and not answered:
         raise CoverConnectError(HOSTS_UNREACHABLE)
+    if paused and len(paused) == len(candidates):
+        raise paused[0]
     return measured
 
 
@@ -900,12 +920,17 @@ def _download_best(transport: HttpTransport, measured, record, *, minimum_width:
     动图时算没有，而不是没下载成——再问一遍还是这几张。
     """
     animated = 0
+    paused = []
     for _pixels, winner, size in sorted(
             measured, key=lambda item: (candidate_quality(item[1]) > 0, item[0], candidate_quality(item[1])), reverse=True):
         try:
             data = _fetch(transport, winner.url, referer=winner.referer,
                           limit=16 * 1024 * 1024, deadline=deadline)
         except (Unavailable, httpx.TransportError):
+            record("download_failed")
+            continue
+        except SourcePaused as error:
+            paused.append(error)
             record("download_failed")
             continue
         try:
@@ -930,6 +955,8 @@ def _download_best(transport: HttpTransport, measured, record, *, minimum_width:
         return winner, actual_size, data
     if animated == len(measured):
         raise NotFound("官方候选都是动图")
+    if paused and len(paused) == len(measured):
+        raise paused[0]
     raise Unavailable("可用候选完整下载都失败")
 
 

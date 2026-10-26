@@ -6,7 +6,7 @@
  * 写操作是 `useMutation`：服务端回的就是这一趟的新快照，用 `setQueryData` 换进缓存，
  * 再让这个键立刻重读一次接上轮询的节律。首屏读到的旧终态不冒充新结果——任务关掉页面
  * 照样在跑，状态里常年躺着上一趟的回执，判据在 `use-library-processing.ts`。 */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { RiArrowRightLine } from '@remixicon/react';
 import { useMutation } from '@tanstack/react-query';
 
@@ -30,6 +30,7 @@ import { useLibraryProcessingJob } from './use-library-processing';
 import { ProcessingActions } from './processing-actions';
 import { ProcessingControls } from './processing-controls';
 import { ProcessingProgress } from './processing-line';
+import { SingleFileImportDialog } from './single-file-import-dialog';
 
 /* 中文正文写成常量：JSX 里换行的文字会在接缝处多出一个空格，中文句子里看得见。
    卡片正文与首屏骨架共用 `SCAN_CARD_TEXT`（`management.ts`）。 */
@@ -138,15 +139,16 @@ function Outcome(
 export function LibraryProcessingCard(props: LibraryProcessingProps) {
   const { toast, onComplete } = props;
   const { job, settled, forget } = useLibraryProcessingJob(props);
+  const [importing, setImporting] = useState(false);
+  const started = (next: LibraryProcessingData) => {
+    forget();
+    queryClient.setQueryData(LIBRARY_PROCESSING_KEY, next);
+    void queryClient.invalidateQueries({ queryKey: LIBRARY_PROCESSING_KEY });
+  };
   const start = useMutation({
     mutationFn: (command: LibraryProcessingCommand) =>
       apiSend<LibraryProcessingData>(LIBRARY_PROCESSING_URL, command),
-    onSuccess: (next) => {
-      forget();
-      // 回的就是这一趟的新快照，换进缓存即可；节律由这个键说了算，让它立刻重读一次接上。
-      queryClient.setQueryData(LIBRARY_PROCESSING_KEY, next);
-      void queryClient.invalidateQueries({ queryKey: LIBRARY_PROCESSING_KEY });
-    },
+    onSuccess: started,
   });
   // 这一趟跑完了就让遗留层重画数据管理页那几个计数：复核与候选的读数跟着它变。
   useEffect(() => { if (settled) onComplete?.() }, [settled, onComplete]);
@@ -172,6 +174,7 @@ export function LibraryProcessingCard(props: LibraryProcessingProps) {
       <Fieldset layout="stack" label="扫描与采集" footer={
         <>
           <LinkButton href="/sources" size="small" trailingIcon={RiArrowRightLine}>来源和凭证</LinkButton>
+          <Button variant="secondary" disabled={busy} onClick={() => setImporting(true)}>添加单个视频</Button>
           {state.candidates
             ? <LinkButton href="/review" size="small" trailingIcon={RiArrowRightLine}>复核资料</LinkButton>
             : null}
@@ -196,6 +199,7 @@ export function LibraryProcessingCard(props: LibraryProcessingProps) {
         </div>
       </Fieldset>
       <Outcome state={state} problem={problem} settled={settled} onRetry={retry} toast={toast} />
+      {importing ? <SingleFileImportDialog close={() => setImporting(false)} onStarted={started} /> : null}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
 import { confirmModal, dismissMenu, presentMenu, spinnerHtml } from '@peach/legacy/ui';
 
 import { apiGet, apiSend } from '../../api';
+import { prefersExternalPlayer } from '../../local-player';
 import { Button } from '@/components/base/buttons/button';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { CatalogGridPage } from '../catalog-grid/catalog-grid-page';
@@ -132,7 +133,7 @@ function MediaFrame({ item, gate, helpers, actions, autoplay, onEnded }: {
   autoplay?: boolean; onEnded(): void;
 }) {
   /* 计费来源先挡一层说明，点了才拉流；没挂载与在线拦截的那两种不挂播放器。 */
-  const [started, setStarted] = useState<'auto' | 'clicked' | ''>(gate ? '' : 'auto');
+  const [started, setStarted] = useState<'auto' | 'clicked' | ''>(gate && !(gate === 'disc' && prefersExternalPlayer()) ? '' : 'auto');
   /* 播放器挂在这块框里，`<video>` 由舞台建：Video.js 会把它包进自己的 div，从小窗展开回来时
      整个实例还要搬进来，那一截 DOM 不归 React。 */
   const frameRef = useRef<HTMLDivElement>(null);

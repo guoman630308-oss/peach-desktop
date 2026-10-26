@@ -1,9 +1,10 @@
 /* 全站那一份浏览器历史（`src/history/`）：壳经 `shellNavigate` 写地址，后退前进与 React 子树的写入
  * 都从同一个对象分发。 */
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import * as sharedHistory from '@peach/history';
-import { peachHistory, routeMetaOf, shellNavigate, type Navigation } from '../../src/history';
+import { canGoBack, historyPagePosition, peachHistory, rememberHistoryPages, restoreHistoryPage,
+  returnToHistoryPage, routeMetaOf, shellNavigate, type Navigation } from '../../src/history';
 
 let seen: Navigation[] = [];
 let stop = () => {};
@@ -12,7 +13,7 @@ beforeEach(() => {
   seen = [];
   stop = peachHistory.listen((navigation) => { seen.push(navigation) });
 });
-afterEach(() => stop());
+afterEach(() => { stop(); vi.restoreAllMocks(); vi.unstubAllGlobals() });
 
 /** 浏览器自己的后退前进：地址先变，再派发 `popstate`。 */
 function pop(path: string) {
@@ -32,6 +33,65 @@ it('push 加一条历史，replace 不加', () => {
   shellNavigate('/taste', { replace: true });
   expect([location.pathname, window.history.length]).toEqual(['/taste', length + 1]);
   expect(seen.map((n) => n.action)).toEqual(['PUSH', 'REPLACE']);
+});
+
+it('后退按历史条目恢复位置与页数，同地址的新条目独立记录', () => {
+  shellNavigate('/performers?q=return');
+  const original = window.history.state;
+  vi.stubGlobal('scrollY', 720);
+  rememberHistoryPages(3);
+  shellNavigate('/performers/7');
+  vi.stubGlobal('scrollY', 0);
+  window.history.replaceState(original, '', '/performers?q=return');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: original }));
+  expect(historyPagePosition()).toMatchObject({ top: 720, pages: 3 });
+  const scroll = vi.fn();
+  vi.stubGlobal('scrollTo', scroll);
+  expect(restoreHistoryPage()).toBe(true);
+  expect(scroll).toHaveBeenCalledWith({ left: 0, top: 720, behavior: 'instant' });
+  shellNavigate('/performers?q=return');
+  expect(restoreHistoryPage()).toBe(false);
+});
+
+it('没有站内上一条历史时返回不可用', () => {
+  const initial = { key: 'back-test-boot', idx: 0, usr: null };
+  window.history.replaceState(initial, '', '/');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: initial }));
+  expect(canGoBack()).toBe(false);
+  shellNavigate('/performers');
+  expect(canGoBack()).toBe(true);
+});
+
+it('关闭连续播放详情回到原始页面条目，不把中间视频当作上一页', () => {
+  shellNavigate('/performers/7?tag=return');
+  const original = window.history.state;
+  shellNavigate('/assets/11?parts=11');
+  shellNavigate('/assets/12?parts=11');
+  shellNavigate('/assets/12?parts=11&t=10', { replace: true });
+  const go = vi.spyOn(peachHistory, 'go').mockImplementation(() => {});
+  const returned = vi.fn(() => peachHistory.navigation.location.pathname);
+  expect(returnToHistoryPage('/performers/7?tag=return', { onReturn: returned })).toBe(true);
+  expect(returned).not.toHaveBeenCalled();
+  expect(go).toHaveBeenCalledExactlyOnceWith(-2);
+  const epoch = peachHistory.navigation.openEpoch;
+  window.history.replaceState(original, '', '/performers/7?tag=return');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: original }));
+  expect(peachHistory.navigation).toMatchObject({ action: 'POP', claimed: true, openEpoch: epoch });
+  expect(returned).toHaveReturnedWith('/performers/7');
+});
+
+it('关闭详情只回到紧邻的已知背景，不穿过别的列表或跨越刷新前的未知条目', () => {
+  shellNavigate('/performers');
+  shellNavigate('/tags');
+  shellNavigate('/assets/11');
+  const go = vi.spyOn(peachHistory, 'go').mockImplementation(() => {});
+  expect(returnToHistoryPage('/performers')).toBe(false);
+  expect(returnToHistoryPage('https://example.com/tags')).toBe(false);
+  const unknown = { key: 'unknown-history', idx: 10_000, usr: null };
+  window.history.replaceState(unknown, '', '/assets/11');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: unknown }));
+  expect(returnToHistoryPage('/tags')).toBe(false);
+  expect(go).not.toHaveBeenCalled();
 });
 
 it('路径照 pushState 的规则按当前地址解析：只带查询串或只带锚点时其余部分不丢', () => {

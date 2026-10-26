@@ -83,7 +83,8 @@ from .web_follow import (
     w_follow_status,
 )
 from .web_links import w_links, w_links_check, w_links_prune
-from .web_library_processing import q_library_processing, q_library_processing_issues, w_library_processing
+from .web_library_processing import (q_library_processing, q_library_processing_issues,
+                                     w_library_processing, w_library_import_file)
 from .web_media_repair import q_media_repair, w_media_repair
 from .web_organize import (
     q_organize, w_organize_apply, w_organize_preview, w_organize_rollback,
@@ -391,6 +392,7 @@ POST_HANDLERS = {
     "/api/downloads/cancel": w_download_cancel,
     "/api/downloads/postprocess": w_download_postprocess,
     "/api/library-processing": w_library_processing,
+    "/api/library-processing/import-file": w_library_import_file,
     "/api/thumbnail-jobs": w_thumbnail_jobs,
     "/api/scraping/settings": w_scraping_settings,
     "/api/scraping/cover": w_scraping_cover,

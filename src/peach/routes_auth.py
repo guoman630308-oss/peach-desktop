@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 from collections import OrderedDict
 import threading
 import time
@@ -165,6 +166,18 @@ def require_auth(request: Request) -> dict[str, str]:
     if not _authorized(request, request.app.state.settings.token, args):
         raise HTTPException(status_code=401, detail="unauthorized")
     return args
+
+
+def require_loopback_client(request: Request) -> None:
+    """启动本机程序只接受回环地址，拒绝代理转发与外部主机名。"""
+    try:
+        local = bool(request.client and ipaddress.ip_address(request.client.host).is_loopback)
+    except ValueError:
+        local = False
+    forwarded = any(key.startswith("x-forwarded-") or key in {"forwarded", "cf-connecting-ip"}
+                    for key in request.headers)
+    if not local or forwarded or request.url.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        raise HTTPException(403, "请在运行 Peach 的电脑上操作")
 
 
 def require_page_auth(request: Request) -> dict[str, str]:

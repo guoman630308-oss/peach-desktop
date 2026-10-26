@@ -66,6 +66,16 @@ class CommandTests(unittest.TestCase):
 
 
 class PickTests(unittest.TestCase):
+    def test_file_picker_returns_a_file_and_shares_the_dialog_lock(self):
+        run = FakeRun(b'E:\\Media\\sample.mp4')
+        self.assertEqual(folder_picker.pick_file(platform='win32', run=run), r'E:\Media\sample.mp4')
+        script = base64.b64decode(run.calls[0][0][-1]).decode('utf-16-le')
+        self.assertIn('dialog.SetOptions(0x8 | 0x40 | 0x1000)', script)
+        argv, _ = folder_picker.command(None, platform='darwin', file=True)
+        self.assertTrue(argv[2].startswith('POSIX path of (choose file with prompt'))
+        with folder_picker._LOCK, self.assertRaises(folder_picker.PickerBusy):
+            folder_picker.pick_file(platform='win32', run=run)
+
     def test_the_chosen_path_comes_back_stripped_and_the_initial_path_travels_by_environment(self):
         run = FakeRun(b"E:\\Movies\r\n")
         chosen = folder_picker.pick_folder(r"D:\Media", platform="win32", run=run)

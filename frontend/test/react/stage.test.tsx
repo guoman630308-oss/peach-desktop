@@ -107,6 +107,7 @@ type ShellIslands = { connectApplication(next: (actions: ShellActions) => void):
 const ISLANDS_MODULE = '../../src/react/application-residents';
 
 async function load() {
+  serve();
   vi.resetModules();
   window.history.replaceState(null, '', '/');
   const [history, router, routes, islands] = await Promise.all([

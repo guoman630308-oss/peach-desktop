@@ -11,6 +11,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { Radio } from 'react-aria-components';
 
 import { refitNativeImages } from '@peach/card-art';
+import { peachHistory, rememberHistoryPages } from '@peach/history';
 import { requestErrorMessage } from '@peach/legacy/core';
 import { indexSkeletonHtml } from '@peach/legacy/ui';
 
@@ -158,6 +159,10 @@ export function IndexPage(props: IndexProps) {
     placeholderData: refining ? keepPreviousData : undefined,
   });
   const items = flatItems(result.data);
+  useLayoutEffect(() => {
+    if (peachHistory.navigation.location.pathname === `/${kind}` && result.data && !result.isPlaceholderData)
+      rememberHistoryPages(result.data.pages.length);
+  }, [kind, result.data, result.isPlaceholderData]);
   const more = !!result.hasNextPage && !result.isPlaceholderData;
   const readout = countText(items.length, !!result.hasNextPage);
   /* 分类计数只随名册、词表和过滤词变，与选中哪一类无关。换分类时新一页还没到，沿用同一份

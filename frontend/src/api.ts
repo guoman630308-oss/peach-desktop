@@ -52,6 +52,7 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
   } catch {
     // 失败响应不一定是 JSON（例如 401 的登录页），下面用状态码兜底。
   }
+  signal?.throwIfAborted();
   if (!response.ok) {
     throw new ApiError(reasonOf(payload) || `请求失败（${response.status}）`, response.status);
   }
@@ -73,6 +74,7 @@ export async function apiSend<T>(path: string, body: unknown, method = 'POST', s
   } catch {
     // 同上：失败响应不一定是 JSON。
   }
+  signal?.throwIfAborted();
   if (!response.ok) {
     throw new ApiError(reasonOf(payload) || `请求失败（${response.status}）`, response.status, payload);
   }

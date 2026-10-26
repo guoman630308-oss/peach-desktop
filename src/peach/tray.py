@@ -932,8 +932,8 @@ class SetupGate:
             return "等待完成首次设置"
         return self.manager.status_summary()
 
-    def open(self) -> None:
-        self._open_browser(self.open_url())
+    def open(self, path: str = '') -> None:
+        self._open_browser(self.open_url() + path)
 
     def poll(self) -> bool:
         """设置完成了就切到正常服务。返回这一轮有没有切。
@@ -1088,14 +1088,13 @@ class PeachTray:
             "Peach · 蜜桃",
             pystray.Menu(
                 pystray.MenuItem(lambda _item: self.gate.open_label(), self.open, default=True),
-                pystray.MenuItem("配置 Peach", lambda *_: webbrowser.open(self.gate.open_url() + "configuration")),
+                pystray.MenuItem("配置 Peach", lambda *_: self.gate.open("configuration")),
                 pystray.MenuItem(lambda _item: f"状态：{self.gate.status_line()}", pystray.Menu(
                     lambda: (
                         *(pystray.MenuItem(line, None, enabled=False)
                           for line in self.manager.status_details()),
                         pystray.MenuItem(menu_text(f"地址：{self.gate.open_url()}"), self.open),
-                        pystray.MenuItem("查看完整配置", lambda *_: webbrowser.open(
-                            self.gate.open_url() + "configuration")),
+                        pystray.MenuItem("查看完整配置", lambda *_: self.gate.open("configuration")),
                     ))),
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem("同步开发进度", self.sync_source,
@@ -1435,6 +1434,9 @@ class PeachTray:
             self._action_lock.release()
 
     def _setup(self, icon) -> None:
+        if self._stop_event.is_set():
+            icon.stop()
+            return
         icon.visible = True
         # 必须等图标真的创建出来才拿得到底层 NSImage，所以放在 setup 里而不是构造时。
         apply_macos_template(icon)
@@ -1477,6 +1479,8 @@ class PeachTray:
         threading.Thread(target=self._monitor, name="PeachHealth", daemon=True).start()
         logging.getLogger(__name__).info("托盘启动完成：%s", self.manager.status())
         try:
+            if self._stop_event.is_set():
+                return
             self.icon.run(setup=self._setup)
         finally:
             self._stop_event.set()
@@ -1763,29 +1767,30 @@ def log_to_file(path: Path) -> logging.Handler | None:
     return handler
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, open_browser=None, ready=None, detach=True) -> int:
     try:
-        return _main(argv)
+        return _main(argv, open_browser=open_browser, ready=ready, detach=detach)
     except Exception as exc:
         show_message("Peach 启动失败", error_reporting.failure_details("tray-startup", exc), error=True)
         return 1
 
 
-def _main(argv: list[str] | None = None) -> int:
+def _main(argv: list[str] | None = None, *, open_browser=None, ready=None, detach=True) -> int:
     # 参数解析必须排在任何进程级副作用之前：`--help` 和拼错的参数都要在 HiDPI 设置、
     # 单实例锁和目录创建之前退出，否则一条试探命令就会在磁盘上凭空造出一个 Peach 数据目录，
     # 让之后的安装探测把这台机器误判成已配置。
     args = build_parser().parse_args(argv)
+    open_browser = open_browser or webbrowser.open
     config = settings_file.load_config()
     error_reporting.install(config.directory("logs"))
     waiting = needs_setup(config)
     instance = SingleInstance(config.directory("state") / "peach-tray.lock")
     if instance.is_running():
         if not args.silent:
-            webbrowser.open(setup_url(config) if waiting else normal_url(config))
+            open_browser(setup_url(config) if waiting else normal_url(config))
         return 0
     try:
-        if handoff_tray(sys.argv[1:] if argv is None else argv, PROJECT_ROOT):
+        if detach and handoff_tray(sys.argv[1:] if argv is None else argv, PROJECT_ROOT):
             return 0
     except OSError as exc:
         details = error_reporting.failure_details("tray-handoff", exc)
@@ -1801,7 +1806,7 @@ def _main(argv: list[str] | None = None) -> int:
         instance.acquire()
     except AlreadyRunning:
         if not args.silent:
-            webbrowser.open(setup_url(config) if waiting else normal_url(config))
+            open_browser(setup_url(config) if waiting else normal_url(config))
         return 0
     try:
         # 日志按半年保留、按月切段，必须排在任何子进程打开日志之前：Windows 上被占着的
@@ -1828,7 +1833,7 @@ def _main(argv: list[str] | None = None) -> int:
                 lifecycle = None
         specs = build_setup_service_specs(config) if waiting else configured_service_specs(config)
         manager = ServiceManager(specs, log_dir=config.directory("logs"))
-        gate = SetupGate(manager, config, waiting=waiting, instance=instance)
+        gate = SetupGate(manager, config, waiting=waiting, instance=instance, open_browser=open_browser)
         if sys.platform == "darwin":
             manager.start_missing()
             run_macos_menu_bar(manager, gate, silent=args.silent, show_browser=args.show)
@@ -1838,6 +1843,8 @@ def _main(argv: list[str] | None = None) -> int:
             tray.lifecycle = lifecycle
             if lifecycle is not None:
                 lifecycle.attach(tray.icon)
+            if ready is not None:
+                ready(tray)
             tray.run()
         exit_code = 0
     except Exception as exc:

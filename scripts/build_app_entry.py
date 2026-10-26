@@ -117,6 +117,7 @@ def installer_command(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
+    from peach.distribution import embedded_window
     if "--data-root" in argv:
         index = argv.index("--data-root")
         if index + 1 >= len(argv):
@@ -124,6 +125,9 @@ def main(argv: list[str] | None = None) -> int:
         os.environ["PEACH_DATA_ROOT"] = argv[index + 1]
         del argv[index:index + 2]
         sys.argv = argv
+    if embedded_window():
+        from peach.native_shell import prepare_environment
+        prepare_environment()
     if len(argv) > 1 and argv[1].startswith("--installer-"):
         return installer_command(argv)
     from peach import error_reporting
@@ -151,6 +155,9 @@ def main(argv: list[str] | None = None) -> int:
             import traceback
             traceback.print_exc()
             return 1
+    if embedded_window():
+        from peach.native_shell import main as window_main
+        return window_main(argv[1:])
     return tray_main()
 
 

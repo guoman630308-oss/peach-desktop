@@ -888,7 +888,7 @@ def q_item(contract: WebContract, aid):
        既显示错条目，又反复拉计费流量。按 id 取就按 id 取。"""
     with contract.read_connection() as c:
         r = c.execute(
-            "SELECT id,location,path,name,catalog_title,original_title,creator,studio,code,"
+            "SELECT id,location,path,name,medium,catalog_title,original_title,creator,studio,code,"
             "release_date,size,duration,width,height,field_owners,mutation_revision,"
             "ctx_length,ctx_orient,snapshot_path,play_count,leave_ratio,feedback,disposal,disposal_reason,"
             "rating,o_count,play_seconds,max_reached,seek_count,region,"

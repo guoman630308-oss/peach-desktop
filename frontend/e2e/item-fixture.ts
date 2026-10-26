@@ -96,7 +96,7 @@ export interface ItemStub {
 
 const body = (request: Request) => JSON.parse(request.postData() || '{}') as Record<string, unknown>;
 
-async function stub(page: Page, catalogIds: readonly number[] = CATALOG): Promise<ItemStub> {
+export async function stubItemPage(page: Page, catalogIds: readonly number[] = CATALOG): Promise<ItemStub> {
   const state: ItemStub = { writes: [], reads: new Map() };
   const read = (path: string) => state.reads.set(path, (state.reads.get(path) || 0) + 1);
   const playlists = new Map<number, { id: number; name: string; ids: number[]; current: number | null }>([
@@ -192,7 +192,7 @@ export async function openItemPage(browser: Browser, path: string, viewport: Vie
   await page.context().addInitScript((value) => {
     localStorage.setItem('peach.settings.v1', JSON.stringify(value));
   }, { detailAutoplay: false, relatedLimit: 12, ...settings });
-  const stubbed = await stub(page, catalogIds);
+  const stubbed = await stubItemPage(page, catalogIds);
   await page.goto(new URL(path, page.url()).toString(), { waitUntil: 'load' });
   await page.locator(ready).first().waitFor({ timeout: 15_000 });
   await settle(page);

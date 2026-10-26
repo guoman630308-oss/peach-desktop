@@ -11,6 +11,7 @@ from .fc2ppvdb import FC2PPVDB, Fc2ppvdbSource
 from .javarchive import JAVARCHIVE, JavArchiveSource
 from .javbus import JAVBUS, JavBusSource
 from .javdb import JAVDB, JavDBSource
+from .javlibrary import JAVLIBRARY, JavLibrarySource
 from .javten import JAVTEN, JavtenSource
 from .onepondo import ONEPONDO, OnePondoSource
 from .r18dev import R18DEV, R18DevSource
@@ -31,12 +32,13 @@ SITE_SOURCES: dict[str, type[SiteSource]] = {
     AVBASE.name: AVBaseSource,
     JAVBUS.name: JavBusSource,
     JAVDB.name: JavDBSource,
+    JAVLIBRARY.name: JavLibrarySource,
     **WIKI_SOURCES,
 }
 
 __all__ = ["COOLDOWN_ACTIONS", "PERMANENT_REASONS", "REASON_KINDS", "SITE_SOURCES", "FailureReason", "Page",
            "Session", "SiteConfig", "SiteRecord", "SiteSource", "SourceFailure", "http_failure",
-           "AVBASE", "DMM", "FC2", "FC2CMADB", "FC2PPVDB", "JAVARCHIVE", "JAVBUS", "JAVDB", "JAVTEN", "ONEPONDO",
+           "AVBASE", "DMM", "FC2", "FC2CMADB", "FC2PPVDB", "JAVARCHIVE", "JAVBUS", "JAVDB", "JAVLIBRARY", "JAVTEN", "ONEPONDO",
            "R18DEV", "SEESAA",
            "AVBaseSource", "DmmSource", "Fc2Source", "Fc2cmadbSource", "Fc2ppvdbSource", "JavArchiveSource",
-           "JavBusSource", "JavDBSource", "JavtenSource", "OnePondoSource", "R18DevSource", "SeesaaSource"]
+           "JavBusSource", "JavDBSource", "JavLibrarySource", "JavtenSource", "OnePondoSource", "R18DevSource", "SeesaaSource"]

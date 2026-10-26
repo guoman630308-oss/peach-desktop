@@ -75,6 +75,8 @@ SOURCES = {
               "cookie": True, "session": True, "blocked_pause": 24 * 3600},
     "javbus": {"label": "JavBus", "domains": ("javbus.com",), "login": "https://www.javbus.com/", "cookie": True,
                "session": True, "blocked_pause": 6 * 3600},
+    "javlibrary": {"label": "JavLibrary", "domains": ("javlibrary.com",), "login": "https://www.javlibrary.com/cn/",
+                   "cookie": True, "session": True, "browser": True, "blocked_pause": 6 * 3600},
     # 磁力候选链。manko.fun 的页面数据来自同一产品使用的 healertanker API；Sukebei
     # 只读搜索结果。两者仍走统一的请求预算、来源冷却与域名白名单。
     "manko": {"label": "manko.fun", "domains": ("manko.fun", "healertanker.com"),

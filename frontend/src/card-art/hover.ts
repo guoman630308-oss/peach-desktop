@@ -8,6 +8,8 @@
  * 交进来：延时在计时器里还要再读一次，设置中途改了，下一拍读到的就是新值，所以不能抄一份
  * 快照。没配置时按「不拦、不延时」处理。 */
 
+import { loadLocalPlayerPolicy, prefersExternalPlayer } from '../local-player';
+
 /** 起预览前要问壳的三件事。都是取值函数，每次用时现读。 */
 export interface HoverPreviewConfig {
   /** 多选模式开着：这时不起预览。 */
@@ -106,11 +108,15 @@ export function wireHover(el: HTMLElement, it: HoverItem): void {
     card._stopHover = stop; el.addEventListener('mouseleave', stop);
     return;
   }
-  let timer: ReturnType<typeof setTimeout> | undefined, v: HoverVideo | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined, v: HoverVideo | null = null, hoverEpoch = 0;
   el.addEventListener('mouseenter', () => {
-    if (config.selecting() || config.censored() || scrolling()) return;   // 多选、遮挡或滚动中不启动预览
-    timer = setTimeout(() => {
-      if (scrolling() || config.censored()) return;
+    if (config.selecting() || config.censored() || scrolling() || prefersExternalPlayer()) return;
+    const epoch = ++hoverEpoch;
+    timer = setTimeout(async () => {
+      // 首次悬停也先读播放器设置，避免尚未打开详情时触发整片转码。
+      try { await loadLocalPlayerPolicy() } catch { return }
+      if (epoch !== hoverEpoch || !el.isConnected || scrolling() || config.selecting()
+        || config.censored() || prefersExternalPlayer()) return;
       releaseHoverPreviews(document, el);   // 同一时间只保留一个本地视频预览
       const video = document.createElement('video') as HoverVideo;
       v = video;
@@ -127,6 +133,7 @@ export function wireHover(el: HTMLElement, it: HoverItem): void {
     }, 340);                         // 340ms 防抖，鼠标划过不触发
   });
   const stop = () => {
+    hoverEpoch += 1;
     clearLong();
     clearTimeout(timer); timer = undefined;
     if (v) { if (v._hop) clearInterval(v._hop); v.pause(); v.removeAttribute('src'); v.load(); v.remove(); v = null; }

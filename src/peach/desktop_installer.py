@@ -20,10 +20,11 @@ import time
 
 from . import distribution
 
-APP_ID = "02D9748A-78F6-4866-AC75-918177194DAB"
+APP_ID = ("A74968D7-59A0-4DE7-B288-079EF3E03ED7" if distribution.embedded_window()
+          else "02D9748A-78F6-4866-AC75-918177194DAB")
 UNINSTALL_KEY = rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\{{{APP_ID}}}_is1"
 #: 开始菜单项的文件名，与 `.iss` 的 `[Icons]` 一致。
-MENU_SHORTCUT = "Peach.lnk"
+MENU_SHORTCUT = "Peach 独立窗口测试版.lnk" if distribution.embedded_window() else "Peach.lnk"
 _UNINSTALLER = re.compile(r"unins\d{3}\.(?:exe|dat|msg)", re.IGNORECASE)
 
 

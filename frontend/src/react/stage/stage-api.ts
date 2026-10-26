@@ -10,6 +10,8 @@ export type StageHost = StagePlayerHost;
 /** 打开作品详情。动作里没有 `mountPlayer`：媒体框交给舞台自己的播放器。 */
 export interface StageItemRequest extends Omit<ItemDetailProps, 'actions'> {
   kind: 'item';
+  /** 队列在写入详情地址前已收到主动打开意图。 */
+  externalAutoplay?: boolean;
   actions: Omit<ItemDetailActions, 'mountPlayer'>;
   /** 深链带 `?t=` 进来：第一次挂上这一条时从这一刻接着放。 */
   resume?: PlayerResume | null;

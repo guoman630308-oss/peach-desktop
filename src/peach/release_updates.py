@@ -46,7 +46,8 @@ def check(*, transport=None) -> dict:
                 continue
             tag = row["tag_name"]
             assets = row.get("assets") or []
-            prefix = f"Peach-{tag.removeprefix('v')}-windows-x64"
+            product = 'PeachDesktop' if distribution.embedded_window() else 'Peach'
+            prefix = f"{product}-{tag.removeprefix('v')}-windows-x64"
             uploaded = {a.get("name"): a for a in assets if isinstance(a, dict) and a.get("state") == "uploaded"}
             full = uploaded.get(prefix + ".zip")
             if full is None:
@@ -55,7 +56,8 @@ def check(*, transport=None) -> dict:
             asset = uploaded.get(prefix + "-update.zip", full) if complete_tools else full
             releases.append((version, tag, asset, full))
         if not releases:
-            return dict(result, state="empty", message="暂未找到可下载的测试版。")
+            message = '独立窗口测试版请使用配套安装包更新。' if distribution.embedded_window() else '暂未找到可下载的测试版。'
+            return dict(result, state="empty", message=message)
         version, tag, asset, full = max(releases, key=lambda item: item[0])
         current = _version(result["current_version"])
         if current is None:

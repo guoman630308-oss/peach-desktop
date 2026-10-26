@@ -1,5 +1,30 @@
 # 复用清单
 
+## JavLibrary 浏览器来源
+
+`sources.javlibrary` 复用现有 SiteSource／SiteRecord、Beautiful Soup 4.15.0（MIT）、SourceTransport 与 BrowserTransport，不增加运行依赖、浏览器运行时或 JSON 代理。字段边界参考已固定的 amane 0.20.0（revision `cc42cee6ecf290cf05af1caa347d2dc2d5aeffcd`，GPL-3.0）JavLibrary 采集器；该桥自身的 HTTP 会话无法复用 Peach 的人工验证窗口，因此保留原生站点适配器，传输与验证交给现有公共层。适配器解析搜索与详情，核对完整番号并拒绝站外详情链接；搜索直接返回详情页时不重复请求。
+
+普通 HTTP 请求的只读实测返回 403；用户手动通过浏览器人机验证后，单作品只读查询取得了番号一致的标题、演员与封面地址。该样本不证明全站覆盖或会话长期有效。人工等待按现有浏览器预算结算，验证超时与页面变形不会记成无作品。隔离用例覆盖单结果跳转、错号、站外链接、验证与登录页面、未知结构、私网图片地址及人工等待预算。资料沿用社区来源复核、冷却与备用来源；封面沿用现有来源和图像检查。
+
+## 本机外部播放器
+
+Windows 外部播放复用系统注册表的 App Paths 发现 PotPlayer，Python 3.14 标准库
+[`subprocess.Popen`](https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen)（PSF）以参数数组启动程序，
+不经命令解释器，无新增依赖与分发体积。偏好复用 `fsutil.atomic_write_text`，媒体定位复用 MediaEngine
+的授权根目录检查，在线播放复用限时 HMAC 与既有关注代理。Peach 仅负责本机权限检查、播放器选择
+和启动反馈，解码及外部播放进度留在播放器内。本地隔离用例覆盖参数、拒绝越界、模式保存及观看记录不变；
+浏览器用例覆盖常规视频入口、手动内置播放和桌面／手机控件几何。
+
+## Windows WebView2 独立窗口
+
+窗口采用 pywebview 6.2.1（BSD-3-Clause）与 Python.NET 3.2.1（MIT），传递依赖由 `uv.lock` 固定。PyPI 发布元数据已核对，Python.NET 声明支持 Python 3.14；Windows CPython 3.14.9 与本机 WebView2 的隐藏窗口及 JavaScript 执行已通过实测。实现源码核对覆盖 pywebview 的 WinForms、EdgeChromium、关闭事件、页面下载与原生窗口接口。
+
+运行包增加窗口绑定与互操作程序集，复用系统安装的 WebView2，不打包整套 Chromium。依赖许可证随包内分发元数据保留。依据 [pywebview 窗口生命周期](https://pywebview.flowrl.com/guide/usage.html)和[微软 WebView2 分发要求](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)，运行不依赖完整 Edge 浏览器。当前树和 Git 历史没有可复用的 WebView2 窗口宿主；Qt/Electron 引入另一套体积更大的运行环境，本实现使用现有 Python 服务与系统运行组件。
+
+Peach 只持有窗口策略、认证的本机控制指令、原版托盘回调以及包身份。托盘、服务归属、健康检查、首次设置、CLI、日志和任务生命周期复用原版。WebView2 独立 Cookie 与配置目录、下载、原生全屏和外部网址处理属于窗口适配面。默认采用独立安装与资料标识；不迁移真实账本或共享个人凭据。
+
+Windows 的系统代理补齐复用标准库 `urllib.request.getproxies_registry`。启动环境只有 `NO_PROXY` 时，窗口把系统代理路由补进本进程环境，并保留系统与环境两处的绕过规则；已有显式代理时不补齐。代理优先级依据 [Python 的 getproxies 说明](https://docs.python.org/3.14/library/urllib.request.html#urllib.request.getproxies)，绕过规则交给 HTTPX 处理，不另写代理解析器。amane 桥的脚本、清单和锁文件随独立包分发，运行环境仍由原版安装流程管理。
+
 ## 检查输入与源码文案
 
 测试差异复用 Git 文件快照、Python AST、标准库 TOML/JSON 解析器及现有 filelock。Python 注释和清单说明字段通过有效内容比较识别；真实依赖、执行模式和无法解析的输入保留完整验证。完整批次按测试文件保存结果，仅补齐受影响范围，不延长结果有效期。
@@ -43,6 +68,8 @@ Peach 保留页面粗提取与身份冲突提示，服务端复用 `catalog_rule
 显示层复用 SQLite `ledger_revision` 触发器、候选与图片目录版本，以及 TanStack Query 5.104.3（MIT）查询失效和任务轮询；不新增推送服务或依赖。应用根按结果版本刷新相关读缓存，任务心跳不使资料失效；慢请求期间的新版本排队，保留当前内容。资源同步扫描同时显示已完成来源，清理仍需完整扫描和确认。隔离账本、暂停的来源调用与手动放行的 Promise 验证中间结果可见及中断保留；无真实抓取或真实 ledger 写入。
 
 ## STRM 与挂载来源
+
+单文件入库复用 `scan.ingest_path` 与统一处理任务的 `asset_ids` 范围，文件选择复用现有系统选择窗口及互斥锁；目录、文件类型与本机调用权限由服务端校验。临时账本覆盖同目录多视频、重复入库、无效范围与失效候选，页面使用既有表单、弹层和任务查询，不新增依赖。
 
 STRM 采用文本指针、播放时解析的通用行为，参考 SmartStrm 文档、OpenList 的 `drivers/strm` 与 Jellyfin 的 STRM 探测入口；固定 revision、许可证与实际读取位置见 [取证记录](reference-snapshots/strm-source-evidence.md)。SmartStrm 核心闭源，源码未取得。Peach 独立实现受限 HTTP(S) 指针，复用 HTTPX、现有 Range 传输、`m3u8` 解析与播放器计划；无新增运行依赖，也不复制上游应用代码。
 
@@ -573,6 +600,7 @@ A 盘垃圾隔离使用短名称 `peach-purge-<32 位 UUID>.peach-quarantine`，
 | 照片灯箱轮播 | Swiper 14.3.0（MIT，本地固定版本，按需加载 CSS／JS）的 Thumbs / Keyboard / Zoom 模块，由 React 灯箱（`frontend/src/react/photo-lightbox/`）只经核心 API 驱动，不用 Swiper 的 React 封装 | 样式与脚本都就绪才构造轮播，保留 scoped 单 slide 结构样式防首载重叠；Swiper 管轮播、键盘、缩放与缩略图，Peach 管图集来源与顺序、缩略图居中、相对原图百分比、适应窗口／原大小、缩略图缓存与计费口径；图片墙是 CSS 网格，不经 Swiper |
 | 浏览器历史 | `react-router` 8.4.0（MIT）的 `createBrowserHistory`（`v5Compat`），由主包里的共享源码提供（`frontend/src/history/`）；不用 `history` 5.3.0（2022 年后不再发版、另带 `@babel/runtime`，条目格式与 React Router 内置的那份并存） | 壳写地址的入口 `shellNavigate`：路径按当前地址解析，清理地址时透传当前条目的状态；一建好就接上唯一的监听位再分发，每次变化领一个导航序号 `seq`，认领写地址保持页面打开序号、无人认领时领新 `openEpoch`；页面元素按页面打开序号挂 key，覆盖元素按 `seq` 挂 key。`useRouteOpen` 在 `pageOpens` 就绪后排进微任务，普通点卡交一次性请求，`initialOverlayOpened` 只允冷启动首次打开；队列由 `QueueRequests` 读 `queueOpens` 接手意图，取齐实际条目后才写地址。背景由条目记下，启动不读，后退前进按条目恢复 |
 | 客户端导航 | `react-router` 8.4.0 的 `<Router>`（Declarative 模式）与 `<Routes>`，`navigator` 是上面那一份历史（`frontend/src/react/router/`）；不用 `unstable_HistoryRouter`：它把更新包进 `startTransition`，接连两次变化并成一次渲染 | 每条路径都有元素，按匹配打开；每次没人认领的历史变化领一个页面打开序号，元素按代次重挂重取或就地推（`managed-routes.tsx`、`router/pages/`） |
+| 页面返回 | 共享 React Router 8.4.0（MIT）历史的 `go(delta)`、条目 `key` 和 TanStack Query 的分页缓存 | 侧栏复用既有图标按钮；名册按历史条目保存位置与页数，返回时复用缓存，过期时按原页数取齐，完成显示后恢复滚动。关闭详情只跨过当前会话已知的连续详情条目，回到匹配的原页面；未知历史以 replace 返回。历史恢复的详情不自动唤起外部播放器，主动打开仍按偏好播放。复用现有依赖源码与历史测试，无新增依赖或持久数据字段 |
 | 导航排序 | 浏览器原生 HTML Drag and Drop，侧栏 `sidebar/sidebar-island.tsx` 与设置面板 `settings-panel/sidebar-order.tsx` 各接一份 | 桌面鼠标直接拖动、落点提示、上下移动按钮作为键盘与触屏回退、`localStorage` 持久化；不为单列排序引入额外运行时依赖 |
 | 播放列表队列拖动排序 | `frontend/src/ui-kit/controls.ts` 的 `wireDragReorder()`，详情页岛经 `helpers.wireDragReorder` 调用 | `dragstart` 标记被拖行，`dragover` 按指针在行的上半或下半给落点线，`drop` 把整份新顺序交给调用方落库；落点线、抓手与焦点样式在共用件里 |
 | 图标 | 固定版本的本地 Lucide 子集；Health Icons 24 px outline（CC0）用于领域图标；Phosphor regular 填充字形（MIT）只用在描边说不清的地方（字母表 Aa、播放列表） | 标签、状态和交互设计 |
@@ -674,6 +702,10 @@ Python 复用 MIT 许可的 [Ruff](https://docs.astral.sh/ruff/) 0.17.0，版本
 
 多维偏好复用行为计权、genre 归一和 `related.rank_related` 的 MMR；`taste_preferences` 保存规范身份、证据种类及候选强度。持久缓存复用 `fsutil.atomic_write_text`，按账本、历史库及规则源码版本失效，只读历史连接忽略没有数据帧的 WAL。名称扫描采用 [pyahocorasick 2.3.1](https://github.com/WojciechMula/pyahocorasick)（BSD-3-Clause，Unicode，Python 3.12–3.14，Windows/macOS/Linux）；已读固定版 C 实现，Windows CPython 3.14 wheel 实装通过，新增仅此直接依赖。长标题、多别名、重叠名字及 ASCII 词边界由 Peach 约束。真实只读汇总覆盖七类维度；偏好候选和私有缓存不改写 ledger。
 
+## 页面请求取消
+
+共享 `apiGet` 与 `apiSend` 复用浏览器原生 [`AbortSignal.throwIfAborted`](https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted)。读取响应体后核对信号，已取消的请求抛出取消原因，不注册实体、不提交空结果或迟到回执。HTTP 非成功状态及非 JSON 错误响应沿用 `ApiError`。单元测试使用真实 `AbortController` 覆盖读取中断、读取完成后取消以及 GET、POST 两类请求，无新增依赖、端点或持久数据字段。
+
 ## 卡片与来源头像
 
 回收站复用 `MediaCard`、`/api/batch` 与共享操作回执，视频和资源共用还原按钮及原位失败提示。`asset.disposal_reason` 保存手动、垃圾、重复和文件缺失；还原清空原因，撤销按原原因归组写回，未知原因保持为空。无新增依赖。
@@ -706,6 +738,8 @@ Python 复用 MIT 许可的 [Ruff](https://docs.astral.sh/ruff/) 0.17.0，版本
 目录列表与 `SidecarIndex` 在本趟任务内复用，每个目录建一次文件名索引；同名、共享 NFO 与编号图片的归属沿用 `library_nfo`。500 个视频、1,000 个目录条目的隔离夹具中，逐项匹配耗时约 1.01 秒，复用索引约 0.007 秒，输出一致；该数字仅反映文件名匹配，不代表网盘读取或整趟耗时。配套图片与免费来源的媒体属性探测复用标准库 `ThreadPoolExecutor`，三档各领 1、2、4 项，空闲后补位，主线程保存结果并经过暂停停点；计费来源的媒体读取限制与各资料站限流保持原策略。不同阶段仍按实际依赖推进，界面步骤仅展示这些边界。
 
 `_RemoteSession` 按来源与番号复用本趟新取得的原始证据及明确未收录答复；重试首个同番号资产取得新答复，其余资产共用。来源错误和超时仍可重试，不记为未收录。复用结果逐资产生成候选，字段仍经过既有来源和冲突判据，不直接复制其他资产的真相字段。自定义来源配置实时读取，停用和字段映射变化立即生效。
+
+封面复用 `prestige_group_images`、`best_cover`、尺寸探测与下载候选链。Prestige 与 MGStage 的冷却各自处理，可用目录或已知图片继续参与；单张候选的主机冷却时领取下一张，全部候选冷却仍保留可重试状态。Prestige 系番号的默认资料链通过 `route_for_code` 加入 MGStage 备用，官方档按现有冷却记录筛选可请求站点，字段继续按片商优先级结算；显式来源链覆盖不自动追加。其余类型沿用原来源链，全部流程保留来源间隔、共享动作截止时间、作品身份与封面互证，不新增依赖。
 
 卡片与任务浮层的等待时长以服务端快照为起点，用浏览器单调时钟每秒推进当前文字。新快照重设起点，暂停、结束和卸载清理定时器；每秒重渲染限定在进度子树，不改变两秒一次的状态请求。组件测试核对连续秒数、请求数、换文件复位和卸载清理，桌面与手机浏览器验证实际跳秒。
 

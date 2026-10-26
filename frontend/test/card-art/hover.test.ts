@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { configureHoverPreview, releaseHover, releaseHoverPreviews, wireHover } from '../../src/card-art/hover';
+import { rememberLocalPlayerPolicy, resetLocalPlayerPolicy } from '../../src/local-player';
 
 const settings = { hoverDelaySeconds: 0, selecting: false, censored: false };
 
@@ -17,6 +18,7 @@ const enter = (el: HTMLElement) => el.dispatchEvent(new MouseEvent('mouseenter')
 const leave = (el: HTMLElement) => el.dispatchEvent(new MouseEvent('mouseleave'));
 
 beforeEach(() => {
+  rememberLocalPlayerPolicy({ available: true, mode: 'internal', executable: '', label: 'PotPlayer' });
   Object.assign(settings, { hoverDelaySeconds: 0, selecting: false, censored: false });
   configureHoverPreview({
     selecting: () => settings.selecting,
@@ -27,6 +29,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  releaseHoverPreviews();
+  vi.unstubAllGlobals();
+  resetLocalPlayerPolicy();
   vi.useRealTimers();
   document.body.replaceChildren();
 });
@@ -120,21 +125,70 @@ describe('远端源只扫接触印相', () => {
 });
 
 describe('本地文件拉真视频', () => {
-  it('停 340 ms 才起一段静音视频，同一时间只留一个', () => {
+  it('默认外部播放时悬停不创建内置视频流', () => {
+    rememberLocalPlayerPolicy({ available: true, mode: 'external', executable: '', label: 'PotPlayer' });
+    const el = card();
+    wireHover(el, { id: 1, location: 'local' });
+    enter(el);
+    vi.advanceTimersByTime(1000);
+    expect(el.querySelector('video')).toBeNull();
+  });
+
+  it('首次悬停等外部播放器设置返回后也不创建视频', async () => {
+    resetLocalPlayerPolicy();
+    let respond!: (value: Response) => void;
+    const fetcher = vi.fn((_url: string) => new Promise<Response>(resolve => { respond = resolve }));
+    vi.stubGlobal('fetch', fetcher);
+    const el = card();
+    wireHover(el, { id: 1, location: 'local' });
+    enter(el);
+    await vi.advanceTimersByTimeAsync(340);
+    expect(el.querySelector('video')).toBeNull();
+    expect(fetcher.mock.calls[0]?.[0]).toBe('/api/configuration/local-player');
+    respond(Response.json({ available: true, mode: 'external', executable: '', label: 'PotPlayer' }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.querySelector('video')).toBeNull();
+  });
+
+  it('等播放器设置时离开卡片，迟到的响应不启动预览', async () => {
+    resetLocalPlayerPolicy();
+    let respond!: (value: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { respond = resolve })));
+    const el = card();
+    wireHover(el, { id: 1, location: 'local' });
+    enter(el);
+    await vi.advanceTimersByTimeAsync(340);
+    leave(el);
+    respond(Response.json({ available: true, mode: 'internal', executable: '', label: 'PotPlayer' }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(el.querySelector('video')).toBeNull();
+  });
+
+  it('读不到播放器设置时不发起视频流', async () => {
+    resetLocalPlayerPolicy();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
+    const el = card();
+    wireHover(el, { id: 1, location: 'local' });
+    enter(el);
+    await vi.advanceTimersByTimeAsync(340);
+    expect(el.querySelector('video')).toBeNull();
+  });
+
+  it('停 340 ms 才起一段静音视频，同一时间只留一个', async () => {
     const first = card();
     const second = card();
     wireHover(first, { id: 1, location: 'local' });
     wireHover(second, { id: 2, location: 'local' });
     expect(first.dataset.hoverMode).toBe('video');
     enter(first);
-    vi.advanceTimersByTime(339);
+    await vi.advanceTimersByTimeAsync(339);
     expect(first.querySelector('video.hv')).toBeNull();
-    vi.advanceTimersByTime(1);
+    await vi.advanceTimersByTimeAsync(1);
     const video = first.querySelector<HTMLVideoElement>('video.hv');
     expect(video?.getAttribute('src')).toBe('/stream?id=1');
     expect(video?.muted).toBe(true);
     enter(second);
-    vi.advanceTimersByTime(340);
+    await vi.advanceTimersByTimeAsync(340);
     expect(first.querySelector('video.hv')).toBeNull();
     expect(second.querySelector('video.hv')).not.toBeNull();
   });

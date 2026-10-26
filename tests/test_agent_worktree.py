@@ -446,7 +446,9 @@ class LeftoverProcessTests(_WorktreeCase):
 
     def sleeper(self, cwd: Path) -> subprocess.Popen:
         cwd.mkdir(parents=True, exist_ok=True)
-        child = subprocess.Popen([sys.executable, "-c", "import sys; sys.stdin.read()"],
+        # 持有工作目录的是实际解释器，进程探测夹具直接跟踪它的 PID。
+        interpreter = getattr(sys, '_base_executable', sys.executable)
+        child = subprocess.Popen([interpreter, "-c", "import sys; sys.stdin.read()"],
                                  cwd=cwd, stdin=subprocess.PIPE)
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
