@@ -11348,7 +11348,7 @@ async function H(e, t) {
 	try {
 		r = await n.json();
 	} catch {}
-	if (!n.ok) throw new yn(bn(r) || `请求失败（${n.status}）`, n.status);
+	if (t?.throwIfAborted(), !n.ok) throw new yn(bn(r) || `请求失败（${n.status}）`, n.status);
 	return Et(e, r), r;
 }
 async function U(e, t, n = "POST", r) {
@@ -11365,7 +11365,7 @@ async function U(e, t, n = "POST", r) {
 	try {
 		a = await i.json();
 	} catch {}
-	if (!i.ok) throw new yn(bn(a) || `请求失败（${i.status}）`, i.status, a);
+	if (r?.throwIfAborted(), !i.ok) throw new yn(bn(a) || `请求失败（${i.status}）`, i.status, a);
 	return a;
 }
 //#endregion

@@ -31,6 +31,7 @@ PeachDesktop 在本机管理影片、人物、番号、标签和观看相关资�
 | 来源与采集边界 | JavLibrary 进入既有社区来源链；人工验证等待计入可豁免时间；已改变文件路径的旧候选不阻止重新采集 | `src/peach/community_catalog.py`、`src/peach/library_processing.py`、`src/peach/scraping_access.py` |
 | 资料目录与 Windows 选取器 | 窗口资料落点和重定向复用原版目录机制，文件选取适配 Windows 路径 | `src/peach/settings_file.py`、`src/peach/folder_picker.py` |
 | 返回与阅读位置 | 关闭视频回到原页面条目；按历史条目保存名册页数与滚动位置，返回时恢复筛选和已加载内容；历史恢复的视频由按钮启动外部播放 | `frontend/src/history/index.ts`、`frontend/src/application/media.js`、`frontend/src/application/follow.js`、`frontend/src/react/stage/local-player.tsx`、`frontend/src/react/index/index-data.ts` |
+| 页面切换的请求取消 | 读取 JSON 响应体后核对中止信号，取消的空结果与迟到数据不参与列表或回执更新 | `frontend/src/api.ts`、`frontend/test/api-import.test.ts` |
 | 侧栏外观与高亮 | 返回图标无常态边框，颜色复用侧栏开合按钮；灰色高亮标记当前选中项，悬停及离开保持落点 | `frontend/src/application/chrome.js`、`frontend/src/react/sidebar/sidebar-island.tsx`、`frontend/src/react/sidebar/sidebar.css` |
 
 ## 资源使用与性能

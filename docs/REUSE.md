@@ -702,6 +702,10 @@ Python 复用 MIT 许可的 [Ruff](https://docs.astral.sh/ruff/) 0.17.0，版本
 
 多维偏好复用行为计权、genre 归一和 `related.rank_related` 的 MMR；`taste_preferences` 保存规范身份、证据种类及候选强度。持久缓存复用 `fsutil.atomic_write_text`，按账本、历史库及规则源码版本失效，只读历史连接忽略没有数据帧的 WAL。名称扫描采用 [pyahocorasick 2.3.1](https://github.com/WojciechMula/pyahocorasick)（BSD-3-Clause，Unicode，Python 3.12–3.14，Windows/macOS/Linux）；已读固定版 C 实现，Windows CPython 3.14 wheel 实装通过，新增仅此直接依赖。长标题、多别名、重叠名字及 ASCII 词边界由 Peach 约束。真实只读汇总覆盖七类维度；偏好候选和私有缓存不改写 ledger。
 
+## 页面请求取消
+
+共享 `apiGet` 与 `apiSend` 复用浏览器原生 [`AbortSignal.throwIfAborted`](https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted)。读取响应体后核对信号，已取消的请求抛出取消原因，不注册实体、不提交空结果或迟到回执。HTTP 非成功状态及非 JSON 错误响应沿用 `ApiError`。单元测试使用真实 `AbortController` 覆盖读取中断、读取完成后取消以及 GET、POST 两类请求，无新增依赖、端点或持久数据字段。
+
 ## 卡片与来源头像
 
 回收站复用 `MediaCard`、`/api/batch` 与共享操作回执，视频和资源共用还原按钮及原位失败提示。`asset.disposal_reason` 保存手动、垃圾、重复和文件缺失；还原清空原因，撤销按原原因归组写回，未知原因保持为空。无新增依赖。
