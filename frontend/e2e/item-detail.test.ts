@@ -697,7 +697,7 @@ describe('作品详情岛', () => {
     }
   });
 
-  it('接着看：一排卡按相关作品的顺序；点一张原地换到那一条', { timeout: 60_000 }, async () => {
+  it('接着看：按相关作品顺序换条，关闭回到原页面', { timeout: 60_000 }, async () => {
     const opened = await openItemPage(browser, `/assets/${ITEM.plain}`, DESKTOP);
     try {
       const page = opened.page;
@@ -713,6 +713,9 @@ describe('作品详情岛', () => {
       }, before, { timeout: 10_000 });
       await page.locator(DETAIL_READY).waitFor();
       assert.deepEqual(await stageKept(page), { same: true, skeleton: false, focused: true }, '接着看换一条重开了浮窗');
+      await page.locator('#closeStage').click();
+      await pathIs(page, '/');
+      assert.equal(await page.locator('#stage[open]').count(), 0);
       assert.deepEqual(withoutPlayer(opened.problems), []);
     } finally {
       await opened.close();

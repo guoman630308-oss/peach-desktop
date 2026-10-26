@@ -157,6 +157,7 @@ describe('侧栏岛', () => {
     try {
       await page.locator('#drawer [data-sidebar-group="内容标签"] [data-follow-drawer-tag]').first().waitFor({ state: 'attached', timeout: 10_000 });
       const listed = await chips(page, '内容标签');
+      const listTitle = await page.title();
       const shown = await page.locator('[data-follow-list] > [data-follow-item]').count();
       assert.ok(listed.length > 1, '关注页的标签组是空的');
       assert.ok(listed.every(([, count]) => Number(count) >= 1), `关注页有标签没带计数：${JSON.stringify(listed)}`);
@@ -171,6 +172,7 @@ describe('侧栏岛', () => {
       await page.waitForFunction((count) => document.querySelectorAll('#drawer [data-follow-drawer-tag]').length === count,
         listed.length, { timeout: 5_000 });
       assert.deepEqual(await chips(page, '内容标签'), listed, '关掉详情之后关注页的标签计数变了');
+      assert.equal(await page.title(), listTitle, '关闭详情恢复列表标题');
 
       /* 抽屉里的关注标签是单选：点一枚就只按这一枚筛，抽屉随之收起，让出来的是筛过的列表。 */
       await openGroup(page, '内容标签');

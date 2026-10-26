@@ -45,7 +45,8 @@ let current: Navigation = { action: browser.action, location: browser.location, 
 const listeners = new Set<NavigationListener>();
 /* `claiming` 只在 `shellNavigate` 写地址那一下为真。 */
 let claiming = false;
-let returningTo: number | null = null;
+interface PageReturn { index: number; reopen: boolean; onReturn?: (() => void) | undefined }
+let returningTo: PageReturn | null = null;
 /* 还停在页面加载时的那一条上：之后只经 replace 改写过（清理启动地址、页内写参数），没 push、没后退前进。 */
 let onBootEntry = true;
 interface PagePosition { left: number; top: number; pages?: number }
@@ -70,13 +71,15 @@ browser.listen(({ action, location }) => {
     if (action === 'PUSH') for (const key of knownEntries.keys()) if (key >= index) knownEntries.delete(key);
     knownEntries.set(index, { pathname: location.pathname, search: location.search });
   }
-  const claimed = claiming || (action === 'POP' && returningTo !== null && index === returningTo);
+  const returned = action === 'POP' && index === returningTo?.index ? returningTo : null;
+  const claimed = claiming || !!returned && !returned.reopen;
   returningTo = null;
   seq += 1;
   if (!claimed) openEpoch += 1;
   if (action !== 'REPLACE') onBootEntry = false;
   current = { action, location, seq, openEpoch, claimed };
   for (const listener of [...listeners]) listener(current);
+  returned?.onReturn?.();
 });
 
 function canonicalTo(to: To): To {
@@ -131,7 +134,9 @@ export const bootEntry = (): boolean => onBootEntry;
 export const canGoBack = (): boolean => Number(window.history.state?.idx) > 0;
 
 /** 关闭详情时跨过连续的详情条目，回到原来那一份页面，保留条目上的列表页数与位置。 */
-export function returnToHistoryPage(path: string, { reopen = false }: { reopen?: boolean } = {}): boolean {
+export function returnToHistoryPage(path: string, { reopen = false, onReturn }: {
+  reopen?: boolean; onReturn?: () => void;
+} = {}): boolean {
   const index = window.history.state?.idx;
   if (!Number.isInteger(index) || !isOverlayPath(current.location.pathname)) return false;
   const source = new URL(path, window.location.href);
@@ -142,7 +147,7 @@ export function returnToHistoryPage(path: string, { reopen = false }: { reopen?:
     if (!entry) return false;
     if (isOverlayPath(entry.pathname)) continue;
     if (entry.pathname !== target.pathname || entry.search !== target.search) return false;
-    returningTo = reopen ? null : at;
+    returningTo = { index: at, reopen, onReturn };
     peachHistory.go(at - index);
     return true;
   }

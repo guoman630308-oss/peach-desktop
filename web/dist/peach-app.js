@@ -34793,15 +34793,16 @@ dk.listen(({ action: e, location: t }) => {
 			search: t.search
 		});
 	}
-	let o = gk || e === "POP" && _k !== null && a === _k;
-	_k = null, fk += 1, o || (pk += 1), e !== "REPLACE" && (vk = !1), mk = {
+	let o = e === "POP" && a === _k?.index ? _k : null, s = gk || !!o && !o.reopen;
+	_k = null, fk += 1, s || (pk += 1), e !== "REPLACE" && (vk = !1), mk = {
 		action: e,
 		location: t,
 		seq: fk,
 		openEpoch: pk,
-		claimed: o
+		claimed: s
 	};
 	for (let e of [...hk]) e(mk);
+	o?.onReturn?.();
 });
 function Sge(e) {
 	if (typeof e == "string") return QO(new URL(e, window.location.href).href);
@@ -34841,16 +34842,20 @@ function Sk(e, { replace: t = !1, state: n } = {}) {
 	}
 }
 var Ck = () => vk, Cge = () => Number(window.history.state?.idx) > 0;
-function wk(e, { reopen: t = !1 } = {}) {
-	let n = window.history.state?.idx;
-	if (!Number.isInteger(n) || !WO(mk.location.pathname)) return !1;
-	let r = new URL(e, window.location.href);
-	if (r.origin !== window.location.origin) return !1;
-	let i = new URL(QO(r.href), window.location.href);
-	for (let e = n - 1; e >= 0; --e) {
-		let r = bk.get(e);
-		if (!r) return !1;
-		if (!WO(r.pathname)) return r.pathname !== i.pathname || r.search !== i.search ? !1 : (_k = t ? null : e, xk.go(e - n), !0);
+function wk(e, { reopen: t = !1, onReturn: n } = {}) {
+	let r = window.history.state?.idx;
+	if (!Number.isInteger(r) || !WO(mk.location.pathname)) return !1;
+	let i = new URL(e, window.location.href);
+	if (i.origin !== window.location.origin) return !1;
+	let a = new URL(QO(i.href), window.location.href);
+	for (let e = r - 1; e >= 0; --e) {
+		let i = bk.get(e);
+		if (!i) return !1;
+		if (!WO(i.pathname)) return i.pathname !== a.pathname || i.search !== a.search ? !1 : (_k = {
+			index: e,
+			reopen: t,
+			onReturn: n
+		}, xk.go(e - r), !0);
 	}
 	return !1;
 }
@@ -110374,7 +110379,7 @@ function _9(e = !1, t = !1, { miniplayer: n = !0, preserveQueueRequest: r = null
 		detailOriginAnchor: null,
 		detailOriginAbove: !1,
 		detailReturnNeedsRestore: !1
-	}), K7(), e && !wk(el || "/") && $.route(el || "/", !0);
+	}), K7(), e && !wk(el || "/", { onReturn: t9 }) && $.route(el || "/", !0);
 }
 function O_t() {
 	M5()?.repaintPoster();
@@ -110382,7 +110387,7 @@ function O_t() {
 function v9(e, t, n, r, i = null, a = {}) {
 	t = +t;
 	let o = il?.kind === e && (e === "playlist" ? il.playlistId : il.seedId) === t;
-	r && !o && bl({ detailReturnPath: location.pathname + location.search }), r && JO();
+	r && !o && !WO(location.pathname) && bl({ detailReturnPath: location.pathname + location.search }), r && JO();
 	let s = e === "playlist" ? {
 		kind: e,
 		playlistId: t,
@@ -110419,12 +110424,12 @@ function N_t() {
 async function y9(e, t = !0, n = null, r = null, i = !1, a = null) {
 	if (a?.cancelled) return;
 	if (a || E9(), t && !n) {
-		bl({ detailReturnPath: location.pathname + location.search }), D9("/assets/" + +e, "item", () => y9(e, !1, null, r));
+		WO(location.pathname) || bl({ detailReturnPath: location.pathname + location.search }), D9("/assets/" + +e, "item", () => y9(e, !1, null, r));
 		return;
 	}
 	Ac(), e = e == null ? null : +e;
 	let o = r?.isConnected ? r : tl?.isConnected ? tl : null, s = r?.isConnected ? r.getBoundingClientRect().top + r.getBoundingClientRect().height / 2 > window.innerHeight / 2 : nl, c = N_t(), l = rl || !t && !c, u = Kc.type === "item" ? qc : r7.cloneBarsContext(o7());
-	t ? bl({ detailReturnPath: location.pathname + location.search }) : i || bl({ detailReturnPath: XO() || el }), t && JO(), M5()?.showing() !== "item" && _9(!1, !0, {
+	t ? WO(location.pathname) || bl({ detailReturnPath: location.pathname + location.search }) : i || bl({ detailReturnPath: XO() || el }), t && JO(), M5()?.showing() !== "item" && _9(!1, !0, {
 		miniplayer: !1,
 		preserveQueueRequest: a
 	}), bl({
@@ -110471,11 +110476,14 @@ async function P_t() {
 	await D_t(), _9(!1, !1, { miniplayer: !1 }), bl({ detailReturnBarsContext: null }), YO(), bl({ barsContext: e || {
 		type: "home",
 		filters: G
-	} }), wk(t, { reopen: new URL(t, location.href).pathname === "/playlists" }) ? t9() : n && $.managedPagePath(new URL(t, location.href).pathname) ? $.navigatePath(t, !0) : ($.route(t, !0), n ? bl({ pageOpens: dl + 1 }) : (t9(), location.pathname === "/playlists" && bl({ pageOpens: dl + 1 })));
+	} }), !wk(t, {
+		reopen: new URL(t, location.href).pathname === "/playlists",
+		onReturn: t9
+	}) && (n && $.managedPagePath(new URL(t, location.href).pathname) ? $.navigatePath(t, !0) : ($.route(t, !0), n ? bl({ pageOpens: dl + 1 }) : (t9(), location.pathname === "/playlists" && bl({ pageOpens: dl + 1 }))));
 }
 async function b9(e, t = !0) {
 	if (t) {
-		bl({ detailReturnPath: location.pathname + location.search }), D9("/works/" + encodeURIComponent(e), "jav", () => b9(e, !1));
+		WO(location.pathname) || bl({ detailReturnPath: location.pathname + location.search }), D9("/works/" + encodeURIComponent(e), "jav", () => b9(e, !1));
 		return;
 	}
 	let n = xk.navigation.seq, r = r7.cloneBarsContext(o7()), i = !N_t(), a = XO() || (i ? "/jav?tab=discover" : el) || "/jav?tab=discover";
@@ -111027,7 +111035,9 @@ async function L9(e, t = !0, n = null, r = !1) {
 	}), K7();
 }
 async function X_t() {
-	await D_t(), _9(!1, !1, { miniplayer: !1 }), YO(), !wk(sl || "/follow") && ($.route(sl || "/follow", !0), !(r7.entityPageView && r7.entityPageCurrent() && !R("#index").hidden) && (location.pathname === "/follow" && P9() ? (q_t(), F9({ view: M9() })) : bl({ pageOpens: dl + 1 })));
+	await D_t(), _9(!1, !1, { miniplayer: !1 }), YO(), !wk(sl || "/follow", { onReturn: () => {
+		location.pathname === "/follow" && P9() ? (q_t(), F9({ view: M9() })) : t9();
+	} }) && ($.route(sl || "/follow", !0), !(r7.entityPageView && r7.entityPageCurrent() && !R("#index").hidden) && (location.pathname === "/follow" && P9() ? (q_t(), F9({ view: M9() })) : bl({ pageOpens: dl + 1 })));
 }
 function Z_t(e) {
 	let t = document.createElement("div");
@@ -111552,7 +111562,9 @@ function cvt() {
 			}
 		}
 	}, U9.routing = !1, K5.own(xk.listen((e) => {
-		$.queueOpenRequest && e.seq !== $.queueOpenRequest.seq && !WO(e.location.pathname) && _9(!1), U9.routing && !e.claimed && O9();
+		$.queueOpenRequest && e.seq !== $.queueOpenRequest.seq && !WO(e.location.pathname) && _9(!1), U9.routing && (!e.claimed || e.action === "POP") && O9(), U9.routing && e.claimed && e.action === "POP" && queueMicrotask(() => {
+			T9(), L7();
+		});
 	})), Xpt(U9.shellActions).catch((e) => console.error("客户端导航装载失败", e)), bgt(), Ght(), F7(), Promise.all([
 		f9(),
 		vgt(),

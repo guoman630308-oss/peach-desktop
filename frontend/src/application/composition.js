@@ -171,7 +171,8 @@ applicationEffects.own(peachHistory.listen(navigation=>{
   /* 取齐前地址仍在源页：任何非覆盖历史变化（包括同地址 POP）都撤回这一趟，晚到的包或响应不能再开舞台。 */
   if(navigationState.queueOpenRequest&&navigation.seq!==navigationState.queueOpenRequest.seq&&!isOverlayPath(navigation.location.pathname))disposeStage(false);
   // 历史通知内先同步页面代次，再由路由元素的微任务领取取数代次。
-  if(compositionState.routing&&!navigation.claimed)syncRouteChrome();
+  if(compositionState.routing&&(!navigation.claimed||navigation.action==='POP'))syncRouteChrome();
+  if(compositionState.routing&&navigation.claimed&&navigation.action==='POP')queueMicrotask(()=>{syncNavigation();paintListTitle()});
 }));
 loadRouter(compositionState.shellActions).catch(error=>console.error('客户端导航装载失败',error));
 mountManageHeader();

@@ -69,12 +69,15 @@ it('关闭连续播放详情回到原始页面条目，不把中间视频当作�
   shellNavigate('/assets/12?parts=11');
   shellNavigate('/assets/12?parts=11&t=10', { replace: true });
   const go = vi.spyOn(peachHistory, 'go').mockImplementation(() => {});
-  expect(returnToHistoryPage('/performers/7?tag=return')).toBe(true);
+  const returned = vi.fn(() => peachHistory.navigation.location.pathname);
+  expect(returnToHistoryPage('/performers/7?tag=return', { onReturn: returned })).toBe(true);
+  expect(returned).not.toHaveBeenCalled();
   expect(go).toHaveBeenCalledExactlyOnceWith(-2);
   const epoch = peachHistory.navigation.openEpoch;
   window.history.replaceState(original, '', '/performers/7?tag=return');
   window.dispatchEvent(new PopStateEvent('popstate', { state: original }));
   expect(peachHistory.navigation).toMatchObject({ action: 'POP', claimed: true, openEpoch: epoch });
+  expect(returned).toHaveReturnedWith('/performers/7');
 });
 
 it('关闭详情只回到紧邻的已知背景，不穿过别的列表或跨越刷新前的未知条目', () => {

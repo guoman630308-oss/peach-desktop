@@ -6,7 +6,7 @@ import { immerseApi, loadImmerse, loadStage, stageApi } from '../react/applicati
 import { cancelQueueRequest, navigationState, openRoutedPage, requestOverlay } from './navigation.js';
 import { activeQueue, barsContext, detailOriginAbove, detailOriginAnchor, detailReturnBarsContext, detailReturnNeedsRestore, detailReturnPath, pageOpens, pendingQueueRoute, presentedItem, queueOpens, selectMode, selected, state, writeShell } from './../shell/index';
 import { scheduleStickySurfaces } from './layout.js';
-import { clearOverlayBackground, holdOverlayBackground, overlayState, takeOverlayReturn } from './../history/overlay';
+import { clearOverlayBackground, holdOverlayBackground, isOverlayPath, overlayState, takeOverlayReturn } from './../history/overlay';
 import { peachHistory, returnToHistoryPage, shellNavigate } from './../history/index';
 import { $, DURATION_TAGS } from '../core';
 import { apiGet } from '../api';
@@ -36,7 +36,7 @@ export function disposeStage(push=false,preserveInlineOrigin=false,{miniplayer=t
     writeShell({detailOriginAnchor:null,detailOriginAbove:false,detailReturnNeedsRestore:false});
   }
   scheduleStickySurfaces();
-  if(push&&!returnToHistoryPage(detailReturnPath||'/'))navigationState.route(detailReturnPath||'/',true);
+  if(push&&!returnToHistoryPage(detailReturnPath||'/',{onReturn:buildBars}))navigationState.route(detailReturnPath||'/',true);
 }
 
 export function repaintDetailPoster(){stageApi()?.repaintPoster()}
@@ -45,7 +45,7 @@ export function openQueue(kind,key,itemId,push,anchor=null,options={}){
   key=+key;
   const same=activeQueue?.kind===kind&&(kind==='playlist'?activeQueue.playlistId:activeQueue.seedId)===key;
   /* 同一个队列里换条，来处保持打开队列那一刻的那一页：播放列表关掉回列表页并重读。 */
-  if(push&&!same)writeShell({detailReturnPath:location.pathname+location.search});
+  if(push&&!same&&!isOverlayPath(location.pathname))writeShell({detailReturnPath:location.pathname+location.search});
   /* 队列地址取完数才推（`present`），背景按此刻记；同队列换条在详情地址上，沿用上一条的背景。 */
   if(push)holdOverlayBackground();
   const queue=kind==='playlist'?{kind,playlistId:key,fresh:true}:{kind,seedId:key,fresh:!same};
@@ -77,7 +77,7 @@ export async function openItem(id,push=true,queue=null,anchor=null,queuePush=fal
   if(queueRequest?.cancelled)return;
   if(!queueRequest)cancelQueueRequest();
   if(push&&!queue){
-    writeShell({detailReturnPath:location.pathname+location.search});
+    if(!isOverlayPath(location.pathname))writeShell({detailReturnPath:location.pathname+location.search});
     requestOverlay('/assets/'+(+id),'item',()=>openItem(id,false,null,anchor));
     return;
   }
@@ -90,9 +90,9 @@ export async function openItem(id,push=true,queue=null,anchor=null,queuePush=fal
   const returnSurfaceReady=hasReturnSurface();
   const needsReturnRestore=detailReturnNeedsRestore||(!push&&!returnSurfaceReady);
   const returnBars=barsContext.type==='item'?detailReturnBarsContext:entityState.cloneBarsContext(currentBarsContext());
-  /* 点进来记当前这一页；后退前进进来按条目记的来处，条目没记（冷启动、深链）就沿用上一次记的。
+  /* 从页面点进来记来处，详情内换条保留同一来处；后退前进按条目记的来处，没有记录时沿用当前来处。
      队列从详情里换条也以 push=false 进来（`queuePush`），来处已由 `openQueue` 定好，不在这里取。 */
-  if(push)writeShell({detailReturnPath:location.pathname+location.search});
+  if(push){if(!isOverlayPath(location.pathname))writeShell({detailReturnPath:location.pathname+location.search});}
   else if(!queuePush)writeShell({detailReturnPath:takeOverlayReturn()||detailReturnPath});
   // 条目的背景另记：从页面点进来记这一页，从详情里点开另一条沿用上一条的背景，不嵌套。
   if(push)holdOverlayBackground();
@@ -128,7 +128,7 @@ export async function closeItemDetail(){
   await stageExit();
   disposeStage(false,false,{miniplayer:false});writeShell({detailReturnBarsContext:null});clearOverlayBackground();
   writeShell({barsContext:restore||{type:'home',filters:state}});
-  if(returnToHistoryPage(returnPath,{reopen:new URL(returnPath,location.href).pathname==='/playlists'})){buildBars();return}
+  if(returnToHistoryPage(returnPath,{reopen:new URL(returnPath,location.href).pathname==='/playlists',onReturn:buildBars}))return;
   /* 下面没有那一屏、要照地址重建时，管理区不认领写地址、领一个页面打开序号重开，其余认领写地址后要路由树从头重开。 */
   if(restoreSurface&&navigationState.managedPagePath(new URL(returnPath,location.href).pathname)){navigationState.navigatePath(returnPath,true);return}
   navigationState.route(returnPath,true);
@@ -140,7 +140,7 @@ export async function closeItemDetail(){
 /** 库外作品在同一个详情舞台打开，来处与关闭行为跟随覆盖条目。 */
 export async function openJavMovie(code,push=true){
   if(push){
-    writeShell({detailReturnPath:location.pathname+location.search});
+    if(!isOverlayPath(location.pathname))writeShell({detailReturnPath:location.pathname+location.search});
     requestOverlay('/works/'+encodeURIComponent(code),'jav',()=>openJavMovie(code,false));
     return;
   }
